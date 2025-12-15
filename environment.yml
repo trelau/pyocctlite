@@ -1,0 +1,13 @@
+name: pyocctlite
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - cmake
+  - python
+  - pybind11
+  - tbb-devel
+  - pthreads-win32
+  - boost-cpp
+  - occt
+  - smesh
