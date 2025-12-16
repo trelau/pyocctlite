@@ -12,7 +12,7 @@ __all__ = ['Point2D', 'Point', 'Vector2D', 'Vector', 'Frame2D', 'Frame', 'Transf
 class Point2D:
 
     @classmethod
-    def by_xyz(cls, x: float, y: float) -> Point2D:
+    def by_xy(cls, x: float, y: float) -> Point2D:
         return cls(IPoint2D(x, y))
 
     def __init__(self, p: IPoint2D):

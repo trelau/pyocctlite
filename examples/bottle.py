@@ -46,7 +46,7 @@ bottle = bottle.thicken(-thickness / 50., 1.0e-3, [neck.top_face])
 
 cs1 = CylindricalSurface.by_radius(frame, neck_radius * 0.99)
 cs2 = CylindricalSurface.by_radius(frame, neck_radius * 1.05)
-p2d = Point2D.by_xyz(2. * math.pi, neck_height / 2.)
+p2d = Point2D.by_xy(2. * math.pi, neck_height / 2.)
 v2d = Vector2D.by_xy(2. * math.pi, neck_height / 4.)
 f2d = Frame2D.by_vector(p2d, v2d)
 rmajor = 2. * math.pi
@@ -65,9 +65,9 @@ e2s2 = Edge.by_curve2d(aseg, cs2)
 w1 = Wire.by_edges([e1s1, e2s1])
 w2 = Wire.by_edges([e1s2, e2s2])
 threads = Solid.by_loft([w1, w2])
+bottle = bottle.unite(threads)
 
 # Export STEP
-bottle = bottle.unite(threads)
 bottle.export_step('bottle.step')
 
 # Mesh
