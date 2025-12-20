@@ -3,15 +3,16 @@ from __future__ import annotations
 from enum import Enum
 from typing import Iterable, Iterator, Optional, Self, Union
 
-from pyocctlite._occtlite import (CopyIShape, ExploreIShape, ExtrudeIShape, FilletIShape, IShape,
-                                  IShapeKind, LoftIShape, MapIShape, ThickenIShape, TransformIShape,
-                                  UniteIShapes)
+from pyocctlite._occtlite import (CopyIShape, CutIShapes, ExploreIShape, ExtrudeIShape,
+                                  FilletIShape,
+                                  IShape, IShapeKind, LoftIShape, MapIShape, ThickenIShape,
+                                  TransformIShape, UniteIShapes)
 
 from pyocctlite.geometry import Curve, Curve2D, Point, Surface, Transform, TrimmedCurve, Vector
 
 __all__ = ['Shape', 'Vertex', 'Edge', 'Wire', 'Face', 'Shell', 'Solid', 'CompSolid', 'Compound',
-           'UniteShapes', 'ExtrudeShape', 'ThickenShape', 'LoftShape', 'ShapeKind', 'MapShape',
-           'ExploreShape']
+           'UniteShapes', 'CutShapes', 'ExtrudeShape', 'ThickenShape', 'LoftShape', 'ShapeKind',
+           'MapShape', 'ExploreShape']
 
 
 class ShapeKind(Enum):
@@ -237,13 +238,24 @@ class Shape:
 
     def unite(self, other: Shape) -> Shape:
         """
-        Unite this shape with another.
+        Unite this shape with another (boolean union).
 
-        :param Shape other: Other shape.
+        :param Shape other: Shape to unite.
         :return: United shape.
         :rtype: Shape
         """
         ishape = UniteIShapes(self.ishape, other.ishape).Shape()
+        return Shape.by_ishape(ishape)
+
+    def cut(self, other: Shape) -> Shape:
+        """
+        Cut another shape from this shape (boolean subtraction).
+
+        :param Shape other: Shape to subtract.
+        :return: Resulting shape.
+        :rtype: Shape
+        """
+        ishape = CutIShapes(self.ishape, other.ishape).Shape()
         return Shape.by_ishape(ishape)
 
     def fillet(self, edge: Union[Edge, Iterable[Edge]], radius) -> Shape:
@@ -609,14 +621,39 @@ class UniteShapes(ShapeTool):
     Tool to unite shapes.
     """
 
-    def __init__(self, tool: Shape, target: Shape):
+    def __init__(self, target: Shape, tool: Shape):
         """
-        Initialize with source and target shapes.
+        Initialize with target and tool shapes.
 
-        :param Shape tool: Source shape.
-        :param Shape target: Target shape.
+        :param Shape target: Target shape to unit with.
+        :param Shape tool: Tool shape to unite.
         """
-        itool = UniteIShapes(tool.ishape, target.ishape)
+        itool = UniteIShapes(target.ishape, tool.ishape)
+        super().__init__(itool)
+
+    def intersection_edges(self) -> list[Edge]:
+        """
+        Get intersection edges.
+
+        :return: Intersection edges.
+        :rtype: list[Edge]
+        """
+        return [Edge(e) for e in self._itool.IntersectionEdges()]
+
+
+class CutShapes(ShapeTool):
+    """
+    Tool to cut shapes (boolean subtraction).
+    """
+
+    def __init__(self, target: Shape, tool: Shape):
+        """
+        Initialize with target and tool shapes.
+
+        :param Shape target: Target shape to cut from.
+        :param Shape tool: Tool shape to subtract.
+        """
+        itool = CutIShapes(target.ishape, tool.ishape)
         super().__init__(itool)
 
     def intersection_edges(self) -> list[Edge]:
@@ -668,7 +705,8 @@ class ThickenShape(ShapeTool):
     Tool to thicken a shape.
     """
 
-    def __init__(self, s: Shape, thickness: float, tol=1.0e-3, faces: Optional[Iterable[Face]] = None):
+    def __init__(self, s: Shape, thickness: float, tol=1.0e-3, faces: Optional[
+        Iterable[Face]] = None):
         """
         Initialize with shape and thickness.
 

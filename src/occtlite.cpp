@@ -21,6 +21,7 @@
 #include "TransformIShape.hpp"
 #include "FilletIShape.hpp"
 #include "UniteIShapes.hpp"
+#include "CutIShapes.hpp"
 #include "ThickenIShape.hpp"
 #include "LoftIShape.hpp"
 #include "IShapeErrors.hpp"
@@ -52,6 +53,7 @@ PYBIND11_MODULE(_occtlite, m) {
   bind_TransformIShape(m);
   bind_FilletIShape(m);
   bind_UniteIShapes(m);
+  bind_CutIShapes(m);
   bind_ThickenIShape(m);
   bind_LoftIShape(m);
   bind_IShapeErrors(m);
