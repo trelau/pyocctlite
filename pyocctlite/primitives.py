@@ -5,9 +5,26 @@ __all__ = ['Cylinder']
 
 
 class Cylinder(Solid):
+    """
+    Represents a cylinder.
+
+    :ivar Solid solid: Underlying solid.
+    :ivar Face bottom_face: Bottom face.
+    :ivar Face top_face: Top face.
+    :ivar Face lateral_face: Lateral face.
+    """
 
     @classmethod
     def by_size(cls, radius: float, height: float, frame: Frame):
+        """
+        Create a cylinder from size and location.
+
+        :param float radius: Radius.
+        :param float height: Height.
+        :param Frame frame: Coordinate system.
+        :return: New cylinder.
+        :rtype: Cylinder
+        """
         # make a circle at frame of radius
         c = Circle.by_radius(frame, radius)
 
@@ -38,6 +55,14 @@ class Cylinder(Solid):
         return cls(solid, bottom_face, top_face, lateral_face)
 
     def __init__(self, solid: Solid, bottom_face: Face, top_face: Face, lateral_face: Face):
+        """
+        Initialize from component faces.
+
+        :param Solid solid: Underlying solid.
+        :param Face bottom_face: Bottom face.
+        :param Face top_face: Top face.
+        :param Face lateral_face: Lateral face.
+        """
         super().__init__(solid.ishape)
 
         self._solid = solid
@@ -47,16 +72,40 @@ class Cylinder(Solid):
 
     @property
     def solid(self) -> Solid:
+        """
+        Underlying solid.
+
+        :return: Solid object.
+        :rtype: Solid
+        """
         return self._solid
 
     @property
     def bottom_face(self) -> Face:
+        """
+        Bottom face.
+
+        :return: Face object.
+        :rtype: Face
+        """
         return self._bottom_face
 
     @property
     def top_face(self) -> Face:
+        """
+        Top face.
+
+        :return: Face object.
+        :rtype: Face
+        """
         return self._top_face
 
     @property
     def lateral_face(self) -> Face:
+        """
+        Lateral face.
+
+        :return: Face object.
+        :rtype: Face
+        """
         return self._lateral_face
