@@ -34,6 +34,11 @@ public:
     return vec_.Z();
   }
 
+  // Get the magnitude of the vector
+  double Magnitude() const {
+    return vec_.Magnitude();
+  }
+
   // Make a scaled copy of this vector
   IVector Scaled(const double scale) const {
     return IVector(vec_.Scaled(scale));

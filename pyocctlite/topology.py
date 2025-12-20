@@ -58,10 +58,15 @@ class Shape:
     def __init__(self, s: IShape):
         assert isinstance(s, IShape)
         self._ishape = s
+        self._kind = ShapeKind.SHAPE
 
     @property
     def ishape(self) -> IShape:
         return self._ishape
+
+    @property
+    def kind(self) -> ShapeKind:
+        return self._kind
 
     def explore(self, find: ShapeKind, ignore: ShapeKind = ShapeKind.SHAPE) -> ExploreShape:
         return ExploreShape(self, find, ignore)
@@ -107,8 +112,8 @@ class Shape:
         return Shape.by_ishape(ishape)
 
     def unite(self, other: Shape) -> Shape:
-        s = UniteIShapes(self.ishape, other.ishape).Shape()
-        return Shape.by_ishape(s)
+        ishape = UniteIShapes(self.ishape, other.ishape).Shape()
+        return Shape.by_ishape(ishape)
 
     def fillet(self, edge: Union[Edge, Iterable[Edge]], radius) -> Shape:
         itool = FilletIShape(self.ishape)
@@ -141,6 +146,7 @@ class Vertex(Shape):
     def __init__(self, v: IShape):
         super().__init__(v)
         assert v.Kind() == IShapeKind.Vertex
+        self._kind = ShapeKind.VERTEX
 
 
 class Edge(Shape):
@@ -169,6 +175,7 @@ class Edge(Shape):
     def __init__(self, e: IShape):
         super().__init__(e)
         assert e.Kind() == IShapeKind.Edge
+        self._kind = ShapeKind.EDGE
 
 
 class Wire(Shape):
@@ -187,6 +194,7 @@ class Wire(Shape):
     def __init__(self, w: IShape):
         super().__init__(w)
         assert w.Kind() == IShapeKind.Wire
+        self._kind = ShapeKind.WIRE
 
     def combine(self, other: Wire) -> Wire:
         iwire = IShape.MakeWire(self.ishape, other.ishape)
@@ -203,6 +211,7 @@ class Face(Shape):
     def __init__(self, f: IShape):
         super().__init__(f)
         assert f.Kind() == IShapeKind.Face
+        self._kind = ShapeKind.FACE
 
 
 class Shell(Shape):
@@ -210,6 +219,7 @@ class Shell(Shape):
     def __init__(self, s: IShape):
         super().__init__(s)
         assert s.Kind() == IShapeKind.Shell
+        self._kind = ShapeKind.SHELL
 
 
 class Solid(Shape):
@@ -231,6 +241,7 @@ class Solid(Shape):
     def __init__(self, s: IShape):
         super().__init__(s)
         assert s.Kind() == IShapeKind.Solid
+        self._kind = ShapeKind.SOLID
 
 
 class CompSolid(Shape):
@@ -238,6 +249,7 @@ class CompSolid(Shape):
     def __init__(self, cs: IShape):
         super().__init__(cs)
         assert cs.Kind() == IShapeKind.CompSolid
+        self._kind = ShapeKind.COMPSOLID
 
 
 class Compound(Shape):
@@ -245,6 +257,7 @@ class Compound(Shape):
     def __init__(self, c: IShape):
         super().__init__(c)
         assert c.Kind() == IShapeKind.Compound
+        self._kind = ShapeKind.COMPOUND
 
 
 class ShapeTool:

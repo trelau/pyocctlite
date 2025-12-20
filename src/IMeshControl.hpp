@@ -11,11 +11,11 @@ class IMeshControl {
 public:
 
   // Fatory methods to create mesh controls
-  static IMeshControl MakeControl1D(const IShape& shape, std::optional<double> edge_size = std::nullopt, std::optional<double> deflection = std::nullopt);
+  static IMeshControl Make1D(const IShape& shape, std::optional<double> edge_size = std::nullopt, std::optional<double> deflection = std::nullopt);
 
-  static IMeshControl MakeControl2D(const IShape& shape, std::optional<double> edge_size = std::nullopt, std::optional<double> deflection = std::nullopt, bool quads = false);
+  static IMeshControl Make2D(const IShape& shape, std::optional<double> edge_size = std::nullopt, std::optional<double> deflection = std::nullopt, bool quads = false);
 
-  static IMeshControl MakeControl3D(const IShape& shape, std::optional<double> max_edge_size = std::nullopt, std::optional<double> deflection = std::nullopt);
+  static IMeshControl Make3D(const IShape& shape, std::optional<double> max_edge_size = std::nullopt, std::optional<double> deflection = std::nullopt);
 
   int Dimension() const { return dim_; }
 

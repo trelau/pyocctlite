@@ -21,13 +21,18 @@ public:
   // Construct a vector by its X, Y, Z components
   IVector2D(double x, double y) : vec_(x, y) {}
 
-  // Getters for X, Y, Z components
+  // Getters for X, Y components
   double X() const {
     return vec_.X();
   }
 
   double Y() const {
     return vec_.Y();
+  }
+
+  // Get the magnitude of the vector
+  double Magnitude() const {
+    return vec_.Magnitude();
   }
 
   // Make a scaled copy of this vector

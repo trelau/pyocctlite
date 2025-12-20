@@ -23,6 +23,14 @@ class Point2D:
     def ipoint(self) -> IPoint2D:
         return self._ipoint
 
+    @property
+    def x(self) -> float:
+        return self.ipoint.X()
+
+    @property
+    def y(self) -> float:
+        return self.ipoint.Y()
+
 
 class Vector2D:
 
@@ -37,6 +45,18 @@ class Vector2D:
     @property
     def ivector(self) -> IVector2D:
         return self._ivector
+
+    @property
+    def x(self) -> float:
+        return self.ivector.X()
+
+    @property
+    def y(self) -> float:
+        return self.ivector.Y()
+
+    @property
+    def magnitude(self) -> float:
+        return self.ivector.Magnitude()
 
     def scaled(self, scale: float) -> Vector2D:
         return Vector2D(self.ivector.scaled(scale))
@@ -129,6 +149,18 @@ class Point:
     def ipoint(self) -> IPoint:
         return self._ipoint
 
+    @property
+    def x(self) -> float:
+        return self.ipoint.X()
+
+    @property
+    def y(self) -> float:
+        return self.ipoint.Y()
+
+    @property
+    def z(self) -> float:
+        return self.ipoint.Z()
+
 
 class Vector:
 
@@ -143,6 +175,22 @@ class Vector:
     @property
     def ivector(self) -> IVector:
         return self._ivector
+
+    @property
+    def x(self) -> float:
+        return self.ivector.X()
+
+    @property
+    def y(self) -> float:
+        return self.ivector.Y()
+
+    @property
+    def z(self) -> float:
+        return self.ivector.Z()
+
+    @property
+    def magnitude(self) -> float:
+        return self.ivector.Magnitude()
 
     def scaled(self, scale: float) -> Vector:
         return Vector(self.ivector.Scaled(scale))

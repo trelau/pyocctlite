@@ -14,6 +14,7 @@ void bind_IVector2D(py::module& m) {
 
     .def("X", &IVector2D::X, "Vector X-component.")
     .def("Y", &IVector2D::Y, "Vector Y-component.")
+    .def("Magnitude", &IVector2D::Magnitude, "Get the magnitude of the vector.")
     .def("Scaled", &IVector2D::Scaled, py::arg("scale"), "Return a scaled copy of this vector.");
 
 }

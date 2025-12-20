@@ -15,6 +15,7 @@ void bind_IVector(py::module& m) {
     .def("X", &IVector::X, "Vector X-component.")
     .def("Y", &IVector::Y, "Vector Y-component.")
     .def("Z", &IVector::Z, "Vector Z-component.")
+    .def("Magnitude", &IVector::Magnitude, "Get the magnitude of the vector.")
     .def("Scaled", &IVector::Scaled, py::arg("scale"), "Return a scaled copy of this vector.");
 
 }
