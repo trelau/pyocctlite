@@ -537,6 +537,19 @@ class Compound(Shape):
     Represents a compound.
     """
 
+    @classmethod
+    def by_shapes(cls, shapes: Iterable[Shape]) -> Compound:
+        """
+        Create a compound from a list of shapes.
+
+        :param Iterable[Shape] shapes: Shapes to include in the compound.
+        :return: New compound.
+        :rtype: Compound
+        """
+        ishapes = [s.ishape for s in shapes]
+        icompound = IShape.MakeCompound(ishapes)
+        return cls(icompound)
+
     def __init__(self, c: IShape):
         """
         Initialize from an IShape.

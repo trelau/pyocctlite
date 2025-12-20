@@ -1,5 +1,6 @@
 #include "IShape.hpp"
 
+#include <BRep_Builder.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
@@ -95,6 +96,19 @@ IShape IShape::MakeFace(const IShape& w) {
   return IShape(f);
 }
 
+IShape IShape::MakeCompound(const std::vector<IShape>& shapes) {
+
+  BRep_Builder builder;
+  TopoDS_Compound compound;
+  builder.MakeCompound(compound);
+
+  for (const IShape& shape : shapes) {
+    builder.Add(compound, shape);
+  }
+
+  return IShape(compound);
+}
+
 void IShape::ValidateKind(const IShapeKind expected) const {
   if (kind_ != expected) {
     throw IShapeTypeMismatch(
@@ -144,6 +158,7 @@ void bind_IShape(py::module& m) {
     .def_static("MakeWire", py::overload_cast<const std::vector<IShape>&>(&IShape::MakeWire), py::arg("edges"), "Make a wire by topologically or geometrically connected edges.")
     .def_static("MakeWire", py::overload_cast<const IShape&, const IShape&>(&IShape::MakeWire), py::arg("w1"), py::arg("w2"), "Make a new wire by combining two wires.")
     .def_static("MakeFace", &IShape::MakeFace, py::arg("w"), "Make a face by a planar wire.")
+    .def_static("MakeCompound", &IShape::MakeCompound, py::arg("shapes"), "Make a compound from a list of shapes.")
 
     .def("Kind", &IShape::Kind, "The kind of this shape.")
     .def("IsNull", &IShape::IsNull, "Whether or not this shape is null.")

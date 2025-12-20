@@ -55,6 +55,8 @@ public:
 
   static IShape MakeFace(const IShape& w);
 
+  static IShape MakeCompound(const std::vector<IShape>& shapes);
+
   // Constructor from TopoDS_Shape
   explicit IShape(const TopoDS_Shape& s)
     : shape_(s),
