@@ -28,7 +28,7 @@ class MeshControl:
         :return: New mesh control.
         :rtype: MeshControl
         """
-        c = IMeshControl.MakeControl1D(shape.ishape, edge_size, deflection)
+        c = IMeshControl.Make1D(shape.ishape, edge_size, deflection)
         return cls(c)
 
     @classmethod
@@ -44,7 +44,7 @@ class MeshControl:
         :return: New mesh control.
         :rtype: MeshControl
         """
-        c = IMeshControl.MakeControl2D(shape.ishape, edge_size, deflection, allow_quads)
+        c = IMeshControl.Make2D(shape.ishape, edge_size, deflection, allow_quads)
         return cls(c)
 
     @classmethod
@@ -59,7 +59,7 @@ class MeshControl:
         :return: New mesh control.
         :rtype: MeshControl
         """
-        c = IMeshControl.MakeControl3D(shape.ishape, edge_size, deflection)
+        c = IMeshControl.Make3D(shape.ishape, edge_size, deflection)
         return cls(c)
 
     def __init__(self, c: IMeshControl):

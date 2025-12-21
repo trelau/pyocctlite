@@ -10,7 +10,7 @@ class IVector2D {
 public:
 
   // Make a vector by its X, Y components
-  static IVector2D makeByXY(double x, double y);
+  static IVector2D MakeByXY(double x, double y);
 
   // Construct from gp_Vec2d
   explicit IVector2D(const gp_Vec2d& v) : vec_(v) {}
@@ -18,7 +18,7 @@ public:
   // Construct from gp_Dir
   explicit IVector2D(const gp_Dir2d& d) : vec_(d) {}
 
-  // Construct a vector by its X, Y, Z components
+  // Construct a vector by its X, Y components
   IVector2D(double x, double y) : vec_(x, y) {}
 
   // Getters for X, Y components

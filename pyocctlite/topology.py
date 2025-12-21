@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Iterable, Iterator, Optional, Self, Union
+from typing import Generic, Iterable, Iterator, Optional, Self, TypeVar, Union
 
 from pyocctlite._occtlite import (CopyIShape, CutIShapes, ExploreIShape, ExtrudeIShape,
                                   FilletIShape,
@@ -13,6 +13,8 @@ from pyocctlite.geometry import Curve, Curve2D, Point, Surface, Transform, Trimm
 __all__ = ['Shape', 'Vertex', 'Edge', 'Wire', 'Face', 'Shell', 'Solid', 'CompSolid', 'Compound',
            'UniteShapes', 'CutShapes', 'ExtrudeShape', 'ThickenShape', 'LoftShape', 'ShapeKind',
            'MapShape', 'ExploreShape']
+
+T = TypeVar('T', bound='Shape')
 
 
 class ShapeKind(Enum):
@@ -109,96 +111,96 @@ class Shape:
         """
         return self._kind
 
-    def explore(self, find: ShapeKind, ignore: ShapeKind = ShapeKind.SHAPE) -> ExploreShape:
+    def explore(self, find: ShapeKind, ignore: ShapeKind = ShapeKind.SHAPE) -> ExploreShape[T]:
         """
         Explore sub-shapes.
 
         :param ShapeKind find: Kind of shapes to find.
         :param ShapeKind ignore: Kind of shapes to ignore.
         :return: Explore tool.
-        :rtype: ExploreShape
+        :rtype: ExploreShape[T]
         """
         return ExploreShape(self, find, ignore)
 
-    def map(self, kind: ShapeKind) -> MapShape:
+    def map(self, kind: ShapeKind) -> MapShape[T]:
         """
         Map sub-shapes.
 
         :param ShapeKind kind: Kind of shapes to map.
         :return: Map tool.
-        :rtype: MapShape
+        :rtype: MapShape[T]
         """
         return MapShape(self, kind)
 
-    def vertices(self) -> Union[MapShape, Iterable[Vertex]]:
+    def vertices(self) -> MapShape[Vertex]:
         """
         Get all vertices.
 
         :return: Map of vertices.
-        :rtype: Union[MapShape, Iterable[Vertex]]
+        :rtype: MapShape[Vertex]
         """
         return self.map(ShapeKind.VERTEX)
 
-    def edges(self) -> Union[MapShape, Iterable[Edge]]:
+    def edges(self) -> MapShape[Edge]:
         """
         Get all edges.
 
         :return: Map of edges.
-        :rtype: Union[MapShape, Iterable[Edge]]
+        :rtype: MapShape[Edge]
         """
         return self.map(ShapeKind.EDGE)
 
-    def wires(self) -> Union[MapShape, Iterable[Wire]]:
+    def wires(self) -> MapShape[Wire]:
         """
         Get all wires.
 
         :return: Map of wires.
-        :rtype: Union[MapShape, Iterable[Wire]]
+        :rtype: MapShape[Wire]
         """
         return self.map(ShapeKind.WIRE)
 
-    def faces(self) -> Union[MapShape, Iterable[Face]]:
+    def faces(self) -> MapShape[Face]:
         """
         Get all faces.
 
         :return: Map of faces.
-        :rtype: Union[MapShape, Iterable[Face]]
+        :rtype: MapShape[Face]
         """
         return self.map(ShapeKind.FACE)
 
-    def shells(self) -> Union[MapShape, Iterable[Shell]]:
+    def shells(self) -> MapShape[Shell]:
         """
         Get all shells.
 
         :return: Map of shells.
-        :rtype: Union[MapShape, Iterable[Shell]]
+        :rtype: MapShape[Shell]
         """
         return self.map(ShapeKind.SHELL)
 
-    def solids(self) -> Union[MapShape, Iterable[Solid]]:
+    def solids(self) -> MapShape[Solid]:
         """
         Get all solids.
 
         :return: Map of solids.
-        :rtype: Union[MapShape, Iterable[Solid]]
+        :rtype: MapShape[Solid]
         """
         return self.map(ShapeKind.SOLID)
 
-    def compsolids(self) -> Union[MapShape, Iterable[CompSolid]]:
+    def compsolids(self) -> MapShape[CompSolid]:
         """
         Get all compsolids.
 
         :return: Map of compsolids.
-        :rtype: Union[MapShape, Iterable[CompSolid]]
+        :rtype: MapShape[CompSolid]
         """
         return self.map(ShapeKind.COMPSOLID)
 
-    def compounds(self) -> Union[MapShape, Iterable[Compound]]:
+    def compounds(self) -> MapShape[Compound]:
         """
         Get all compounds.
 
         :return: Map of compounds.
-        :rtype: Union[MapShape, Iterable[Compound]]
+        :rtype: MapShape[Compound]
         """
         return self.map(ShapeKind.COMPOUND)
 
@@ -754,7 +756,7 @@ class LoftShape(ShapeTool):
         self._itool.AddWire(w.ishape)
 
 
-class MapShape:
+class MapShape(Generic[T]):
     """
     Tool to map and access sub-shapes.
     """
@@ -777,7 +779,7 @@ class MapShape:
         """
         return self._itool.Size()
 
-    def __iter__(self) -> Iterator[Shape]:
+    def __iter__(self) -> Iterator[T]:
         """
         Iterate over mapped shapes.
 
@@ -788,7 +790,7 @@ class MapShape:
         for i in range(1, self._itool.Size() + 1):
             yield Shape.by_ishape(self._itool.FindShape(i))
 
-    def __getitem__(self, index: int) -> Shape:
+    def __getitem__(self, index: int) -> T:
         """
         Get shape by index.
 
@@ -825,19 +827,19 @@ class MapShape:
         """
         return self._itool.Extent()
 
-    def find_shape(self, index: int) -> Shape:
+    def find_shape(self, index: int) -> T:
         """
         Find shape by 0-based index.
 
         :param int index: 0-based index.
         :return: Sub-shape.
-        :rtype: Shape
+        :rtype: T
         """
         # OCCT is 1-based, Python is 0-based
         ishape = self._itool.FindShape(index + 1)
         return Shape.by_ishape(ishape)
 
-    def find_index(self, shape: Shape) -> Optional[int]:
+    def find_index(self, shape: T) -> Optional[int]:
         """
         Find 0-based index of a shape.
 
@@ -849,7 +851,7 @@ class MapShape:
         indx = self._itool.FindIndex(shape.ishape)
         return None if indx <= 0 else indx - 1
 
-    def contains(self, shape: Shape) -> bool:
+    def contains(self, shape: T) -> bool:
         """
         Check if a shape is in the map.
 
@@ -860,7 +862,7 @@ class MapShape:
         return self._itool.Contains(shape.ishape)
 
 
-class ExploreShape:
+class ExploreShape(Generic[T]):
     """
     Tool to explore sub-shapes.
     """
@@ -877,12 +879,12 @@ class ExploreShape:
         self._find = find
         self._ignore = ignore
 
-    def __iter__(self) -> Iterator[Shape]:
+    def __iter__(self) -> Iterator[T]:
         """
         Iterate over discovered shapes.
 
-        :return: Iterator of shapes.
-        :rtype: Iterator[Shape]
+        :return: Iterator of shapes of type T.
+        :rtype: Iterator[T]
         """
         itool = ExploreIShape(self._shape.ishape, self._find.value, self._ignore.value)
         while itool.More():
