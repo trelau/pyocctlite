@@ -4,10 +4,6 @@ from pyocctlite._occtlite import (ICurve, ICurve2D, ICurve2DKind, ICurveKind, IF
                                   IPoint, IPoint2D, ISurface, ISurfaceKind, ITransform, IVector,
                                   IVector2D)
 
-__all__ = ['Point2D', 'Point', 'Vector2D', 'Vector', 'Frame2D', 'Frame', 'Transform', 'Curve',
-           'Curve2D', 'Line', 'Circle', 'TrimmedCurve', 'Surface', 'CylindricalSurface',
-           'Ellipse2D', 'TrimmedCurve2D']
-
 
 class Point2D:
     """

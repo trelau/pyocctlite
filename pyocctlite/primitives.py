@@ -1,8 +1,6 @@
 from pyocctlite.geometry import Circle, Frame
 from pyocctlite.topology import Edge, ExtrudeShape, Face, Solid, Wire
 
-__all__ = ['Cylinder']
-
 
 class Cylinder(Solid):
     """

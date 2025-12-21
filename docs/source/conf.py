@@ -54,16 +54,15 @@ exclude_patterns = []
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
 
-# If true, `todo` and `todoList` produce output, else they produce nothing.
-todo_include_todos = True
-
-# Member order
-autodoc_member_order = 'bysource'
-# autodoc_member_order = 'groupwise'
-
-# Default flags
-# autodoc_default_flags = ['members', 'inherited-members', 'show-inheritance']
-autodoc_default_flags = ['members', 'show-inheritance']
+# Default options
+autodoc_default_options = {
+    'members': True,
+    'member-order': 'bysource',
+    'undoc-members': True,
+    'show-inheritance': True,
+    'inherited-members': True,
+    'special-members': '__iter__',
+}
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

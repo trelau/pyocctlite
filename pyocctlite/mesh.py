@@ -6,7 +6,7 @@ from pyocctlite._occtlite import IMesh, IMeshControl
 
 from pyocctlite.topology import Shape
 
-__all__ = ['MeshControl', 'Mesh']
+
 
 
 class MeshControl:

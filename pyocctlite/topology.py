@@ -10,10 +10,6 @@ from pyocctlite._occtlite import (CopyIShape, CutIShapes, ExploreIShape, Extrude
 
 from pyocctlite.geometry import Curve, Curve2D, Point, Surface, Transform, TrimmedCurve, Vector
 
-__all__ = ['Shape', 'Vertex', 'Edge', 'Wire', 'Face', 'Shell', 'Solid', 'CompSolid', 'Compound',
-           'UniteShapes', 'CutShapes', 'ExtrudeShape', 'ThickenShape', 'LoftShape', 'ShapeKind',
-           'MapShape', 'ExploreShape']
-
 T = TypeVar('T', bound='Shape')
 
 
