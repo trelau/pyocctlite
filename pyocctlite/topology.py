@@ -843,7 +843,7 @@ class MapShape(Generic[T]):
         """
         Find 0-based index of a shape.
 
-        :param Shape shape: Sub-shape.
+        :param T shape: Sub-shape.
         :return: 0-based index, or None if not found.
         :rtype: Optional[int]
         """
@@ -855,7 +855,7 @@ class MapShape(Generic[T]):
         """
         Check if a shape is in the map.
 
-        :param Shape shape: Sub-shape.
+        :param T shape: Sub-shape.
         :return: True if found.
         :rtype: bool
         """
