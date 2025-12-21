@@ -127,7 +127,7 @@ Before implementing significant changes:
     - Do not expose new public symbols without explicit request.
 
 ## Testing
-- **Priority**: The high-level Python bindings are the most important. We do not need to write tests for C++ files or raw bindings.
+- **Priority**: The high-level Python bindings are the most important. Tests for C++ files or raw bindings are not required.
 - **Coverage**: Ideally, provide test cases for:
   - Every way of creating types in Python (alternative constructors).
   - Every property.
@@ -141,6 +141,7 @@ Before implementing significant changes:
   ```
 
 ## Documentation
+- **Tone and Style**: Use passive voice for documentation. Avoid using first-person pronouns like "we" or "I".
 - **Python**: Use Google-style or Sphinx-style docstrings for Python methods. Document parameters and return types clearly. High-level documentation is prioritized.
 - **C++**: No extensive docstrings needed. Use brief single-line comments.
 - **Examples**: Every major feature should have a corresponding example in `examples/`

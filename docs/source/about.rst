@@ -11,7 +11,7 @@ pyOCCT Lite exists to provide a **simple, opinionated API** for common geometry 
 Key Philosophy:
 
 *   **Pythonic First**: Designed to feel natural to Python users, using `snake_case`, properties, and standard Python types.
-*   **Clarity over Completeness**: We don't aim to wrap every OCCT function. We wrap what you actually need.
+*   **Clarity over Completeness**: There is no aim to wrap every OCCT function. Only what is actually needed is wrapped.
 *   **Immutable Design**: Operations generally return new objects rather than mutating existing ones, leading to more predictable code.
 *   **Thin C++ Layer**: The C++ interface layer is kept minimal and explicit, using `pybind11` for robust and efficient bindings.
 
@@ -26,4 +26,4 @@ pyOCCT Lite is built on top of several industry-standard libraries:
 
 Project Status
 --------------
-pyOCCT Lite is currently in early development. While the core geometry and topology modules are functional, the API is subject to change as we refine the design patterns.
+pyOCCT Lite is currently in early development. While the core geometry and topology modules are functional, the API is subject to change as the design patterns are refined.
