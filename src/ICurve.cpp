@@ -77,6 +77,18 @@ IVector ICurve::Derivative(double u, int order) const {
   return IVector(v);
 }
 
+std::optional<ICircleData> ICurve::CircleData() const {
+
+  if (kind_ != ICurveKind::Circle) {
+    return std::nullopt;
+  }
+  Handle(Geom_Circle) circle = AsCircle();
+  IFrame frame(circle->Position());
+  double radius = circle->Radius();
+  ICircleData data{frame, radius};
+  return data;
+}
+
 // Python bindings
 void bind_ICurve(py::module& m) {
 
@@ -103,6 +115,7 @@ void bind_ICurve(py::module& m) {
     .def("FirstParameter", &ICurve::FirstParameter, "The first parameter of this curve.")
     .def("LastParameter", &ICurve::LastParameter, "The last parameter of this curve.")
     .def("Evaluate", &ICurve::Evaluate, py::arg("u"), "Evaluate a point on this curve.")
-    .def("Derivative", &ICurve::Derivative, py::arg("u"), py::arg("order") = 1, "Evaluate a derivative on this curve.");
+    .def("Derivative", &ICurve::Derivative, py::arg("u"), py::arg("order") = 1, "Evaluate a derivative on this curve.")
+    .def("CircleData", &ICurve::CircleData, "Get circle data if this curve is a circle.");
 
 }

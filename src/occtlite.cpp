@@ -10,6 +10,7 @@
 #include "IFrame.hpp"
 #include "ITransform.hpp"
 #include "ICurve.hpp"
+#include "ICurveData.hpp"
 #include "ISurface.hpp"
 #include "ProjectIPointToICurve.hpp"
 
@@ -42,6 +43,7 @@ PYBIND11_MODULE(_occtlite, m) {
   bind_IFrame(m);
   bind_ITransform(m);
   bind_ICurve(m);
+  bind_ICurveData(m);
   bind_ISurface(m);
   bind_ProjectIPointToICurve(m);
 

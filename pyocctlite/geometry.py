@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from pyocctlite._occtlite import (ICurve, ICurve2D, ICurve2DKind, ICurveKind, IFrame, IFrame2D,
                                   IPoint, IPoint2D, ISurface, ISurfaceKind, ITransform, IVector,
                                   IVector2D)
@@ -665,15 +667,18 @@ class Circle(Curve):
     """
 
     @classmethod
-    def by_radius(cls, frame: Frame, radius: float) -> Circle:
+    def by_radius(cls, radius: float, frame: Optional[Frame] = None) -> Circle:
         """
         Create a circle from frame and radius.
 
-        :param Frame frame: Coordinate system.
         :param float radius: Circle radius.
+        :param Optional[Frame] frame: Coordinate system.
         :return: New 3D circle.
         :rtype: Circle
         """
+        if frame is None:
+            frame = Frame.by_origin(Point.by_xyz(0., 0., 0.))
+
         icurve = ICurve.MakeCircle(frame.iframe, radius)
         return cls(icurve)
 
@@ -708,7 +713,11 @@ class Circle(Curve):
         :return: Radius.
         :rtype: float
         """
-        return self.icurve.Radius()
+        idata = self.icurve.CircleData()
+        if idata is None:
+            raise TypeError('Curve is not a circle.')
+
+        return idata.radius
 
 
 class TrimmedCurve(Curve):

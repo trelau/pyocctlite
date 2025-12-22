@@ -24,7 +24,7 @@ class Cylinder(Solid):
         :rtype: Cylinder
         """
         # make a circle at frame of radius
-        c = Circle.by_radius(frame, radius)
+        c = Circle.by_radius(radius, frame)
 
         # make a face from that circle
         e = Edge.by_curve(c)

@@ -12,6 +12,7 @@
 #include <Geom_BSplineCurve.hxx>
 #include <Geom_TrimmedCurve.hxx>
 
+#include "ICurveData.hpp"
 #include "IPoint.hpp"
 #include "IVector.hpp"
 #include "IFrame.hpp"
@@ -106,6 +107,9 @@ public:
   Handle(Geom_TrimmedCurve) AsTrimmed() const {
     return Handle(Geom_TrimmedCurve)::DownCast(curve_);
   }
+
+  // Get circle data if this curve is a circle
+  std::optional<ICircleData> CircleData() const;
 
   // Conversion operator to Handle(Geom_Curve)
   operator Handle(Geom_Curve)() const {

@@ -1,6 +1,6 @@
 import unittest
 
-from pyocctlite.geometry import Point, Point2D, Vector, Vector2D
+from pyocctlite.geometry import Point, Point2D, Vector, Vector2D, Circle
 
 
 class TestPoint2D(unittest.TestCase):
@@ -37,6 +37,12 @@ class TestVector(unittest.TestCase):
         self.assertEqual(v.y, 2.)
         self.assertEqual(v.z, 3.)
         self.assertEqual(v.magnitude, 3.7416573867739413)
+
+class TestCircle(unittest.TestCase):
+
+    def test_by_radius(self):
+        c = Circle.by_radius(1.)
+        self.assertEqual(c.radius, 1.)
 
 
 if __name__ == '__main__':
