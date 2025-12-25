@@ -1,6 +1,6 @@
 import unittest
 
-from pyocctlite.geometry import Point, Point2D, Vector, Vector2D, Circle
+from pyocctlite.geometry import Circle, Line, Point, Point2D, Vector, Vector2D
 
 
 class TestPoint2D(unittest.TestCase):
@@ -37,6 +37,21 @@ class TestVector(unittest.TestCase):
         self.assertEqual(v.y, 2.)
         self.assertEqual(v.z, 3.)
         self.assertEqual(v.magnitude, 3.7416573867739413)
+
+
+class TestLine(unittest.TestCase):
+
+    def test_by_points(self):
+        p1 = Point.by_xyz(0, 0, 0)
+        p2 = Point.by_xyz(10, 0, 0)
+        l = Line.by_points(p1, p2)
+        self.assertEqual(l.origin.x, 0)
+        self.assertEqual(l.origin.y, 0)
+        self.assertEqual(l.origin.z, 0)
+        self.assertEqual(l.direction.x, 1)
+        self.assertEqual(l.direction.y, 0)
+        self.assertEqual(l.direction.z, 0)
+
 
 class TestCircle(unittest.TestCase):
 

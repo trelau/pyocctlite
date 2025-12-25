@@ -6,6 +6,7 @@
 
 #include "IPoint.hpp"
 #include "IVector.hpp"
+#include "IAxis.hpp"
 
 // Interface class for a 3D coordinate frame
 class IFrame {
@@ -21,6 +22,11 @@ public:
   IPoint Origin() const {
     gp_Pnt origin = frame_.Location();
     return IPoint(origin);
+  }
+
+  // Get the axis of the frame
+  IAxis Axis() const {
+    return IAxis(frame_.Axis());
   }
 
   // Get the X-direction of the frame

@@ -7,6 +7,7 @@
 
 #include "IPoint.hpp"
 #include "IVector.hpp"
+#include "IAxis.hpp"
 #include "IFrame.hpp"
 #include "ITransform.hpp"
 #include "ICurve.hpp"
@@ -40,6 +41,7 @@ PYBIND11_MODULE(_occtlite, m) {
 
   bind_IPoint(m);
   bind_IVector(m);
+  bind_IAxis(m);
   bind_IFrame(m);
   bind_ITransform(m);
   bind_ICurve(m);

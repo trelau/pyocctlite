@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pyocctlite._occtlite import (ICurve, ICurve2D, ICurve2DKind, ICurveKind, IFrame, IFrame2D,
-                                  IPoint, IPoint2D, ISurface, ISurfaceKind, ITransform, IVector,
-                                  IVector2D)
+from pyocctlite._occtlite import (IAxis, ICurve, ICurve2D, ICurve2DKind, ICurveKind, IFrame,
+                                  IFrame2D, IPoint, IPoint2D, ISurface, ISurfaceKind, ITransform,
+                                  IVector, IVector2D)
 
 
 class Point2D:
@@ -486,6 +486,48 @@ class Vector:
         return Vector(self.ivector.Scaled(scale))
 
 
+class Axis:
+
+    def __init__(self, a: IAxis):
+        """
+        Initialize from an IAxis.
+
+        :param IAxis a: Underlying 3D axis.
+        """
+        assert isinstance(a, IAxis)
+        self._iaxis = a
+
+    @property
+    def iaxis(self) -> IAxis:
+        """
+        Underlying 3D axis.
+
+        :return: IAxis object.
+        :rtype: IAxis
+        """
+        return self._iaxis
+
+    @property
+    def origin(self) -> Point:
+        """
+        Origin of the axis.
+
+        :return: Origin of the axis.
+        :rtype: Point
+        """
+        return Point(self.iaxis.Origin())
+
+    @property
+    def direction(self) -> Vector:
+        """
+        Direction of the axis.
+
+        :return: Direction of the axis.
+        :rtype: Vector
+        """
+        return Vector(self.iaxis.Direction())
+
+
 class Frame:
     """
     Represents a 3D coordinate system.
@@ -660,6 +702,34 @@ class Line(Curve):
         super().__init__(c)
         assert c.Kind() == ICurveKind.Line
 
+    @property
+    def origin(self) -> Point:
+        """
+        Origin of the line
+
+        :return: The origin of the line.
+        :rtype: Point
+        """
+        idata = self.icurve.LineData()
+        if idata is None:
+            raise TypeError('Curve is not a line.')
+
+        return Point(idata.Origin)
+
+    @property
+    def direction(self) -> Vector:
+        """
+        Direction vector of the line
+
+        :return: The direction vector of the line.
+        :rtype: Vector
+        """
+        idata = self.icurve.LineData()
+        if idata is None:
+            raise TypeError('Curve is not a line.')
+
+        return Vector(idata.Direction)
+
 
 class Circle(Curve):
     """
@@ -717,7 +787,7 @@ class Circle(Curve):
         if idata is None:
             raise TypeError('Curve is not a circle.')
 
-        return idata.radius
+        return idata.Radius
 
 
 class TrimmedCurve(Curve):

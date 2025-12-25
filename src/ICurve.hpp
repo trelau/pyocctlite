@@ -50,6 +50,7 @@ public:
   ICurveKind Kind() const {
     return kind_;
   }
+
   // Check if the curve is closed
   bool IsClosed() const {
     return curve_->IsClosed();
@@ -107,6 +108,9 @@ public:
   Handle(Geom_TrimmedCurve) AsTrimmed() const {
     return Handle(Geom_TrimmedCurve)::DownCast(curve_);
   }
+
+  // Get line data if this curve is a line
+  std::optional<ILineData> LineData() const;
 
   // Get circle data if this curve is a circle
   std::optional<ICircleData> CircleData() const;
