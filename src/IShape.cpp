@@ -2,11 +2,13 @@
 
 #include <BRep_Builder.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
-#include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
+#include <BRepBuilderAPI_MakeWire.hxx>
+#include <BRepGProp.hxx>
 #include <BRepLib.hxx>
 #include <GC_MakeArcOfCircle.hxx>
 #include <Geom_TrimmedCurve.hxx>
+#include <GProp_GProps.hxx>
 #include <STEPControl_Writer.hxx>
 #include <TopExp.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
@@ -136,6 +138,30 @@ bool IShape::ExportSTEP(const std::string& fname) const {
   return true;
 }
 
+double IShape::Length() const {
+
+  GProp_GProps props;
+  BRepGProp::LinearProperties(shape_, props, true, false);
+
+  return props.Mass();
+}
+
+double IShape::Area() const {
+
+  GProp_GProps props;
+  BRepGProp::SurfaceProperties(shape_, props, true, false);
+
+  return props.Mass();
+}
+
+double IShape::Volume() const {
+
+  GProp_GProps props;
+  BRepGProp::VolumeProperties(shape_, props, true, true, false);
+
+  return props.Mass();
+}
+
 // Python bindings
 void bind_IShape(py::module& m) {
 
@@ -164,6 +190,9 @@ void bind_IShape(py::module& m) {
     .def("IsNull", &IShape::IsNull, "Whether or not this shape is null.")
     .def("IsEqual", &IShape::IsEqual, py::arg("other"), "Check if this shape is equal to the other.")
     .def("IsSame", &IShape::IsSame, py::arg("other"), "Check if this shape is the same as the other (orientation may differ).")
-    .def("ExportSTEP", &IShape::ExportSTEP, py::arg("fname"), "Export this shape to a STEP file.");
+    .def("ExportSTEP", &IShape::ExportSTEP, py::arg("fname"), "Export this shape to a STEP file.")
+    .def("Length", &IShape::Length, "Calculate the length of all edges of this shape.")
+    .def("Area", &IShape::Area, "Calculate the area of all faces of this shape.")
+    .def("Volume", &IShape::Volume, "Calculate the volume of all solids of this shape.");
 
 }

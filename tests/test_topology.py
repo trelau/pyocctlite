@@ -11,6 +11,7 @@ class TestEdge(unittest.TestCase):
         p2 = Point.by_xyz(1, 0, 0)
         e = Edge.by_points(p1, p2)
         self.assertEqual(e.kind, ShapeKind.EDGE)
+        self.assertEqual(e.length, 1.)
 
 
 class TestCompound(unittest.TestCase):
@@ -47,6 +48,11 @@ class TestCompound(unittest.TestCase):
 
         edges = list(compound.edges())
         self.assertEqual(len(edges), 13)
+
+        # Verify mass properties
+        self.assertAlmostEqual(compound.length, 13., 7)
+        self.assertAlmostEqual(compound.area, 6., 7)
+        self.assertAlmostEqual (compound.volume, 1., 7)
 
 
 if __name__ == '__main__':

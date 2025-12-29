@@ -131,6 +131,15 @@ public:
   // Validate that the shape is of the expected kind
   void ValidateKind(const IShapeKind expected) const;
 
+  // Calculate the length of the shape
+  double Length() const;
+
+  // Calculate the area of the shape
+  double Area() const;
+
+  // Calculate the volume of the shape
+  double Volume() const;
+
   // Conversion operator to TopoDS_Shape
   operator const TopoDS_Shape& () const {
     return shape_;

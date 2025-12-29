@@ -107,6 +107,36 @@ class Shape:
         """
         return self._kind
 
+    @property
+    def length(self) -> float:
+        """
+        The length of all edges of the shape.
+
+        :rtype: float
+        :return: The length of all edges of the shape.
+        """
+        return self.ishape.Length()
+
+    @property
+    def area(self) -> float:
+        """
+        The area of all faces of the shape.
+
+        :rtype: float
+        :return: The area of all faces of the shape.
+        """
+        return self.ishape.Area()
+
+    @property
+    def volume(self) -> float:
+        """
+        The volume of all solids of the shape.
+
+        :rtype: float
+        :return: The volume of all solids of the shape.
+        """
+        return self.ishape.Volume()
+
     def explore(self, find: ShapeKind, ignore: ShapeKind = ShapeKind.SHAPE) -> ExploreShape[T]:
         """
         Explore sub-shapes.
