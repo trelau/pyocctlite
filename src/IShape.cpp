@@ -1,6 +1,7 @@
 #include "IShape.hpp"
 
 #include <BRep_Builder.hxx>
+#include <BRep_Tool.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
@@ -162,6 +163,21 @@ double IShape::Volume() const {
   return props.Mass();
 }
 
+std::optional<ICurve> IShape::Curve() const {
+
+  if (Kind() != IShapeKind::Edge) {
+    return std::nullopt;
+  }
+
+  double first, last;
+  Handle(Geom_Curve) c = BRep_Tool::Curve(AsEdge(), first, last);
+  if (c.IsNull()) {
+    return std::nullopt;
+  }
+
+  return ICurve(c);
+}
+
 // Python bindings
 void bind_IShape(py::module& m) {
 
@@ -193,6 +209,7 @@ void bind_IShape(py::module& m) {
     .def("ExportSTEP", &IShape::ExportSTEP, py::arg("fname"), "Export this shape to a STEP file.")
     .def("Length", &IShape::Length, "Calculate the length of all edges of this shape.")
     .def("Area", &IShape::Area, "Calculate the area of all faces of this shape.")
-    .def("Volume", &IShape::Volume, "Calculate the volume of all solids of this shape.");
+    .def("Volume", &IShape::Volume, "Calculate the volume of all solids of this shape.")
+    .def("Curve", &IShape::Curve, "Get the curve if this shape is an edge.");
 
 }

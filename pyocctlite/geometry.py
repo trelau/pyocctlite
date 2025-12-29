@@ -644,6 +644,25 @@ class Curve:
     :ivar ICurve icurve: Underlying 3D curve.
     """
 
+    @staticmethod
+    def by_icurve(icurve: ICurve) -> Curve:
+        """
+        Create a curve from an ICurve.
+
+        :param ICurve icurve: Underlying curve.
+        :return: The curve.
+        :rtype: Curve
+        """
+        match icurve.Kind():
+            case ICurveKind.Line:
+                return Line(icurve)
+            case ICurveKind.Circle:
+                return Circle(icurve)
+            case ICurveKind.Trimmed:
+                return TrimmedCurve(icurve)
+            case _:
+                raise RuntimeError("Cannot create unknown curve.")
+
     def __init__(self, c: ICurve):
         """
         Initialize from an ICurve.

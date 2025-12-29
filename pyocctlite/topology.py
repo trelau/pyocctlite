@@ -420,6 +420,16 @@ class Edge(Shape):
         assert e.Kind() == IShapeKind.Edge
         self._kind = ShapeKind.EDGE
 
+    @property
+    def curve(self) -> Curve:
+        """
+        Get the underlying curve of the edge.
+
+        :return: The underlying curve.
+        :rtype: Curve
+        """
+        return Curve.by_icurve(self.ishape.Curve())
+
 
 class Wire(Shape):
     """

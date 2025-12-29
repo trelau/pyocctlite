@@ -1,7 +1,7 @@
 import unittest
 
-from pyocctlite.geometry import Point, Vector
-from pyocctlite.topology import Compound, Edge, Face, ShapeKind, Solid, Wire
+from pyocctlite.geometry import Line, Point, Vector
+from pyocctlite.topology import Compound, Edge, Face, ShapeKind, Wire
 
 
 class TestEdge(unittest.TestCase):
@@ -12,6 +12,17 @@ class TestEdge(unittest.TestCase):
         e = Edge.by_points(p1, p2)
         self.assertEqual(e.kind, ShapeKind.EDGE)
         self.assertEqual(e.length, 1.)
+
+    def test_curve(self):
+        p1 = Point.by_xyz(0, 0, 0)
+        p2 = Point.by_xyz(1, 0, 0)
+        e = Edge.by_points(p1, p2)
+        c = e.curve
+        p = c.evaluate(0.5)
+        self.assertIsInstance(c, Line)
+        self.assertEqual(p.x, 0.5)
+        self.assertEqual(p.y, 0.)
+        self.assertEqual(p.z, 0.)
 
 
 class TestCompound(unittest.TestCase):
@@ -52,7 +63,7 @@ class TestCompound(unittest.TestCase):
         # Verify mass properties
         self.assertAlmostEqual(compound.length, 13., 7)
         self.assertAlmostEqual(compound.area, 6., 7)
-        self.assertAlmostEqual (compound.volume, 1., 7)
+        self.assertAlmostEqual(compound.volume, 1., 7)
 
 
 if __name__ == '__main__':
