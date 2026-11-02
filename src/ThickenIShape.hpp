@@ -24,4 +24,4 @@ private:
 };
 
 // Python bindings
-void bind_ThickenIShape(py::module& m);
+void bind_ThickenIShape(nb::module_& m);

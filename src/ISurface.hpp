@@ -53,4 +53,4 @@ private:
 };
 
 // Python bindings
-void bind_ISurface(py::module& m);
+void bind_ISurface(nb::module_& m);

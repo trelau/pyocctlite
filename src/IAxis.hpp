@@ -34,4 +34,4 @@ private:
 };
 
 // Python bindings
-void bind_IAxis(py::module& m);
+void bind_IAxis(nb::module_& m);

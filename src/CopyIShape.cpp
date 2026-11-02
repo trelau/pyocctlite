@@ -6,12 +6,12 @@ IShape CopyIShape::ModifiedShape(const IShape& shape) const {
 }
 
 // Python bindings
-void bind_CopyIShape(py::module& m) {
+void bind_CopyIShape(nb::module_& m) {
 
-  auto cls = py::class_<CopyIShape>(m, "CopyIShape", "Copy a shape.")
-    .def(py::init<const IShape&, const bool, const bool>(), py::arg("shape"), py::arg("copyGeom") = true, py::arg("copyMesh") = false, "Make a copy of the shape.")
+  auto cls = nb::class_<CopyIShape>(m, "CopyIShape", "Copy a shape.")
+    .def(nb::init<const IShape&, const bool, const bool>(), nb::arg("shape"), nb::arg("copyGeom") = true, nb::arg("copyMesh") = false, "Make a copy of the shape.")
 
-    .def("ModifiedShape", &CopyIShape::ModifiedShape, py::arg("shape"), "Get the modified shape from the input shape.");
+    .def("ModifiedShape", &CopyIShape::ModifiedShape, nb::arg("shape"), "Get the modified shape from the input shape.");
 
   // MakeShape methods
   bind_MakeShape<CopyIShape>(cls);

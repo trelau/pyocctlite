@@ -3,7 +3,6 @@ import math
 
 from pyocctlite.geometry import (CylindricalSurface, Ellipse2D, Frame, Frame2D, Point, Point2D,
                                  TrimmedCurve2D, Vector, Vector2D)
-from pyocctlite.mesh import Mesh, MeshControl
 from pyocctlite.primitives import Cylinder
 from pyocctlite.topology import Edge, Face, Solid, Wire
 
@@ -87,11 +86,3 @@ bottle = bottle.unite(threads)
 
 # Export STEP
 bottle.export_step('bottle.step')
-
-# Mesh
-control3d = MeshControl.by_control_3d(bottle, 1.0)
-mesh = Mesh.generate(bottle, control3d)
-
-# Export mesh
-print(mesh.num_nodes, mesh.num_tetras)
-mesh.export_unv('bottle.unv')

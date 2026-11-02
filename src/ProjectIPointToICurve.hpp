@@ -65,4 +65,4 @@ private:
 };
 
 // Python bindings
-void bind_ProjectIPointToICurve(py::module& m);
+void bind_ProjectIPointToICurve(nb::module_& m);

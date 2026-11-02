@@ -45,4 +45,4 @@ private:
 };
 
 // Python bindings
-void bind_IPoint2D(py::module& m);
+void bind_IPoint2D(nb::module_& m);

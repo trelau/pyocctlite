@@ -179,9 +179,9 @@ std::optional<ICurve> IShape::Curve() const {
 }
 
 // Python bindings
-void bind_IShape(py::module& m) {
+void bind_IShape(nb::module_& m) {
 
-  py::enum_<IShapeKind>(m, "IShapeKind", "Enumeration for shape kinds.")
+  nb::enum_<IShapeKind>(m, "IShapeKind", "Enumeration for shape kinds.")
     .value("Shape", IShapeKind::Shape)
     .value("Vertex", IShapeKind::Vertex)
     .value("Edge", IShapeKind::Edge)
@@ -192,21 +192,21 @@ void bind_IShape(py::module& m) {
     .value("CompSolid", IShapeKind::CompSolid)
     .value("Compound", IShapeKind::Compound);
 
-  py::class_<IShape>(m, "IShape", "A shape.")
-    .def_static("MakeEdge", py::overload_cast<const IPoint&, const IPoint&>(&IShape::MakeEdge), py::arg("p1"), py::arg("p2"), "Make an edge by two points.")
-    .def_static("MakeEdge", py::overload_cast<const ICurve&>(&IShape::MakeEdge), py::arg("curve"), "Make an edge by a curve.")
-    .def_static("MakeEdge", py::overload_cast<const ICurve2D&, const ISurface&>(&IShape::MakeEdge), py::arg("c"), py::arg("s"), "Make an edge by a 2D curve on a surface.")
-    .def_static("MakeWire", py::overload_cast<const IShape&>(&IShape::MakeWire), py::arg("edge"), "Make a wire by a single edge.")
-    .def_static("MakeWire", py::overload_cast<const std::vector<IShape>&>(&IShape::MakeWire), py::arg("edges"), "Make a wire by topologically or geometrically connected edges.")
-    .def_static("MakeWire", py::overload_cast<const IShape&, const IShape&>(&IShape::MakeWire), py::arg("w1"), py::arg("w2"), "Make a new wire by combining two wires.")
-    .def_static("MakeFace", &IShape::MakeFace, py::arg("w"), "Make a face by a planar wire.")
-    .def_static("MakeCompound", &IShape::MakeCompound, py::arg("shapes"), "Make a compound from a list of shapes.")
+  nb::class_<IShape>(m, "IShape", "A shape.")
+    .def_static("MakeEdge", nb::overload_cast<const IPoint&, const IPoint&>(&IShape::MakeEdge), nb::arg("p1"), nb::arg("p2"), "Make an edge by two points.")
+    .def_static("MakeEdge", nb::overload_cast<const ICurve&>(&IShape::MakeEdge), nb::arg("curve"), "Make an edge by a curve.")
+    .def_static("MakeEdge", nb::overload_cast<const ICurve2D&, const ISurface&>(&IShape::MakeEdge), nb::arg("c"), nb::arg("s"), "Make an edge by a 2D curve on a surface.")
+    .def_static("MakeWire", nb::overload_cast<const IShape&>(&IShape::MakeWire), nb::arg("edge"), "Make a wire by a single edge.")
+    .def_static("MakeWire", nb::overload_cast<const std::vector<IShape>&>(&IShape::MakeWire), nb::arg("edges"), "Make a wire by topologically or geometrically connected edges.")
+    .def_static("MakeWire", nb::overload_cast<const IShape&, const IShape&>(&IShape::MakeWire), nb::arg("w1"), nb::arg("w2"), "Make a new wire by combining two wires.")
+    .def_static("MakeFace", &IShape::MakeFace, nb::arg("w"), "Make a face by a planar wire.")
+    .def_static("MakeCompound", &IShape::MakeCompound, nb::arg("shapes"), "Make a compound from a list of shapes.")
 
     .def("Kind", &IShape::Kind, "The kind of this shape.")
     .def("IsNull", &IShape::IsNull, "Whether or not this shape is null.")
-    .def("IsEqual", &IShape::IsEqual, py::arg("other"), "Check if this shape is equal to the other.")
-    .def("IsSame", &IShape::IsSame, py::arg("other"), "Check if this shape is the same as the other (orientation may differ).")
-    .def("ExportSTEP", &IShape::ExportSTEP, py::arg("fname"), "Export this shape to a STEP file.")
+    .def("IsEqual", &IShape::IsEqual, nb::arg("other"), "Check if this shape is equal to the other.")
+    .def("IsSame", &IShape::IsSame, nb::arg("other"), "Check if this shape is the same as the other (orientation may differ).")
+    .def("ExportSTEP", &IShape::ExportSTEP, nb::arg("fname"), "Export this shape to a STEP file.")
     .def("Length", &IShape::Length, "Calculate the length of all edges of this shape.")
     .def("Area", &IShape::Area, "Calculate the area of all faces of this shape.")
     .def("Volume", &IShape::Volume, "Calculate the volume of all solids of this shape.")

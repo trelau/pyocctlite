@@ -154,4 +154,4 @@ private:
 };
 
 // Python bindings
-void bind_IShape(py::module& m);
+void bind_IShape(nb::module_& m);

@@ -49,13 +49,13 @@ std::vector<IShape> CutIShapes::IntersectionEdges() {
 }
 
 // Python bindings
-void bind_CutIShapes(py::module& m) {
+void bind_CutIShapes(nb::module_& m) {
 
-  auto cls = py::class_<CutIShapes>(m, "CutIShapes", "Cut shapes (boolean subtraction).")
-    .def(py::init<const IShape&, const IShape&>(), py::arg("target"), py::arg("tool"), "Cut the tool from the target.")
-    .def(py::init<const IShape&, const std::vector<IShape>&>(), py::arg("target"), py::arg("tools"), "Cut the tools from the target.")
-    .def(py::init<const std::vector<IShape>&, const IShape&>(), py::arg("targets"), py::arg("tool"), "Cut the tool from the targets.")
-    .def(py::init<const std::vector<IShape>&, const std::vector<IShape>&>(), py::arg("targets"), py::arg("tools"), "Cut the tools from the targets.")
+  auto cls = nb::class_<CutIShapes>(m, "CutIShapes", "Cut shapes (boolean subtraction).")
+    .def(nb::init<const IShape&, const IShape&>(), nb::arg("target"), nb::arg("tool"), "Cut the tool from the target.")
+    .def(nb::init<const IShape&, const std::vector<IShape>&>(), nb::arg("target"), nb::arg("tools"), "Cut the tools from the target.")
+    .def(nb::init<const std::vector<IShape>&, const IShape&>(), nb::arg("targets"), nb::arg("tool"), "Cut the tool from the targets.")
+    .def(nb::init<const std::vector<IShape>&, const std::vector<IShape>&>(), nb::arg("targets"), nb::arg("tools"), "Cut the tools from the targets.")
 
     .def("IntersectionEdges", &CutIShapes::IntersectionEdges, "Get the intersection edges.");
 

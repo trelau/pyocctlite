@@ -49,4 +49,4 @@ private:
 };
 
 // Python bindings
-void bind_IPoint(py::module& m);
+void bind_IPoint(nb::module_& m);

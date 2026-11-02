@@ -47,4 +47,4 @@ private:
 };
 
 // Python bindings
-void bind_IFrame2D(py::module& m);
+void bind_IFrame2D(nb::module_& m);

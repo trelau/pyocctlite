@@ -6,11 +6,11 @@ IShape TransformIShape::ModifiedShape(const IShape& shape) const {
 }
 
 // Python bindings
-void bind_TransformIShape(py::module& m) {
+void bind_TransformIShape(nb::module_& m) {
 
-  auto cls = py::class_<TransformIShape>(m, "TransformIShape", "Transform a shape.")
-    .def(py::init<const IShape&, const ITransform&, const bool, const bool>(), py::arg("shape"), py::arg("trsf"), py::arg("copyGeom") = false, py::arg("copyMesh") = false, "Transform the shape.")
-    .def("ModifiedShape", &TransformIShape::ModifiedShape, py::arg("shape"), "Get the modified shape from the input shape.");
+  auto cls = nb::class_<TransformIShape>(m, "TransformIShape", "Transform a shape.")
+    .def(nb::init<const IShape&, const ITransform&, const bool, const bool>(), nb::arg("shape"), nb::arg("trsf"), nb::arg("copyGeom") = false, nb::arg("copyMesh") = false, "Transform the shape.")
+    .def("ModifiedShape", &TransformIShape::ModifiedShape, nb::arg("shape"), "Get the modified shape from the input shape.");
 
   // MakeShape methods
   bind_MakeShape<TransformIShape>(cls);

@@ -118,4 +118,4 @@ private:
 };
 
 // Python bindings
-void bind_ICurve2D(py::module& m);
+void bind_ICurve2D(nb::module_& m);

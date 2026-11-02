@@ -43,4 +43,4 @@ private:
 };
 
 // Python bindings
-void bind_MapIShape(py::module& m);
+void bind_MapIShape(nb::module_& m);

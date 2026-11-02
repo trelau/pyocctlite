@@ -37,12 +37,12 @@
 
 // Common bindings for derived tools of OCCT BRepBuilderAPI_MakeShape
 template <typename T>
-void bind_MakeShape(py::class_<T>& cls)
+void bind_MakeShape(nb::class_<T>& cls)
 {
   cls.def("Build", &T::Build, "Execute the operation.");
   cls.def("IsDone", &T::IsDone, "Check if the operation completed successfully.");
   cls.def("Shape", &T::Shape, "Get the resulting shape.");
-  cls.def("IsDeleted", &T::IsDeleted, py::arg("shape"), "Check if the given input shape was deleted by this operation.");
-  cls.def("GeneratedShapes", &T::GeneratedShapes, py::arg("shape"), "Get shapes generated from the given input shape.");
-  cls.def("ModifiedShapes", &T::ModifiedShapes, py::arg("shape"), "Get shapes modified from the given input shape.");
+  cls.def("IsDeleted", &T::IsDeleted, nb::arg("shape"), "Check if the given input shape was deleted by this operation.");
+  cls.def("GeneratedShapes", &T::GeneratedShapes, nb::arg("shape"), "Get shapes generated from the given input shape.");
+  cls.def("ModifiedShapes", &T::ModifiedShapes, nb::arg("shape"), "Get shapes modified from the given input shape.");
 }

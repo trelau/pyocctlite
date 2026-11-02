@@ -25,4 +25,4 @@ private:
 };
 
 // Python bindings
-void bind_LoftIShape(py::module& m);
+void bind_LoftIShape(nb::module_& m);

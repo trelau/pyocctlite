@@ -28,11 +28,7 @@
 #include "LoftIShape.hpp"
 #include "IShapeErrors.hpp"
 
-#include "IMesh.hpp"
-#include "IMeshControl.hpp"
-#include "IMeshErrors.hpp"
-
-PYBIND11_MODULE(_occtlite, m) {
+NB_MODULE(_occtlite, m) {
 
   bind_IPoint2D(m);
   bind_IVector2D(m);
@@ -61,9 +57,5 @@ PYBIND11_MODULE(_occtlite, m) {
   bind_ThickenIShape(m);
   bind_LoftIShape(m);
   bind_IShapeErrors(m);
-
-  bind_IMeshControl(m);
-  bind_IMesh(m);
-  bind_IMeshErrors(m);
 
 }

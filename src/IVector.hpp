@@ -54,4 +54,4 @@ private:
 };
 
 // Python bindings
-void bind_IVector(py::module& m);
+void bind_IVector(nb::module_& m);

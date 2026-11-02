@@ -19,4 +19,4 @@ struct ICircleData {
 };
 
 // Python bindings
-void bind_ICurveData(py::module& m);
+void bind_ICurveData(nb::module_& m);

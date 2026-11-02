@@ -26,4 +26,4 @@ private:
 };
 
 // Python bindings
-void bind_FilletIShape(py::module& m);
+void bind_FilletIShape(nb::module_& m);

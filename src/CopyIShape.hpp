@@ -24,4 +24,4 @@ private:
 };
 
 // Python bindings
-void bind_CopyIShape(py::module& m);
+void bind_CopyIShape(nb::module_& m);

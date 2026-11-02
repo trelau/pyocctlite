@@ -33,4 +33,4 @@ private:
 };
 
 // Python bindings
-void bind_CutIShapes(py::module& m);
+void bind_CutIShapes(nb::module_& m);

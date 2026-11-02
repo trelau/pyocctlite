@@ -25,4 +25,4 @@ private:
 };
 
 // Python bindings
-void bind_TransformIShape(py::module& m);
+void bind_TransformIShape(nb::module_& m);

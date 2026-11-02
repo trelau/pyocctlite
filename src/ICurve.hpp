@@ -126,4 +126,4 @@ private:
 };
 
 // Python bindings
-void bind_ICurve(py::module& m);
+void bind_ICurve(nb::module_& m);

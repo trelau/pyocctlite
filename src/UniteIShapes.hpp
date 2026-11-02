@@ -33,4 +33,4 @@ private:
 };
 
 // Python bindings
-void bind_UniteIShapes(py::module& m);
+void bind_UniteIShapes(nb::module_& m);

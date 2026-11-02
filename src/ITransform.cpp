@@ -14,8 +14,8 @@ ITransform ITransform::MakeMirror(const IPoint& origin, const IVector& normal) {
 }
 
 // Python bindings
-void bind_ITransform(py::module& m) {
+void bind_ITransform(nb::module_& m) {
 
-  py::class_<ITransform>(m, "ITransform", "A transformation.")
-    .def_static("MakeMirror", &ITransform::MakeMirror, py::arg("origin"), py::arg("normal"), "Make a mirror transformation defined by a point and a normal vector.");
+  nb::class_<ITransform>(m, "ITransform", "A transformation.")
+    .def_static("MakeMirror", &ITransform::MakeMirror, nb::arg("origin"), nb::arg("normal"), "Make a mirror transformation defined by a point and a normal vector.");
 }

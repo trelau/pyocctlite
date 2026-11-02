@@ -101,9 +101,9 @@ std::optional<ICircleData> ICurve::CircleData() const {
 }
 
 // Python bindings
-void bind_ICurve(py::module& m) {
+void bind_ICurve(nb::module_& m) {
 
-  py::enum_<ICurveKind>(m, "ICurveKind", "Enumeration for curve kinds.")
+  nb::enum_<ICurveKind>(m, "ICurveKind", "Enumeration for curve kinds.")
     .value("Unknown", ICurveKind::Unknown)
     .value("Line", ICurveKind::Line)
     .value("Circle", ICurveKind::Circle)
@@ -114,19 +114,19 @@ void bind_ICurve(py::module& m) {
     .value("BSpline", ICurveKind::BSpline)
     .value("Trimmed", ICurveKind::Trimmed);
 
-  py::class_<ICurve>(m, "ICurve", "A curve.")
-    .def_static("MakeLine", &ICurve::MakeLine, py::arg("p1"), py::arg("p2"), "Make a line by two points.")
-    .def_static("MakeCircle", py::overload_cast<const IFrame&, const double>(&ICurve::MakeCircle), py::arg("frame"), py::arg("radius"), "Make a circle by frame and radius.")
-    .def_static("MakeCircle", py::overload_cast<const IPoint&, const IPoint&, const IPoint&>(&ICurve::MakeCircle), py::arg("p1"), py::arg("p2"), py::arg("p3"), "Make a circle by three points.")
-    .def_static("MakeCircularArc", &ICurve::MakeCircularArc, py::arg("p1"), py::arg("p2"), py::arg("p3"), "Make a circular arc by three points.")
+  nb::class_<ICurve>(m, "ICurve", "A curve.")
+    .def_static("MakeLine", &ICurve::MakeLine, nb::arg("p1"), nb::arg("p2"), "Make a line by two points.")
+    .def_static("MakeCircle", nb::overload_cast<const IFrame&, const double>(&ICurve::MakeCircle), nb::arg("frame"), nb::arg("radius"), "Make a circle by frame and radius.")
+    .def_static("MakeCircle", nb::overload_cast<const IPoint&, const IPoint&, const IPoint&>(&ICurve::MakeCircle), nb::arg("p1"), nb::arg("p2"), nb::arg("p3"), "Make a circle by three points.")
+    .def_static("MakeCircularArc", &ICurve::MakeCircularArc, nb::arg("p1"), nb::arg("p2"), nb::arg("p3"), "Make a circular arc by three points.")
 
     .def("Kind", &ICurve::Kind, "The kind of this curve.")
     .def("IsClosed", &ICurve::IsClosed, "Whether or not this curve is closed.")
     .def("IsPeriodic", &ICurve::IsPeriodic, "Whether or not this curve is periodic.")
     .def("FirstParameter", &ICurve::FirstParameter, "The first parameter of this curve.")
     .def("LastParameter", &ICurve::LastParameter, "The last parameter of this curve.")
-    .def("Evaluate", &ICurve::Evaluate, py::arg("u"), "Evaluate a point on this curve.")
-    .def("Derivative", &ICurve::Derivative, py::arg("u"), py::arg("order") = 1, "Evaluate a derivative on this curve.")
+    .def("Evaluate", &ICurve::Evaluate, nb::arg("u"), "Evaluate a point on this curve.")
+    .def("Derivative", &ICurve::Derivative, nb::arg("u"), nb::arg("order") = 1, "Evaluate a derivative on this curve.")
 
     .def("LineData", &ICurve::LineData, "Get line data if this curve is a line.")
     .def("CircleData", &ICurve::CircleData, "Get circle data if this curve is a circle.");

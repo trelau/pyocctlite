@@ -5,11 +5,7 @@ channels:
 dependencies:
   - cmake
   - python
-  - pybind11
-  - tbb-devel
-  - pthreads-win32
-  - boost-cpp
-  - occt
-  - smesh
+  - nanobind
+  - occt=8*=novtk_*
   - sphinx
   - sphinx_rtd_theme

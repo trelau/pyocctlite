@@ -35,4 +35,4 @@ private:
 };
 
 // Python bindings
-void bind_ExploreIShape(py::module& m);
+void bind_ExploreIShape(nb::module_& m);

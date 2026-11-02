@@ -50,4 +50,4 @@ private:
 };
 
 // Python bindings
-void bind_IVector2D(py::module& m);
+void bind_IVector2D(nb::module_& m);

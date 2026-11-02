@@ -57,4 +57,4 @@ private:
 };
 
 // Python bindings
-void bind_IFrame(py::module& m);
+void bind_IFrame(nb::module_& m);

@@ -10,10 +10,10 @@ IFrame IFrame::MakeByOrigin(const IPoint& origin) {
 }
 
 // Python bindings
-void bind_IFrame(py::module& m) {
+void bind_IFrame(nb::module_& m) {
 
-  py::class_<IFrame>(m, "IFrame", "A 3D right-handed coordinate frame.")
-    .def_static("MakeByOrigin", &IFrame::MakeByOrigin, py::arg("origin"), "Make a frame at the given origin with standard orientation.")
+  nb::class_<IFrame>(m, "IFrame", "A 3D right-handed coordinate frame.")
+    .def_static("MakeByOrigin", &IFrame::MakeByOrigin, nb::arg("origin"), "Make a frame at the given origin with standard orientation.")
 
     .def("Origin", &IFrame::Origin, "Get the origin point of the frame.")
     .def("Axis", &IFrame::Axis, "Get the axis of the frame.")

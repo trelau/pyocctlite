@@ -45,4 +45,4 @@ private:
 };
 
 // Python bindings
-void bind_ExtrudeIShape(py::module& m);
+void bind_ExtrudeIShape(nb::module_& m);

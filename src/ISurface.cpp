@@ -18,9 +18,9 @@ ISurface::ISurface(const Handle(Geom_Surface)& s)
 }
 
 // Python bindings
-void bind_ISurface(py::module& m) {
+void bind_ISurface(nb::module_& m) {
 
-  py::enum_<ISurfaceKind>(m, "ISurfaceKind", "Enumeration for surface kinds.")
+  nb::enum_<ISurfaceKind>(m, "ISurfaceKind", "Enumeration for surface kinds.")
     .value("Unknown", ISurfaceKind::Unknown)
     .value("Plane", ISurfaceKind::Plane)
     .value("Cylindrical", ISurfaceKind::Cylindrical)
@@ -28,9 +28,9 @@ void bind_ISurface(py::module& m) {
     .value("BSpline", ISurfaceKind::BSpline)
     .value("Trimmed", ISurfaceKind::Trimmed);
 
-  py::class_<ISurface>(m, "ISurface", "A surface.")
+  nb::class_<ISurface>(m, "ISurface", "A surface.")
 
-    .def_static("MakeCylindrical", &ISurface::MakeCylindrical, py::arg("frame"), py::arg("radius"), "Make an infinite cylindrical surface given a frame and a radius.")
+    .def_static("MakeCylindrical", &ISurface::MakeCylindrical, nb::arg("frame"), nb::arg("radius"), "Make an infinite cylindrical surface given a frame and a radius.")
 
     .def("Kind", &ISurface::Kind, "The kind of this surface.");
 

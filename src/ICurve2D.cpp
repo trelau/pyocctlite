@@ -78,9 +78,9 @@ IVector2D ICurve2D::Derivative(double u, int order) const {
 }
 
 // Python bindings
-void bind_ICurve2D(py::module& m) {
+void bind_ICurve2D(nb::module_& m) {
 
-  py::enum_<ICurve2DKind>(m, "ICurve2DKind", "Enumeration for 2D curve kinds.")
+  nb::enum_<ICurve2DKind>(m, "ICurve2DKind", "Enumeration for 2D curve kinds.")
     .value("Unknown", ICurve2DKind::Unknown)
     .value("Line", ICurve2DKind::Line)
     .value("Circle", ICurve2DKind::Circle)
@@ -91,19 +91,19 @@ void bind_ICurve2D(py::module& m) {
     .value("BSpline", ICurve2DKind::BSpline)
     .value("Trimmed", ICurve2DKind::Trimmed);
 
-  py::class_<ICurve2D>(m, "ICurve2D", "A 2D curve.")
+  nb::class_<ICurve2D>(m, "ICurve2D", "A 2D curve.")
 
-    .def_static("MakeLine", &ICurve2D::MakeLine, py::arg("p1"), py::arg("p2"), "Make a line.")
-    .def_static("MakeEllipse", &ICurve2D::MakeEllipse, py::arg("frame"), py::arg("rmajor"), py::arg("rminor"), "Make an ellipse.")
-    .def_static("MakeTrimmed", py::overload_cast<const ICurve2D&, const double, const double>(&ICurve2D::MakeTrimmed), py::arg("curve"), py::arg("u0"), py::arg("u1"), "Make a trimmed curve.")
-    .def_static("MakeTrimmed", py::overload_cast<const IPoint2D&, const IPoint2D&>(&ICurve2D::MakeTrimmed), py::arg("p1"), py::arg("p2"), "Make a trimmed curve from two points.")
+    .def_static("MakeLine", &ICurve2D::MakeLine, nb::arg("p1"), nb::arg("p2"), "Make a line.")
+    .def_static("MakeEllipse", &ICurve2D::MakeEllipse, nb::arg("frame"), nb::arg("rmajor"), nb::arg("rminor"), "Make an ellipse.")
+    .def_static("MakeTrimmed", nb::overload_cast<const ICurve2D&, const double, const double>(&ICurve2D::MakeTrimmed), nb::arg("curve"), nb::arg("u0"), nb::arg("u1"), "Make a trimmed curve.")
+    .def_static("MakeTrimmed", nb::overload_cast<const IPoint2D&, const IPoint2D&>(&ICurve2D::MakeTrimmed), nb::arg("p1"), nb::arg("p2"), "Make a trimmed curve from two points.")
 
     .def("Kind", &ICurve2D::Kind, "The kind of this curve.")
     .def("IsClosed", &ICurve2D::IsClosed, "Whether or not this curve is closed.")
     .def("IsPeriodic", &ICurve2D::IsPeriodic, "Whether or not this curve is periodic.")
     .def("FirstParameter", &ICurve2D::FirstParameter, "The first parameter of this curve.")
     .def("LastParameter", &ICurve2D::LastParameter, "The last parameter of this curve.")
-    .def("Evaluate", &ICurve2D::Evaluate, py::arg("u"), "Evaluate a point on this curve.")
-    .def("Derivative", &ICurve2D::Derivative, py::arg("u"), py::arg("order") = 1, "Evaluate a derivative on this curve.");
+    .def("Evaluate", &ICurve2D::Evaluate, nb::arg("u"), "Evaluate a point on this curve.")
+    .def("Derivative", &ICurve2D::Derivative, nb::arg("u"), nb::arg("order") = 1, "Evaluate a derivative on this curve.");
 
 }

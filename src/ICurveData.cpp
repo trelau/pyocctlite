@@ -1,12 +1,12 @@
 #include "ICurveData.hpp"
 
-void bind_ICurveData(py::module& m) {
+void bind_ICurveData(nb::module_& m) {
 
-  py::class_<ILineData>(m, "ILineData", "Line data.")
-    .def_readonly("Origin", &ILineData::Origin)
-    .def_readonly("Direction", &ILineData::Direction);
+  nb::class_<ILineData>(m, "ILineData", "Line data.")
+    .def_ro("Origin", &ILineData::Origin)
+    .def_ro("Direction", &ILineData::Direction);
 
-  py::class_<ICircleData>(m, "ICircleData", "Circle data.")
-    .def_readonly("Frame", &ICircleData::Frame)
-    .def_readonly("Radius", &ICircleData::Radius);
+  nb::class_<ICircleData>(m, "ICircleData", "Circle data.")
+    .def_ro("Frame", &ICircleData::Frame)
+    .def_ro("Radius", &ICircleData::Radius);
 }

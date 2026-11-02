@@ -27,4 +27,4 @@ private:
 };
 
 // Python bindings
-void bind_ITransform(py::module& m);
+void bind_ITransform(nb::module_& m);

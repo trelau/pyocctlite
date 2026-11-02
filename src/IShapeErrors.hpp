@@ -13,8 +13,8 @@ public:
 };
 
 // Python bindings
-inline void bind_IShapeErrors(py::module& m) {
+inline void bind_IShapeErrors(nb::module_& m) {
 
-  py::register_exception<IShapeTypeMismatch>(m, "IShapeTypeMismatch");
+  nb::exception<IShapeTypeMismatch>(m, "IShapeTypeMismatch");
 
 }
