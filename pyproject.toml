@@ -17,3 +17,6 @@ target-version = "py312"
 select = ["E", "F", "I", "B", "UP"]
 # Keep TypeVar-style generics for now
 ignore = ["UP046", "UP047"]
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]

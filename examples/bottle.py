@@ -1,4 +1,6 @@
 # https://dev.opencascade.org/doc/overview/html/occt__tutorial.html
+from __future__ import annotations
+
 import math
 
 from pyocctlite.geometry import (

@@ -1,31 +1,27 @@
 # pyocctlite
 
-pyOCCT Lite is a lightweight C++/nanobind wrapper around OpenCASCADE (OCCT) that exposes a Pythonic API for CAD geometry workflows. It is intentionally narrow in scope — wrapping only a minimal OCCT subset and favoring clarity over completeness. APIs are unstable; this is an experimental project.
+A lightweight C++/nanobind wrapper exposing a Pythonic API over a narrow subset of OpenCASCADE (OCCT). Experimental; APIs are unstable.
 
 ## Commands
 
-Run everything inside the conda env. Use the env's cmake: the system one may be older than the required 4.1.
+Run inside the conda env, whose cmake is new enough (≥4.1).
 
 ```bash
-conda env create -f environment.yml
-conda activate pyocctlite
-pre-commit install  # once per clone: format, lint and type-check on every commit
+conda env create -f environment.yml && conda activate pyocctlite
+pre-commit install            # once per clone
 
-# Rebuild after any C++ change; install puts _occtlite.pyd and its .pyi stub in pyocctlite/
-cmake -B build
+cmake -B build                # after any C++ change: build, then install
 cmake --build build --config Release
-cmake --install build
+cmake --install build         # puts _occtlite.pyd and its .pyi stub in pyocctlite/
 
 python -m unittest discover -s tests
-python -m mypy
-ruff check pyocctlite tests examples
-ruff format pyocctlite tests examples
-clang-format -i src/*.hpp src/*.cpp
+pre-commit run --all-files    # format, lint, type-check
 ```
 
-`pyocctlite/_occtlite.pyi` (generated) is the reference for the C++ binding API.
-
-Prefer common, well-established conventions over project-specific style. Formatting is automatic: `ruff format` (Black style) for Python, `clang-format` (LLVM style) for C++. Text files are LF (`.gitattributes`). A Claude Code hook (`.claude/settings.json`) formats every edited file and runs ruff and mypy after Python edits. Fix what it reports before moving on. After a C++ change, rebuild and install before editing Python that uses it; mypy reads the binding API from the regenerated stub.
+- `pyocctlite/_occtlite.pyi` (generated on install) is the reference for the C++ binding API.
+- A Claude Code hook formats every edited file and runs ruff and mypy on Python edits. Fix what it reports before moving on.
+- After a C++ change, rebuild and install before editing Python that uses it; mypy reads the regenerated stub.
+- Style is whatever the formatters produce. Otherwise prefer common, well-established conventions.
 
 ## Tone and Style
 
@@ -33,17 +29,7 @@ Unless otherwise instructed, when communicating with a user, be direct. Say (or 
 
 ## Workflow
 
-- Before adding anything, find the closest existing analog and mirror it.
-- Follow the rules below. To break one, say so and ask first. When a rule is settled or changed, update this file in the same change.
-- Non-trivial features get a design doc in `docs/features/<name>.md` (copy `_TEMPLATE.md`) before code. Read the relevant doc before working on a feature.
-- A new binding touches: `src/<Name>.hpp/.cpp`, registration in `src/occtlite.cpp`, the wrapper in `pyocctlite/`, and tests.
-- Done means:
-  - The build has no warnings, and install succeeds.
-  - Tests, mypy and ruff are clean.
-  - `examples/` still run.
-  - A new module gets a `docs/source/*.rst` page.
-  - CLAUDE.md is updated.
-- Canonical examples to mirror:
+- Before adding anything, find the closest existing analog and mirror it:
   - Value type: `IPoint` / `Point`
   - Kind family: `ICurve` / `Curve`, `Line`
   - Kind data: `ICurveData`
@@ -51,6 +37,13 @@ Unless otherwise instructed, when communicating with a user, be direct. Say (or 
   - Composite: `Cylinder`
   - Collection tool: `MapIShape` / `MapShape`
   - Errors: `IErrors.hpp` / `errors.py`
+- Follow the rules below. To break one, say so and ask first. When a rule is settled or changed, update this file in the same change.
+- Non-trivial features get a design doc in `docs/features/<name>.md` (copy `_TEMPLATE.md`) before code. Read the relevant doc before working on a feature.
+- Done means:
+  - The build has no warnings.
+  - Tests and pre-commit pass, and `examples/` still run.
+  - A new binding is registered in `src/occtlite.cpp`, and a new module has a `docs/source/*.rst` page.
+  - CLAUDE.md is updated.
 
 ## Design Rules
 
@@ -60,8 +53,7 @@ Unless otherwise instructed, when communicating with a user, be direct. Say (or 
 - Flat architecture. No new base classes, registries, plugin systems, or metaprogramming without asking.
 - Immutability. Types never change after construction; operations return new objects. Nothing mutates its inputs.
 - SI units (meters, radians) in C++. Unit conversion, if any, belongs in Python.
-- Python 3.12 is the minimum version (`pyproject.toml` checks against it). Don't use newer language or stdlib features.
-- Single-threaded. No threading, async, or GIL manipulation.
+- Python ≥ 3.12. Single-threaded: no threading, async, or GIL manipulation.
 
 ### Two layers
 
@@ -82,11 +74,10 @@ The public Python API takes and returns Python wrappers. `I` objects are reachab
 - **Kinds.** A polymorphic OCCT family (shapes, curves, surfaces) is one `I` type with a `Kind()` enum (`I<Name>Kind`, mirroring OCCT's enum where one exists).
   - Python mirrors it with a base class plus one subclass per supported kind.
   - The base's static `by_i<name>()` dispatches on kind, and each subclass's `__init__` checks its kind.
-  - An argument that selects a kind takes the class (`shape.map(Edge)`), not an enum. A Python enum `<Name>Kind` exists only where kind is exposed as a value (`Shape.kind`). Its members are UPPER_CASE, and their values are the C++ enum values.
+  - Arguments that select a kind take the class (`shape.map(Edge)`). A Python `<Name>Kind` enum (UPPER_CASE members, C++ values) exists only where kind is returned as a value (`Shape.kind`).
 - **Kind data.** Parameters specific to one kind come back as an `I<Kind>Data` struct from `<Kind>Data()`, wrapped in `std::optional`. OCCT subclasses are never exposed.
-- **2D** counterparts take a `2D` suffix and follow the 3D naming and patterns. They don't need the same coverage.
-- **Composites** (objects with named parts, e.g. primitives) are Python-only, built from existing types and tools.
-  - They override kind-preserving operations to return the composite, mapping each named part through the tool's history.
+- **2D** counterparts take a `2D` suffix and follow the 3D naming and patterns, not necessarily its coverage.
+- **Composites** (objects with named parts, e.g. primitives) are Python-only, built from existing types and tools. They override kind-preserving operations to return the composite, mapping each part through the tool's history.
 
 ### C++ rules
 
@@ -96,38 +87,26 @@ The public Python API takes and returns Python wrappers. `I` objects are reachab
 - Types are created only through static `Make<What>` factories (plus the OCCT constructor). Tools use constructors.
 - Accessors have no `Get` prefix. Predicates start with `Is*`, and counts with `Num*` (not `Nb*`).
 - `As<Kind>()` validates the kind, then downcasts. It is C++ only.
-- A query that may not apply returns `std::optional`.
+- A query that may not apply returns `std::optional`. Use standard containers in signatures.
 - An OCCT base API shared by many tools is wrapped once, as a macro plus a binding template (`MakeIShape.hpp`). Ask before adding another.
-- Tool queries build on demand.
-- Domain errors live in `IErrors.hpp` and are bound with a built-in base:
-  - `IKindMismatch` → `TypeError`
-  - `IBuildFailed` → `RuntimeError`
-- Don't swallow OCCT exceptions.
-- Use standard containers in signatures.
+- Tool queries build on demand, so Python never calls `Build()`.
+- Domain errors live in `IErrors.hpp`, bound with a built-in base (`IKindMismatch` → `TypeError`, `IBuildFailed` → `RuntimeError`) and re-exported under Python names in `pyocctlite/errors.py`. Don't swallow OCCT exceptions.
 - Bindings use `nb::arg` for every parameter, mirror the C++ defaults, and have a one-line docstring.
-- Default tolerances follow OCCT's.
-- Comments are brief and single-line.
+- Default tolerances follow OCCT's. Comments are brief and single-line.
 
 ### Python rules
 
 - A wrapper stores its object as `self._i<name>` (`self._itool` for tools) and exposes it through a read-only `i<name>` property.
 - `__init__` accepts only the `I` object (a composite accepts its parts). Alternate constructors are `by_*` classmethods that return `cls(...)`.
 - C++ results are wrapped in the most specific class, via `by_i<name>`.
-- `@property` is for argument-free state queries. Use `@cached_property` when the query builds a wrapper object or calls an OCCT computation (types are immutable, so caching is safe). Use methods for operations, anything with arguments, and anything that returns a tool or collection.
-- Shapes compare and hash by `IsSame`. Geometry doesn't define `__eq__`; it offers `is_equal(other, tol)` instead.
-- Placement goes last and is optional: size arguments come first, then `frame=None`, which defaults to the global origin.
-- Never call `Build()`. Getting the result builds the tool.
+- `@property` for argument-free state queries; `@cached_property` when it builds a wrapper or calls an OCCT computation. Methods for operations, anything with arguments, and anything returning a tool or collection.
+- Shapes compare and hash by `IsSame`. Geometry has no `__eq__`; it offers `is_equal(other, tol)`.
+- Placement goes last and is optional: size arguments first, then `frame=None` (the global origin).
 - Convenience methods (`shape.fillet(...)`) wrap a tool and return only its result. Use the tool directly for history or intermediate shapes.
 - Collection-like tools implement `__len__`, `__iter__` and `__getitem__` and are `Generic[T]`.
 - Indices are 0-based; convert OCCT's 1-based indices at the boundary. "Not found" is `None`.
-- Errors:
-  - `TypeError` for a wrong type or kind.
-  - `ValueError` for bad values.
-  - `NotImplementedError` for unsupported kinds or inputs.
-  - `RuntimeError` when an operation reports failure (e.g. a `False` status from C++).
-  - `assert` only for internal invariants.
-  - C++ domain errors are re-exported under Python names in `pyocctlite.errors` (`KindMismatch`, `BuildFailed`). Add new ones there.
-- `from __future__ import annotations`. Type hints are as specific as they can be, using generics and `Self`. When the result type is fixed by the input type, narrow it: override the method in each shape subclass (`Face.extrude -> Solid`), and use `@overload` on a generic tool's type parameter (`ExtrudeShape[Face].shape() -> Solid`).
+- Errors: `TypeError` for a wrong type or kind, `ValueError` for bad values, `NotImplementedError` for unsupported kinds or inputs, `RuntimeError` when an operation reports failure. `assert` only for internal invariants.
+- Type hints are as specific as possible (generics, `Self`). When an input type fixes the result type, narrow it: override in each shape subclass (`Face.extrude -> Solid`), or `@overload` on a generic tool's type parameter (`ExtrudeShape[Face].shape() -> Solid`).
 - Sphinx-style docstrings (`:param:`, `:return:`, `:rtype:`) in the passive voice on all public API.
 
 ### Tests
@@ -138,6 +117,4 @@ The public Python API takes and returns Python wrappers. `I` objects are reachab
 
 ### Open questions
 
-Record inconsistencies here; decide before either variant spreads.
-
-- None currently.
+Record inconsistencies here; decide before either variant spreads. None currently.

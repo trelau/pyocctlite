@@ -8,6 +8,8 @@ Formatting is applied silently. Lint or type errors are printed to stderr with e
 code 2 so Claude sees and fixes them.
 """
 
+from __future__ import annotations
+
 import json
 import pathlib
 import subprocess
