@@ -1,18 +1,33 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator
 from enum import Enum
 from functools import cached_property
-from typing import Generic, Iterable, Iterator, Optional, Self, TypeVar, Union, cast
+from typing import Generic, Self, TypeVar, cast
 
-from pyocctlite._occtlite import (CopyIShape, CutIShapes, ExploreIShape, ExtrudeIShape,
-                                  FilletIShape,
-                                  IShape, IShapeKind, LoftIShape, MapIShape, ThickenIShape,
-                                  TransformIShape, UniteIShapes)
-
+from pyocctlite._occtlite import (
+    CopyIShape,
+    CutIShapes,
+    ExploreIShape,
+    ExtrudeIShape,
+    FilletIShape,
+    IShape,
+    IShapeKind,
+    LoftIShape,
+    MapIShape,
+    ThickenIShape,
+    TransformIShape,
+    UniteIShapes,
+)
 from pyocctlite.geometry import Curve, Curve2D, Point, Surface, Transform, TrimmedCurve, Vector
 
 T = TypeVar('T', bound='Shape')
 S = TypeVar('S', bound='Shape')
+
+# C++ tools wrapping OCCT BRepBuilderAPI_MakeShape (see MakeIShape.hpp)
+MakeShapeITool = (CopyIShape | CutIShapes | ExtrudeIShape | FilletIShape | LoftIShape
+                  | ThickenIShape | TransformIShape | UniteIShapes)
+ToolT = TypeVar('ToolT', bound=MakeShapeITool)
 
 
 class ShapeKind(Enum):
@@ -160,12 +175,12 @@ class Shape:
         """
         return self.ishape.Volume()
 
-    def explore(self, find: type[T], ignore: Optional[type[Shape]] = None) -> ExploreShape[T]:
+    def explore(self, find: type[T], ignore: type[Shape] | None = None) -> ExploreShape[T]:
         """
         Explore sub-shapes.
 
         :param type[T] find: Class of shapes to find (e.g. ``Edge``).
-        :param Optional[type[Shape]] ignore: Class of shapes to skip over, if any.
+        :param type[Shape] | None ignore: Class of shapes to skip over, if any.
         :return: Explore tool.
         :rtype: ExploreShape[T]
         """
@@ -306,11 +321,11 @@ class Shape:
         ishape = CutIShapes(self.ishape, other.ishape).Shape()
         return Shape.by_ishape(ishape)
 
-    def fillet(self, edge: Union[Edge, Iterable[Edge]], radius: float) -> Shape:
+    def fillet(self, edge: Edge | Iterable[Edge], radius: float) -> Shape:
         """
         Fillet edges of this shape.
 
-        :param Union[Edge, Iterable[Edge]] edge: Edge(s) to fillet.
+        :param Edge | Iterable[Edge] edge: Edge(s) to fillet.
         :param float radius: Fillet radius.
         :return: Filleted shape.
         :rtype: Shape
@@ -319,19 +334,20 @@ class Shape:
         if isinstance(edge, Edge):
             itool.AddEdge(edge.ishape, radius)
         else:
-            for e in edge: itool.AddEdge(e.ishape, radius)
+            for e in edge:
+                itool.AddEdge(e.ishape, radius)
 
         ishape = itool.Shape()
         return Shape.by_ishape(ishape)
 
-    def thicken(self, thickness: float, tol: float = 1.0e-3, faces: Optional[
-        Iterable[Face]] = None) -> Shape:
+    def thicken(self, thickness: float, tol: float = 1.0e-3,
+                faces: Iterable[Face] | None = None) -> Shape:
         """
         Thicken this shape.
 
         :param float thickness: Thickness.
         :param float tol: Tolerance.
-        :param Optional[Iterable[Face]] faces: Faces to remove.
+        :param Iterable[Face] | None faces: Faces to remove.
         :return: Thickened shape.
         :rtype: Shape
         """
@@ -440,12 +456,12 @@ class Edge(Shape):
             raise TypeError(f'Expected IShapeKind.Edge, got {e.Kind()}.')
 
     @cached_property
-    def curve(self) -> Optional[Curve]:
+    def curve(self) -> Curve | None:
         """
         Get the underlying curve of the edge.
 
         :return: The underlying curve, or None if the edge has no 3D curve.
-        :rtype: Optional[Curve]
+        :rtype: Curve | None
         """
         icurve = self.ishape.Curve()
         return None if icurve is None else Curve.by_icurve(icurve)
@@ -553,12 +569,12 @@ class Solid(Shape):
     """
 
     @classmethod
-    def by_loft(cls, shapes: Iterable[Union[Vertex, Edge, Wire]],
+    def by_loft(cls, shapes: Iterable[Vertex | Edge | Wire],
                 is_ruled: bool = False, tol: float = 1.0e-6) -> Solid:
         """
         Create a solid by lofting through shapes.
 
-        :param Iterable[Union[Vertex, Edge, Wire]] shapes: Sections.
+        :param Iterable[Vertex | Edge | Wire] shapes: Sections.
         :param bool is_ruled: True if ruled.
         :param float tol: Tolerance.
         :return: New solid.
@@ -639,24 +655,24 @@ def _kind_of(cls: type[Shape]) -> ShapeKind:
     :rtype: ShapeKind
     :raises TypeError: If the class is not a core shape class (e.g. a composite).
     """
-    kinds = {Shape: ShapeKind.SHAPE, Vertex: ShapeKind.VERTEX, Edge: ShapeKind.EDGE, Wire: ShapeKind.WIRE,
-             Face: ShapeKind.FACE, Shell: ShapeKind.SHELL, Solid: ShapeKind.SOLID,
-             CompSolid: ShapeKind.COMPSOLID, Compound: ShapeKind.COMPOUND}
+    kinds = {Shape: ShapeKind.SHAPE, Vertex: ShapeKind.VERTEX, Edge: ShapeKind.EDGE,
+             Wire: ShapeKind.WIRE, Face: ShapeKind.FACE, Shell: ShapeKind.SHELL,
+             Solid: ShapeKind.SOLID, CompSolid: ShapeKind.COMPSOLID, Compound: ShapeKind.COMPOUND}
     if cls not in kinds:
         raise TypeError(f'Expected a core shape class, got {cls.__name__}.')
     return kinds[cls]
 
 
-class ShapeTool:
+class ShapeTool(Generic[ToolT]):
     """
     Base class for shape tools.
     """
 
-    def __init__(self, itool):
+    def __init__(self, itool: ToolT):
         """
         Initialize from an internal tool.
 
-        :param itool: Internal tool.
+        :param ToolT itool: Internal tool.
         """
         self._itool = itool
 
@@ -690,7 +706,7 @@ class ShapeTool:
         return Shape.by_ishapes(self._itool.GeneratedShapes(s.ishape))
 
 
-class UniteShapes(ShapeTool):
+class UniteShapes(ShapeTool[UniteIShapes]):
     """
     Tool to unite shapes.
     """
@@ -715,7 +731,7 @@ class UniteShapes(ShapeTool):
         return [Edge(e) for e in self._itool.IntersectionEdges()]
 
 
-class CutShapes(ShapeTool):
+class CutShapes(ShapeTool[CutIShapes]):
     """
     Tool to cut shapes (boolean subtraction).
     """
@@ -740,7 +756,7 @@ class CutShapes(ShapeTool):
         return [Edge(e) for e in self._itool.IntersectionEdges()]
 
 
-class CopyShape(ShapeTool, Generic[T]):
+class CopyShape(ShapeTool[CopyIShape], Generic[T]):
     """
     Tool to copy a shape. The copy has the same type as the source.
     """
@@ -776,7 +792,7 @@ class CopyShape(ShapeTool, Generic[T]):
         return cast(S, Shape.by_ishape(self._itool.ModifiedShape(s.ishape)))
 
 
-class TransformShape(ShapeTool, Generic[T]):
+class TransformShape(ShapeTool[TransformIShape], Generic[T]):
     """
     Tool to transform a shape. The result has the same type as the source.
     """
@@ -813,7 +829,7 @@ class TransformShape(ShapeTool, Generic[T]):
         return cast(S, Shape.by_ishape(self._itool.ModifiedShape(s.ishape)))
 
 
-class ExtrudeShape(ShapeTool, Generic[T]):
+class ExtrudeShape(ShapeTool[ExtrudeIShape], Generic[T]):
     """
     Tool to extrude a shape. The result is one dimension higher than the source.
     """
@@ -847,20 +863,20 @@ class ExtrudeShape(ShapeTool, Generic[T]):
         return cast(T, Shape.by_ishape(self._itool.LastShape()))
 
 
-class ThickenShape(ShapeTool):
+class ThickenShape(ShapeTool[ThickenIShape]):
     """
     Tool to thicken a shape.
     """
 
-    def __init__(self, s: Shape, thickness: float, tol: float = 1.0e-3, faces: Optional[
-        Iterable[Face]] = None):
+    def __init__(self, s: Shape, thickness: float, tol: float = 1.0e-3,
+                 faces: Iterable[Face] | None = None):
         """
         Initialize with shape and thickness.
 
         :param Shape s: Source shape.
         :param float thickness: Thickness.
         :param float tol: Tolerance.
-        :param Optional[Iterable[Face]] faces: Faces to remove.
+        :param Iterable[Face] | None faces: Faces to remove.
         """
         if faces is None:
             itool = ThickenIShape(s.ishape, thickness)
@@ -870,7 +886,7 @@ class ThickenShape(ShapeTool):
         super().__init__(itool)
 
 
-class LoftShape(ShapeTool):
+class LoftShape(ShapeTool[LoftIShape]):
     """
     Tool to loft through sections.
     """
@@ -928,7 +944,7 @@ class MapShape(Generic[T]):
         """
         # OCCT is 1-based
         for i in range(1, self._itool.Size() + 1):
-            yield Shape.by_ishape(self._itool.FindShape(i))
+            yield cast(T, Shape.by_ishape(self._itool.FindShape(i)))
 
     def __getitem__(self, index: int) -> T:
         """
@@ -945,7 +961,7 @@ class MapShape(Generic[T]):
             raise IndexError(index)
 
         # Python is 0-based, OCCT is 1-based
-        return Shape.by_ishape(self._itool.FindShape(index + 1))
+        return cast(T, Shape.by_ishape(self._itool.FindShape(index + 1)))
 
     @property
     def size(self) -> int:
@@ -977,15 +993,15 @@ class MapShape(Generic[T]):
         """
         # OCCT is 1-based, Python is 0-based
         ishape = self._itool.FindShape(index + 1)
-        return Shape.by_ishape(ishape)
+        return cast(T, Shape.by_ishape(ishape))
 
-    def find_index(self, shape: T) -> Optional[int]:
+    def find_index(self, shape: T) -> int | None:
         """
         Find 0-based index of a shape.
 
         :param T shape: Sub-shape.
         :return: 0-based index, or None if not found.
-        :rtype: Optional[int]
+        :rtype: int | None
         """
         # OCCT is 1-based, Python is 0-based
         indx = self._itool.FindIndex(shape.ishape)
@@ -1007,13 +1023,13 @@ class ExploreShape(Generic[T]):
     Tool to explore sub-shapes.
     """
 
-    def __init__(self, shape: Shape, find: type[T], ignore: Optional[type[Shape]] = None):
+    def __init__(self, shape: Shape, find: type[T], ignore: type[Shape] | None = None):
         """
         Initialize explore tool.
 
         :param Shape shape: Source shape.
         :param type[T] find: Class of shapes to find (e.g. ``Edge``).
-        :param Optional[type[Shape]] ignore: Class of shapes to skip over, if any.
+        :param type[Shape] | None ignore: Class of shapes to skip over, if any.
         """
         self._shape = shape
         self._find = _kind_of(find)
@@ -1028,5 +1044,5 @@ class ExploreShape(Generic[T]):
         """
         itool = ExploreIShape(self._shape.ishape, self._find.value, self._ignore.value)
         while itool.More():
-            yield Shape.by_ishape(itool.Current())
+            yield cast(T, Shape.by_ishape(itool.Current()))
             itool.Next()

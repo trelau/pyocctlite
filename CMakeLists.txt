@@ -35,4 +35,15 @@ link_directories(${OpenCASCADE_LIBRARY_DIR})
 file(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 nanobind_add_module(_occtlite ${SRCS})
 target_link_libraries(_occtlite PRIVATE ${OpenCASCADE_LIBRARIES})
-install(TARGETS _occtlite DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/pyocctlite)
+# Install in-tree: the extension and its stubs go into pyocctlite/
+set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR} CACHE PATH "Install into the source tree" FORCE)
+install(TARGETS _occtlite DESTINATION pyocctlite)
+
+# Type stubs for _occtlite, generated after install so mypy and readers see the binding API
+nanobind_add_stub(
+    _occtlite_stub
+    INSTALL_TIME
+    MODULE pyocctlite._occtlite
+    PYTHON_PATH ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/pyocctlite/_occtlite.pyi
+)

@@ -1,8 +1,17 @@
 # https://dev.opencascade.org/doc/overview/html/occt__tutorial.html
 import math
 
-from pyocctlite.geometry import (CylindricalSurface, Ellipse2D, Frame, Frame2D, Point, Point2D,
-                                 TrimmedCurve2D, Vector, Vector2D)
+from pyocctlite.geometry import (
+                                 CylindricalSurface,
+                                 Ellipse2D,
+                                 Frame,
+                                 Frame2D,
+                                 Point,
+                                 Point2D,
+                                 TrimmedCurve2D,
+                                 Vector,
+                                 Vector2D,
+)
 from pyocctlite.primitives import Cylinder
 from pyocctlite.topology import Edge, Face, Solid, Wire
 

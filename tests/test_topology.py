@@ -44,7 +44,8 @@ class TestWire(unittest.TestCase):
 class TestShape(unittest.TestCase):
 
     def _box(self) -> Solid:
-        pts = [Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0), Point.by_xyz(1, 1, 0), Point.by_xyz(0, 1, 0)]
+        pts = [Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0),
+               Point.by_xyz(1, 1, 0), Point.by_xyz(0, 1, 0)]
         edges = [Edge.by_points(pts[i], pts[(i + 1) % 4]) for i in range(4)]
         f = Face.by_wire(Wire.by_edges(edges))
         return f.extrude(Vector.by_xyz(0, 0, 1))

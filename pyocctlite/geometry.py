@@ -1,11 +1,23 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import Optional
 
-from pyocctlite._occtlite import (IAxis, ICurve, ICurve2D, ICurve2DKind, ICurveKind, IFrame,
-                                  IFrame2D, IPoint, IPoint2D, ISurface, ISurfaceKind, ITransform,
-                                  IVector, IVector2D)
+from pyocctlite._occtlite import (
+    IAxis,
+    ICurve,
+    ICurve2D,
+    ICurve2DKind,
+    ICurveKind,
+    IFrame,
+    IFrame2D,
+    IPoint,
+    IPoint2D,
+    ISurface,
+    ISurfaceKind,
+    ITransform,
+    IVector,
+    IVector2D,
+)
 
 
 class Point2D:
@@ -294,13 +306,13 @@ class Ellipse2D(Curve2D):
     """
 
     @classmethod
-    def by_radii(cls, rmajor: float, rminor: float, frame: Optional[Frame2D] = None) -> Ellipse2D:
+    def by_radii(cls, rmajor: float, rminor: float, frame: Frame2D | None = None) -> Ellipse2D:
         """
         Create an ellipse from radii and frame.
 
         :param float rmajor: Major radius.
         :param float rminor: Minor radius.
-        :param Optional[Frame2D] frame: Coordinate system. Defaults to the global origin.
+        :param Frame2D | None frame: Coordinate system. Defaults to the global origin.
         :return: New 2D ellipse.
         :rtype: Ellipse2D
         """
@@ -791,6 +803,7 @@ class Line(Curve):
         :rtype: Point
         """
         idata = self.icurve.LineData()
+        assert idata is not None  # guaranteed by the kind check in __init__
         return Point(idata.Origin)
 
     @cached_property
@@ -802,6 +815,7 @@ class Line(Curve):
         :rtype: Vector
         """
         idata = self.icurve.LineData()
+        assert idata is not None  # guaranteed by the kind check in __init__
         return Vector(idata.Direction)
 
 
@@ -811,12 +825,12 @@ class Circle(Curve):
     """
 
     @classmethod
-    def by_radius(cls, radius: float, frame: Optional[Frame] = None) -> Circle:
+    def by_radius(cls, radius: float, frame: Frame | None = None) -> Circle:
         """
         Create a circle from frame and radius.
 
         :param float radius: Circle radius.
-        :param Optional[Frame] frame: Coordinate system. Defaults to the global origin.
+        :param Frame | None frame: Coordinate system. Defaults to the global origin.
         :return: New 3D circle.
         :rtype: Circle
         """
@@ -859,6 +873,7 @@ class Circle(Curve):
         :rtype: float
         """
         idata = self.icurve.CircleData()
+        assert idata is not None  # guaranteed by the kind check in __init__
         return idata.Radius
 
 
@@ -941,12 +956,12 @@ class CylindricalSurface(Surface):
     """
 
     @classmethod
-    def by_radius(cls, radius: float, frame: Optional[Frame] = None) -> CylindricalSurface:
+    def by_radius(cls, radius: float, frame: Frame | None = None) -> CylindricalSurface:
         """
         Create a cylindrical surface from radius and frame.
 
         :param float radius: Cylinder radius.
-        :param Optional[Frame] frame: Coordinate system. Defaults to the global origin.
+        :param Frame | None frame: Coordinate system. Defaults to the global origin.
         :return: New cylindrical surface.
         :rtype: CylindricalSurface
         """

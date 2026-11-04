@@ -264,3 +264,6 @@ __marimo__/
 *.dwo
 # IDE
 .idea/
+
+# Generated nanobind stubs
+pyocctlite/_occtlite.pyi

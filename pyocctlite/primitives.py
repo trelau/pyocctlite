@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional, Self, Union
+from typing import Self
 
 from pyocctlite.geometry import Circle, Frame, Point, Transform, Vector
-from pyocctlite.topology import (CopyShape, Edge, ExtrudeShape, Face, Solid, TransformShape,
-                                 Wire)
+from pyocctlite.topology import CopyShape, Edge, ExtrudeShape, Face, Solid, TransformShape, Wire
 
 
 class Cylinder(Solid):
@@ -17,13 +16,13 @@ class Cylinder(Solid):
     """
 
     @classmethod
-    def by_size(cls, radius: float, height: float, frame: Optional[Frame] = None) -> Cylinder:
+    def by_size(cls, radius: float, height: float, frame: Frame | None = None) -> Cylinder:
         """
         Create a cylinder from size and location.
 
         :param float radius: Radius.
         :param float height: Height.
-        :param Optional[Frame] frame: Coordinate system. Defaults to the global origin.
+        :param Frame | None frame: Coordinate system. Defaults to the global origin.
         :return: New cylinder.
         :rtype: Cylinder
         """
@@ -126,13 +125,15 @@ class Cylinder(Solid):
         t = Transform.by_mirror(origin, normal)
         return self._by_history(TransformShape(self, t))
 
-    def _by_history(self, tool: Union[CopyShape[Self], TransformShape[Self]]) -> Self:
+    def _by_history(self, tool: CopyShape[Self] | TransformShape[Self]) -> Self:
         """
         Build a cylinder from a kind-preserving tool by mapping each named face through its history.
 
-        :param Union[CopyShape[Self], TransformShape[Self]] tool: Tool applied to this cylinder.
+        :param CopyShape[Self] | TransformShape[Self] tool: Tool applied to this cylinder.
         :return: New cylinder.
         :rtype: Self
         """
-        return type(self)(tool.shape(), tool.modified_shape(self.bottom_face),
-                          tool.modified_shape(self.top_face), tool.modified_shape(self.lateral_face))
+        return type(self)(tool.shape(),
+                          tool.modified_shape(self.bottom_face),
+                          tool.modified_shape(self.top_face),
+                          tool.modified_shape(self.lateral_face))

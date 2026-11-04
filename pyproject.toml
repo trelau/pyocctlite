@@ -1,0 +1,18 @@
+# Tool configuration only; the package is built with CMake (see CLAUDE.md).
+
+[tool.mypy]
+files = ["pyocctlite"]
+python_version = "3.12"
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_return_any = true
+warn_unused_ignores = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+# Keep TypeVar-style generics for now
+ignore = ["UP046", "UP047"]
