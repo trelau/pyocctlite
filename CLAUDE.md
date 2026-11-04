@@ -121,7 +121,7 @@ The public Python API takes and returns Python wrappers. `I` objects are reachab
   - `RuntimeError` when an operation reports failure (e.g. a `False` status from C++).
   - `assert` only for internal invariants.
   - C++ domain errors are re-exported under Python names in `pyocctlite.errors` (`KindMismatch`, `BuildFailed`). Add new ones there.
-- `from __future__ import annotations`. Type hints are as specific as they can be, using generics and `Self`. No `@overload` for now.
+- `from __future__ import annotations`. Type hints are as specific as they can be, using generics and `Self`. When the result type is fixed by the input type, narrow it: override the method in each shape subclass (`Face.extrude -> Solid`), and use `@overload` on a generic tool's type parameter (`ExtrudeShape[Face].shape() -> Solid`).
 - Sphinx-style docstrings (`:param:`, `:return:`, `:rtype:`) in the passive voice on all public API.
 
 ### Tests

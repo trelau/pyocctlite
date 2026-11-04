@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from enum import Enum
 from functools import cached_property
-from typing import Generic, Self, TypeVar, cast
+from typing import Generic, Self, TypeVar, cast, overload
 
 from pyocctlite._occtlite import (
     CopyIShape,
@@ -289,6 +289,7 @@ class Shape:
         t = Transform.by_mirror(origin, normal)
         return TransformShape(self, t).shape()
 
+
     def extrude(self, vector: Vector) -> Shape:
         """
         Extrude this shape along a vector. The result is one dimension higher (e.g. face to solid).
@@ -386,6 +387,16 @@ class Vertex(Shape):
         if v.Kind() != IShapeKind.Vertex:
             raise TypeError(f'Expected IShapeKind.Vertex, got {v.Kind()}.')
 
+    def extrude(self, vector: Vector) -> Edge:
+        """
+        Extrude this vertex along a vector into a edge.
+
+        :param Vector vector: Extrusion vector.
+        :return: Extruded edge.
+        :rtype: Edge
+        """
+        return ExtrudeShape(self, vector).shape()
+
 
 class Edge(Shape):
     """
@@ -466,6 +477,16 @@ class Edge(Shape):
         icurve = self.ishape.Curve()
         return None if icurve is None else Curve.by_icurve(icurve)
 
+    def extrude(self, vector: Vector) -> Face:
+        """
+        Extrude this edge along a vector into a face.
+
+        :param Vector vector: Extrusion vector.
+        :return: Extruded face.
+        :rtype: Face
+        """
+        return ExtrudeShape(self, vector).shape()
+
 
 class Wire(Shape):
     """
@@ -518,6 +539,16 @@ class Wire(Shape):
         iwire = IShape.MakeWire(self.ishape, other.ishape)
         return Wire(iwire)
 
+    def extrude(self, vector: Vector) -> Shell:
+        """
+        Extrude this wire along a vector into a shell.
+
+        :param Vector vector: Extrusion vector.
+        :return: Extruded shell.
+        :rtype: Shell
+        """
+        return ExtrudeShape(self, vector).shape()
+
 
 class Face(Shape):
     """
@@ -546,6 +577,16 @@ class Face(Shape):
         if f.Kind() != IShapeKind.Face:
             raise TypeError(f'Expected IShapeKind.Face, got {f.Kind()}.')
 
+    def extrude(self, vector: Vector) -> Solid:
+        """
+        Extrude this face along a vector into a solid.
+
+        :param Vector vector: Extrusion vector.
+        :return: Extruded solid.
+        :rtype: Solid
+        """
+        return ExtrudeShape(self, vector).shape()
+
 
 class Shell(Shape):
     """
@@ -561,6 +602,16 @@ class Shell(Shape):
         super().__init__(s)
         if s.Kind() != IShapeKind.Shell:
             raise TypeError(f'Expected IShapeKind.Shell, got {s.Kind()}.')
+
+    def extrude(self, vector: Vector) -> CompSolid:
+        """
+        Extrude this shell along a vector into a compsolid.
+
+        :param Vector vector: Extrusion vector.
+        :return: Extruded compsolid.
+        :rtype: CompSolid
+        """
+        return ExtrudeShape(self, vector).shape()
 
 
 class Solid(Shape):
@@ -843,6 +894,28 @@ class ExtrudeShape(ShapeTool[ExtrudeIShape], Generic[T]):
         """
         itool = ExtrudeIShape(s.ishape, v.ivector)
         super().__init__(itool)
+
+    @overload
+    def shape(self: ExtrudeShape[Vertex]) -> Edge: ...
+    @overload
+    def shape(self: ExtrudeShape[Edge]) -> Face: ...
+    @overload
+    def shape(self: ExtrudeShape[Wire]) -> Shell: ...
+    @overload
+    def shape(self: ExtrudeShape[Face]) -> Solid: ...
+    @overload
+    def shape(self: ExtrudeShape[Shell]) -> CompSolid: ...
+    @overload
+    def shape(self) -> Shape: ...
+
+    def shape(self) -> Shape:
+        """
+        Get the resulting shape, one dimension higher than the source.
+
+        :return: Extruded shape.
+        :rtype: Shape
+        """
+        return super().shape()
 
     def first_shape(self) -> T:
         """
