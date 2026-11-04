@@ -14,9 +14,6 @@ public:
   // Construct a point from a gp_Pnt2d
   explicit IPoint2D(const gp_Pnt2d& p) : point_(p) {}
 
-  // Construct a point by its X, Y coordinates.
-  IPoint2D(double x, double y) : point_(x, y) {}
-
   // Get X, Y, Z coordinates
   double X() const {
     return point_.X();

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import cached_property
 from typing import Optional
 
 from pyocctlite._occtlite import (IAxis, ICurve, ICurve2D, ICurve2DKind, ICurveKind, IFrame,
@@ -24,7 +25,7 @@ class Point2D:
         :return: New 2D point.
         :rtype: Point2D
         """
-        return cls(IPoint2D(x, y))
+        return cls(IPoint2D.MakeByXY(x, y))
 
     def __init__(self, p: IPoint2D):
         """
@@ -32,7 +33,8 @@ class Point2D:
 
         :param IPoint2D p: Underlying 2D point.
         """
-        assert isinstance(p, IPoint2D)
+        if not isinstance(p, IPoint2D):
+            raise TypeError(f'Expected IPoint2D, got {type(p).__name__}.')
         self._ipoint = p
 
     @property
@@ -65,6 +67,17 @@ class Point2D:
         """
         return self.ipoint.Y()
 
+    def is_equal(self, other: Point2D, tol: float = 1.0e-7) -> bool:
+        """
+        Check if this point is equal to another within a tolerance.
+
+        :param Point2D other: Other point.
+        :param float tol: Distance tolerance.
+        :return: True if the points are within the tolerance.
+        :rtype: bool
+        """
+        return self.ipoint.IsEqual(other.ipoint, tol)
+
 
 class Vector2D:
     """
@@ -83,7 +96,7 @@ class Vector2D:
         :return: New 2D vector.
         :rtype: Vector2D
         """
-        return cls(IVector2D(x, y))
+        return cls(IVector2D.MakeByXY(x, y))
 
     def __init__(self, v: IVector2D):
         """
@@ -91,7 +104,8 @@ class Vector2D:
 
         :param IVector2D v: Underlying 2D vector.
         """
-        assert isinstance(v, IVector2D)
+        if not isinstance(v, IVector2D):
+            raise TypeError(f'Expected IVector2D, got {type(v).__name__}.')
         self._ivector = v
 
     @property
@@ -142,7 +156,7 @@ class Vector2D:
         :return: Scaled vector.
         :rtype: Vector2D
         """
-        return Vector2D(self.ivector.scaled(scale))
+        return Vector2D(self.ivector.Scaled(scale))
 
 
 class Frame2D:
@@ -183,7 +197,8 @@ class Frame2D:
 
         :param IFrame2D f: Underlying 2D frame.
         """
-        assert isinstance(f, IFrame2D)
+        if not isinstance(f, IFrame2D):
+            raise TypeError(f'Expected IFrame2D, got {type(f).__name__}.')
         self._iframe = f
 
     @property
@@ -196,7 +211,7 @@ class Frame2D:
         """
         return self._iframe
 
-    @property
+    @cached_property
     def x_direction(self) -> Vector2D:
         """
         X direction vector.
@@ -206,7 +221,7 @@ class Frame2D:
         """
         return Vector2D(self.iframe.XDirection())
 
-    @property
+    @cached_property
     def y_direction(self) -> Vector2D:
         """
         Y direction vector.
@@ -224,13 +239,31 @@ class Curve2D:
     :ivar ICurve2D icurve: Underlying 2D curve.
     """
 
+    @staticmethod
+    def by_icurve2d(icurve: ICurve2D) -> Curve2D:
+        """
+        Create a 2D curve from an ICurve2D.
+
+        :param ICurve2D icurve: Underlying 2D curve.
+        :return: The 2D curve.
+        :rtype: Curve2D
+        """
+        match icurve.Kind():
+            case ICurve2DKind.Ellipse:
+                return Ellipse2D(icurve)
+            case ICurve2DKind.Trimmed:
+                return TrimmedCurve2D(icurve)
+            case _:
+                raise NotImplementedError(f'Unsupported 2D curve kind: {icurve.Kind()}.')
+
     def __init__(self, c: ICurve2D):
         """
         Initialize from an ICurve2D.
 
         :param ICurve2D c: Underlying 2D curve.
         """
-        assert isinstance(c, ICurve2D)
+        if not isinstance(c, ICurve2D):
+            raise TypeError(f'Expected ICurve2D, got {type(c).__name__}.')
         self._icurve = c
 
     @property
@@ -261,16 +294,19 @@ class Ellipse2D(Curve2D):
     """
 
     @classmethod
-    def by_radii(cls, frame: Frame2D, rmajor: float, rminor: float) -> Ellipse2D:
+    def by_radii(cls, rmajor: float, rminor: float, frame: Optional[Frame2D] = None) -> Ellipse2D:
         """
-        Create an ellipse from frame and radii.
+        Create an ellipse from radii and frame.
 
-        :param Frame2D frame: Coordinate system.
         :param float rmajor: Major radius.
         :param float rminor: Minor radius.
+        :param Optional[Frame2D] frame: Coordinate system. Defaults to the global origin.
         :return: New 2D ellipse.
         :rtype: Ellipse2D
         """
+        if frame is None:
+            frame = Frame2D.by_origin(Point2D.by_xy(0., 0.))
+
         icurve = ICurve2D.MakeEllipse(frame.iframe, rmajor, rminor)
         return cls(icurve)
 
@@ -281,7 +317,8 @@ class Ellipse2D(Curve2D):
         :param ICurve2D c: Underlying 2D curve.
         """
         super().__init__(c)
-        assert c.Kind() == ICurve2DKind.Ellipse
+        if c.Kind() != ICurve2DKind.Ellipse:
+            raise TypeError(f'Expected ICurve2DKind.Ellipse, got {c.Kind()}.')
 
 
 class TrimmedCurve2D(Curve2D):
@@ -301,7 +338,7 @@ class TrimmedCurve2D(Curve2D):
         :rtype: TrimmedCurve2D
         """
         icurve = ICurve2D.MakeTrimmed(curve.icurve, u0, u1)
-        return TrimmedCurve2D(icurve)
+        return cls(icurve)
 
     @classmethod
     def by_points(cls, p1: Point2D, p2: Point2D) -> TrimmedCurve2D:
@@ -314,7 +351,7 @@ class TrimmedCurve2D(Curve2D):
         :rtype: TrimmedCurve2D
         """
         icurve = ICurve2D.MakeTrimmed(p1.ipoint, p2.ipoint)
-        return TrimmedCurve2D(icurve)
+        return cls(icurve)
 
     def __init__(self, c: ICurve2D):
         """
@@ -323,7 +360,8 @@ class TrimmedCurve2D(Curve2D):
         :param ICurve2D c: Underlying 2D curve.
         """
         super().__init__(c)
-        assert c.Kind() == ICurve2DKind.Trimmed
+        if c.Kind() != ICurve2DKind.Trimmed:
+            raise TypeError(f'Expected ICurve2DKind.Trimmed, got {c.Kind()}.')
 
 
 class Point:
@@ -344,7 +382,7 @@ class Point:
         :return: New 3D point.
         :rtype: Point
         """
-        return cls(IPoint(x, y, z))
+        return cls(IPoint.MakeByXYZ(x, y, z))
 
     def __init__(self, p: IPoint):
         """
@@ -352,7 +390,8 @@ class Point:
 
         :param IPoint p: Underlying 3D point.
         """
-        assert isinstance(p, IPoint)
+        if not isinstance(p, IPoint):
+            raise TypeError(f'Expected IPoint, got {type(p).__name__}.')
         self._ipoint = p
 
     @property
@@ -395,6 +434,17 @@ class Point:
         """
         return self.ipoint.Z()
 
+    def is_equal(self, other: Point, tol: float = 1.0e-7) -> bool:
+        """
+        Check if this point is equal to another within a tolerance.
+
+        :param Point other: Other point.
+        :param float tol: Distance tolerance.
+        :return: True if the points are within the tolerance.
+        :rtype: bool
+        """
+        return self.ipoint.IsEqual(other.ipoint, tol)
+
 
 class Vector:
     """
@@ -414,7 +464,7 @@ class Vector:
         :return: New 3D vector.
         :rtype: Vector
         """
-        return cls(IVector(x, y, z))
+        return cls(IVector.MakeByXYZ(x, y, z))
 
     def __init__(self, v: IVector):
         """
@@ -422,7 +472,8 @@ class Vector:
 
         :param IVector v: Underlying 3D vector.
         """
-        assert isinstance(v, IVector)
+        if not isinstance(v, IVector):
+            raise TypeError(f'Expected IVector, got {type(v).__name__}.')
         self._ivector = v
 
     @property
@@ -487,6 +538,11 @@ class Vector:
 
 
 class Axis:
+    """
+    Represents a 3D axis.
+
+    :ivar IAxis iaxis: Underlying 3D axis.
+    """
 
     def __init__(self, a: IAxis):
         """
@@ -494,7 +550,8 @@ class Axis:
 
         :param IAxis a: Underlying 3D axis.
         """
-        assert isinstance(a, IAxis)
+        if not isinstance(a, IAxis):
+            raise TypeError(f'Expected IAxis, got {type(a).__name__}.')
         self._iaxis = a
 
     @property
@@ -507,7 +564,7 @@ class Axis:
         """
         return self._iaxis
 
-    @property
+    @cached_property
     def origin(self) -> Point:
         """
         Origin of the axis.
@@ -517,7 +574,7 @@ class Axis:
         """
         return Point(self.iaxis.Origin())
 
-    @property
+    @cached_property
     def direction(self) -> Vector:
         """
         Direction of the axis.
@@ -553,7 +610,8 @@ class Frame:
 
         :param IFrame f: Underlying 3D frame.
         """
-        assert isinstance(f, IFrame)
+        if not isinstance(f, IFrame):
+            raise TypeError(f'Expected IFrame, got {type(f).__name__}.')
         self._iframe = f
 
     @property
@@ -566,7 +624,7 @@ class Frame:
         """
         return self._iframe
 
-    @property
+    @cached_property
     def x_direction(self) -> Vector:
         """
         X direction vector.
@@ -576,7 +634,7 @@ class Frame:
         """
         return Vector(self.iframe.XDirection())
 
-    @property
+    @cached_property
     def y_direction(self) -> Vector:
         """
         Y direction vector.
@@ -586,7 +644,7 @@ class Frame:
         """
         return Vector(self.iframe.YDirection())
 
-    @property
+    @cached_property
     def z_direction(self) -> Vector:
         """
         Z direction vector.
@@ -605,7 +663,7 @@ class Transform:
     """
 
     @classmethod
-    def mirror(cls, origin: Point, normal: Vector) -> Transform:
+    def by_mirror(cls, origin: Point, normal: Vector) -> Transform:
         """
         Create a mirror transformation.
 
@@ -623,7 +681,8 @@ class Transform:
 
         :param ITransform t: Underlying transformation.
         """
-        assert isinstance(t, ITransform)
+        if not isinstance(t, ITransform):
+            raise TypeError(f'Expected ITransform, got {type(t).__name__}.')
         self._itransform = t
 
     @property
@@ -661,7 +720,7 @@ class Curve:
             case ICurveKind.Trimmed:
                 return TrimmedCurve(icurve)
             case _:
-                raise RuntimeError("Cannot create unknown curve.")
+                raise NotImplementedError(f'Unsupported curve kind: {icurve.Kind()}.')
 
     def __init__(self, c: ICurve):
         """
@@ -669,7 +728,8 @@ class Curve:
 
         :param ICurve c: Underlying 3D curve.
         """
-        assert isinstance(c, ICurve)
+        if not isinstance(c, ICurve):
+            raise TypeError(f'Expected ICurve, got {type(c).__name__}.')
         self._icurve = c
 
     @property
@@ -719,9 +779,10 @@ class Line(Curve):
         :param ICurve c: Underlying 3D curve.
         """
         super().__init__(c)
-        assert c.Kind() == ICurveKind.Line
+        if c.Kind() != ICurveKind.Line:
+            raise TypeError(f'Expected ICurveKind.Line, got {c.Kind()}.')
 
-    @property
+    @cached_property
     def origin(self) -> Point:
         """
         Origin of the line
@@ -730,12 +791,9 @@ class Line(Curve):
         :rtype: Point
         """
         idata = self.icurve.LineData()
-        if idata is None:
-            raise TypeError('Curve is not a line.')
-
         return Point(idata.Origin)
 
-    @property
+    @cached_property
     def direction(self) -> Vector:
         """
         Direction vector of the line
@@ -744,9 +802,6 @@ class Line(Curve):
         :rtype: Vector
         """
         idata = self.icurve.LineData()
-        if idata is None:
-            raise TypeError('Curve is not a line.')
-
         return Vector(idata.Direction)
 
 
@@ -761,7 +816,7 @@ class Circle(Curve):
         Create a circle from frame and radius.
 
         :param float radius: Circle radius.
-        :param Optional[Frame] frame: Coordinate system.
+        :param Optional[Frame] frame: Coordinate system. Defaults to the global origin.
         :return: New 3D circle.
         :rtype: Circle
         """
@@ -792,9 +847,10 @@ class Circle(Curve):
         :param ICurve c: Underlying 3D curve.
         """
         super().__init__(c)
-        assert c.Kind() == ICurveKind.Circle
+        if c.Kind() != ICurveKind.Circle:
+            raise TypeError(f'Expected ICurveKind.Circle, got {c.Kind()}.')
 
-    @property
+    @cached_property
     def radius(self) -> float:
         """
         Radius of the circle.
@@ -803,9 +859,6 @@ class Circle(Curve):
         :rtype: float
         """
         idata = self.icurve.CircleData()
-        if idata is None:
-            raise TypeError('Curve is not a circle.')
-
         return idata.Radius
 
 
@@ -835,7 +888,8 @@ class TrimmedCurve(Curve):
         :param ICurve c: Underlying 3D curve.
         """
         super().__init__(c)
-        assert c.Kind() == ICurveKind.Trimmed
+        if c.Kind() != ICurveKind.Trimmed:
+            raise TypeError(f'Expected ICurveKind.Trimmed, got {c.Kind()}.')
 
 
 class Surface:
@@ -845,13 +899,29 @@ class Surface:
     :ivar ISurface isurface: Underlying surface.
     """
 
+    @staticmethod
+    def by_isurface(isurface: ISurface) -> Surface:
+        """
+        Create a surface from an ISurface.
+
+        :param ISurface isurface: Underlying surface.
+        :return: The surface.
+        :rtype: Surface
+        """
+        match isurface.Kind():
+            case ISurfaceKind.Cylindrical:
+                return CylindricalSurface(isurface)
+            case _:
+                raise NotImplementedError(f'Unsupported surface kind: {isurface.Kind()}.')
+
     def __init__(self, s: ISurface):
         """
         Initialize from an ISurface.
 
         :param ISurface s: Underlying surface.
         """
-        assert isinstance(s, ISurface)
+        if not isinstance(s, ISurface):
+            raise TypeError(f'Expected ISurface, got {type(s).__name__}.')
         self._isurface = s
 
     @property
@@ -871,15 +941,18 @@ class CylindricalSurface(Surface):
     """
 
     @classmethod
-    def by_radius(cls, frame: Frame, radius: float) -> CylindricalSurface:
+    def by_radius(cls, radius: float, frame: Optional[Frame] = None) -> CylindricalSurface:
         """
-        Create a cylindrical surface from frame and radius.
+        Create a cylindrical surface from radius and frame.
 
-        :param Frame frame: Coordinate system.
         :param float radius: Cylinder radius.
+        :param Optional[Frame] frame: Coordinate system. Defaults to the global origin.
         :return: New cylindrical surface.
         :rtype: CylindricalSurface
         """
+        if frame is None:
+            frame = Frame.by_origin(Point.by_xyz(0., 0., 0.))
+
         isurface = ISurface.MakeCylindrical(frame.iframe, radius)
         return cls(isurface)
 
@@ -890,4 +963,5 @@ class CylindricalSurface(Surface):
         :param ISurface s: Underlying surface.
         """
         super().__init__(s)
-        assert s.Kind() == ISurfaceKind.Cylindrical
+        if s.Kind() != ISurfaceKind.Cylindrical:
+            raise TypeError(f'Expected ISurfaceKind.Cylindrical, got {s.Kind()}.')

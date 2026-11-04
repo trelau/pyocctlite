@@ -14,7 +14,7 @@
 #include <TopExp.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
 
-#include "IShapeErrors.hpp"
+#include "IErrors.hpp"
 
 static std::string kindToString(IShapeKind kind) {
   switch (kind) {
@@ -114,7 +114,7 @@ IShape IShape::MakeCompound(const std::vector<IShape>& shapes) {
 
 void IShape::ValidateKind(const IShapeKind expected) const {
   if (kind_ != expected) {
-    throw IShapeTypeMismatch(
+    throw IKindMismatch(
       "Expected " + kindToString(expected) + " but got " + kindToString(kind_) + " instead.");
   }
 }
@@ -206,6 +206,7 @@ void bind_IShape(nb::module_& m) {
     .def("IsNull", &IShape::IsNull, "Whether or not this shape is null.")
     .def("IsEqual", &IShape::IsEqual, nb::arg("other"), "Check if this shape is equal to the other.")
     .def("IsSame", &IShape::IsSame, nb::arg("other"), "Check if this shape is the same as the other (orientation may differ).")
+    .def("HashCode", &IShape::HashCode, "Hash code consistent with IsSame.")
     .def("ExportSTEP", &IShape::ExportSTEP, nb::arg("fname"), "Export this shape to a STEP file.")
     .def("Length", &IShape::Length, "Calculate the length of all edges of this shape.")
     .def("Area", &IShape::Area, "Calculate the area of all faces of this shape.")

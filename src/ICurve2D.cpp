@@ -1,10 +1,29 @@
 #include "ICurve2D.hpp"
 
+#include <string>
+
 #include <gp_Pnt2d.hxx>
 #include <gp_Vec2d.hxx>
 #include <GCE2d_MakeLine.hxx>
 #include <GCE2d_MakeSegment.hxx>
 #include <GCE2d_MakeEllipse.hxx>
+
+#include "IErrors.hpp"
+
+static std::string kindToString(ICurve2DKind kind) {
+  switch (kind) {
+  case ICurve2DKind::Unknown:     return "Unknown";
+  case ICurve2DKind::Line:        return "Line";
+  case ICurve2DKind::Circle:      return "Circle";
+  case ICurve2DKind::Ellipse:     return "Ellipse";
+  case ICurve2DKind::Parabola:    return "Parabola";
+  case ICurve2DKind::Hyperbola:   return "Hyperbola";
+  case ICurve2DKind::Bezier:      return "Bezier";
+  case ICurve2DKind::BSpline:     return "BSpline";
+  case ICurve2DKind::Trimmed:     return "Trimmed";
+  default:                        return "Invalid";
+  }
+}
 
 ICurve2D ICurve2D::MakeLine(const IPoint2D& p1, const IPoint2D& p2) {
 
@@ -75,6 +94,13 @@ IVector2D ICurve2D::Derivative(double u, int order) const {
   gp_Vec2d v = curve_->DN(u, order);
 
   return IVector2D(v);
+}
+
+void ICurve2D::ValidateKind(const ICurve2DKind expected) const {
+  if (kind_ != expected) {
+    throw IKindMismatch(
+      "Expected " + kindToString(expected) + " but got " + kindToString(kind_) + " instead.");
+  }
 }
 
 // Python bindings

@@ -1,28 +1,35 @@
-from pyocctlite.geometry import Circle, Frame
-from pyocctlite.topology import Edge, ExtrudeShape, Face, Solid, Wire
+from __future__ import annotations
+
+from typing import Optional, Self, Union
+
+from pyocctlite.geometry import Circle, Frame, Point, Transform, Vector
+from pyocctlite.topology import (CopyShape, Edge, ExtrudeShape, Face, Solid, TransformShape,
+                                 Wire)
 
 
 class Cylinder(Solid):
     """
     Represents a cylinder.
 
-    :ivar Solid solid: Underlying solid.
     :ivar Face bottom_face: Bottom face.
     :ivar Face top_face: Top face.
     :ivar Face lateral_face: Lateral face.
     """
 
     @classmethod
-    def by_size(cls, radius: float, height: float, frame: Frame):
+    def by_size(cls, radius: float, height: float, frame: Optional[Frame] = None) -> Cylinder:
         """
         Create a cylinder from size and location.
 
         :param float radius: Radius.
         :param float height: Height.
-        :param Frame frame: Coordinate system.
+        :param Optional[Frame] frame: Coordinate system. Defaults to the global origin.
         :return: New cylinder.
         :rtype: Cylinder
         """
+        if frame is None:
+            frame = Frame.by_origin(Point.by_xyz(0., 0., 0.))
+
         # make a circle at frame of radius
         c = Circle.by_radius(radius, frame)
 
@@ -41,12 +48,13 @@ class Cylinder(Solid):
         solid = tool.shape()
 
         # get faces
-        bottom_face = f
+        bottom_face = tool.first_shape()
         top_face = tool.last_shape()
         lateral_face = tool.generated_shapes(e)[0]
 
         # make sure shapes are the expected types
         assert isinstance(solid, Solid)
+        assert isinstance(bottom_face, Face)
         assert isinstance(top_face, Face)
         assert isinstance(lateral_face, Face)
 
@@ -63,20 +71,9 @@ class Cylinder(Solid):
         """
         super().__init__(solid.ishape)
 
-        self._solid = solid
         self._bottom_face = bottom_face
         self._top_face = top_face
         self._lateral_face = lateral_face
-
-    @property
-    def solid(self) -> Solid:
-        """
-        Underlying solid.
-
-        :return: Solid object.
-        :rtype: Solid
-        """
-        return self._solid
 
     @property
     def bottom_face(self) -> Face:
@@ -107,3 +104,35 @@ class Cylinder(Solid):
         :rtype: Face
         """
         return self._lateral_face
+
+    def copy(self) -> Self:
+        """
+        Create a copy of this cylinder, including its named faces.
+
+        :return: Copied cylinder.
+        :rtype: Self
+        """
+        return self._by_history(CopyShape(self))
+
+    def mirror(self, origin: Point, normal: Vector) -> Self:
+        """
+        Create a mirrored version of this cylinder, including its named faces.
+
+        :param Point origin: Mirror origin.
+        :param Vector normal: Mirror normal.
+        :return: Mirrored cylinder.
+        :rtype: Self
+        """
+        t = Transform.by_mirror(origin, normal)
+        return self._by_history(TransformShape(self, t))
+
+    def _by_history(self, tool: Union[CopyShape[Self], TransformShape[Self]]) -> Self:
+        """
+        Build a cylinder from a kind-preserving tool by mapping each named face through its history.
+
+        :param Union[CopyShape[Self], TransformShape[Self]] tool: Tool applied to this cylinder.
+        :return: New cylinder.
+        :rtype: Self
+        """
+        return type(self)(tool.shape(), tool.modified_shape(self.bottom_face),
+                          tool.modified_shape(self.top_face), tool.modified_shape(self.lateral_face))

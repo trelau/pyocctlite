@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Generic, Iterable, Iterator, Optional, Self, TypeVar, Union
+from functools import cached_property
+from typing import Generic, Iterable, Iterator, Optional, Self, TypeVar, Union, cast
 
 from pyocctlite._occtlite import (CopyIShape, CutIShapes, ExploreIShape, ExtrudeIShape,
                                   FilletIShape,
@@ -11,6 +12,7 @@ from pyocctlite._occtlite import (CopyIShape, CutIShapes, ExploreIShape, Extrude
 from pyocctlite.geometry import Curve, Curve2D, Point, Surface, Transform, TrimmedCurve, Vector
 
 T = TypeVar('T', bound='Shape')
+S = TypeVar('S', bound='Shape')
 
 
 class ShapeKind(Enum):
@@ -63,7 +65,7 @@ class Shape:
             case IShapeKind.Compound:
                 return Compound(ishape)
             case _:
-                raise RuntimeError("Cannot create unknown shape.")
+                raise NotImplementedError(f'Unsupported shape kind: {ishape.Kind()}.')
 
     @staticmethod
     def by_ishapes(ishapes: Iterable[IShape]) -> list[Shape]:
@@ -83,9 +85,30 @@ class Shape:
 
         :param IShape s: Underlying topological shape.
         """
-        assert isinstance(s, IShape)
+        if not isinstance(s, IShape):
+            raise TypeError(f'Expected IShape, got {type(s).__name__}.')
         self._ishape = s
-        self._kind = ShapeKind.SHAPE
+
+    def __eq__(self, other: object) -> bool:
+        """
+        Check if both shapes share the same underlying shape (orientation may differ).
+
+        :param object other: Other object.
+        :return: True if the shapes are the same.
+        :rtype: bool
+        """
+        if not isinstance(other, Shape):
+            return NotImplemented
+        return self.ishape.IsSame(other.ishape)
+
+    def __hash__(self) -> int:
+        """
+        Hash consistent with equality.
+
+        :return: Hash value.
+        :rtype: int
+        """
+        return self.ishape.HashCode()
 
     @property
     def ishape(self) -> IShape:
@@ -105,9 +128,9 @@ class Shape:
         :return: Shape kind.
         :rtype: ShapeKind
         """
-        return self._kind
+        return ShapeKind(self.ishape.Kind())
 
-    @property
+    @cached_property
     def length(self) -> float:
         """
         The length of all edges of the shape.
@@ -117,7 +140,7 @@ class Shape:
         """
         return self.ishape.Length()
 
-    @property
+    @cached_property
     def area(self) -> float:
         """
         The area of all faces of the shape.
@@ -127,7 +150,7 @@ class Shape:
         """
         return self.ishape.Area()
 
-    @property
+    @cached_property
     def volume(self) -> float:
         """
         The volume of all solids of the shape.
@@ -137,22 +160,22 @@ class Shape:
         """
         return self.ishape.Volume()
 
-    def explore(self, find: ShapeKind, ignore: ShapeKind = ShapeKind.SHAPE) -> ExploreShape[T]:
+    def explore(self, find: type[T], ignore: Optional[type[Shape]] = None) -> ExploreShape[T]:
         """
         Explore sub-shapes.
 
-        :param ShapeKind find: Kind of shapes to find.
-        :param ShapeKind ignore: Kind of shapes to ignore.
+        :param type[T] find: Class of shapes to find (e.g. ``Edge``).
+        :param Optional[type[Shape]] ignore: Class of shapes to skip over, if any.
         :return: Explore tool.
         :rtype: ExploreShape[T]
         """
         return ExploreShape(self, find, ignore)
 
-    def map(self, kind: ShapeKind) -> MapShape[T]:
+    def map(self, kind: type[T]) -> MapShape[T]:
         """
         Map sub-shapes.
 
-        :param ShapeKind kind: Kind of shapes to map.
+        :param type[T] kind: Class of shapes to map (e.g. ``Edge``).
         :return: Map tool.
         :rtype: MapShape[T]
         """
@@ -165,7 +188,7 @@ class Shape:
         :return: Map of vertices.
         :rtype: MapShape[Vertex]
         """
-        return self.map(ShapeKind.VERTEX)
+        return self.map(Vertex)
 
     def edges(self) -> MapShape[Edge]:
         """
@@ -174,7 +197,7 @@ class Shape:
         :return: Map of edges.
         :rtype: MapShape[Edge]
         """
-        return self.map(ShapeKind.EDGE)
+        return self.map(Edge)
 
     def wires(self) -> MapShape[Wire]:
         """
@@ -183,7 +206,7 @@ class Shape:
         :return: Map of wires.
         :rtype: MapShape[Wire]
         """
-        return self.map(ShapeKind.WIRE)
+        return self.map(Wire)
 
     def faces(self) -> MapShape[Face]:
         """
@@ -192,7 +215,7 @@ class Shape:
         :return: Map of faces.
         :rtype: MapShape[Face]
         """
-        return self.map(ShapeKind.FACE)
+        return self.map(Face)
 
     def shells(self) -> MapShape[Shell]:
         """
@@ -201,7 +224,7 @@ class Shape:
         :return: Map of shells.
         :rtype: MapShape[Shell]
         """
-        return self.map(ShapeKind.SHELL)
+        return self.map(Shell)
 
     def solids(self) -> MapShape[Solid]:
         """
@@ -210,7 +233,7 @@ class Shape:
         :return: Map of solids.
         :rtype: MapShape[Solid]
         """
-        return self.map(ShapeKind.SOLID)
+        return self.map(Solid)
 
     def compsolids(self) -> MapShape[CompSolid]:
         """
@@ -219,7 +242,7 @@ class Shape:
         :return: Map of compsolids.
         :rtype: MapShape[CompSolid]
         """
-        return self.map(ShapeKind.COMPSOLID)
+        return self.map(CompSolid)
 
     def compounds(self) -> MapShape[Compound]:
         """
@@ -228,17 +251,16 @@ class Shape:
         :return: Map of compounds.
         :rtype: MapShape[Compound]
         """
-        return self.map(ShapeKind.COMPOUND)
+        return self.map(Compound)
 
     def copy(self) -> Self:
         """
         Create a copy of this shape.
 
-        :return: Copied shape.
+        :return: Copied shape of the same type.
         :rtype: Self
         """
-        ishape = CopyIShape(self.ishape).Shape()
-        return Shape.by_ishape(ishape)
+        return CopyShape(self).shape()
 
     def mirror(self, origin: Point, normal: Vector) -> Self:
         """
@@ -246,23 +268,21 @@ class Shape:
 
         :param Point origin: Mirror origin.
         :param Vector normal: Mirror normal.
-        :return: Mirrored shape.
+        :return: Mirrored shape of the same type.
         :rtype: Self
         """
-        t = Transform.mirror(origin, normal)
-        ishape = TransformIShape(self.ishape, t.itransform).Shape()
-        return Shape.by_ishape(ishape)
+        t = Transform.by_mirror(origin, normal)
+        return TransformShape(self, t).shape()
 
     def extrude(self, vector: Vector) -> Shape:
         """
-        Extrude this shape along a vector.
+        Extrude this shape along a vector. The result is one dimension higher (e.g. face to solid).
 
         :param Vector vector: Extrusion vector.
         :return: Extruded shape.
         :rtype: Shape
         """
-        ishape = ExtrudeIShape(self.ishape, vector.ivector).Shape()
-        return Shape.by_ishape(ishape)
+        return ExtrudeShape(self, vector).shape()
 
     def unite(self, other: Shape) -> Shape:
         """
@@ -286,7 +306,7 @@ class Shape:
         ishape = CutIShapes(self.ishape, other.ishape).Shape()
         return Shape.by_ishape(ishape)
 
-    def fillet(self, edge: Union[Edge, Iterable[Edge]], radius) -> Shape:
+    def fillet(self, edge: Union[Edge, Iterable[Edge]], radius: float) -> Shape:
         """
         Fillet edges of this shape.
 
@@ -301,11 +321,10 @@ class Shape:
         else:
             for e in edge: itool.AddEdge(e.ishape, radius)
 
-        itool.Build()
         ishape = itool.Shape()
         return Shape.by_ishape(ishape)
 
-    def thicken(self, thickness: float, tol=1.0e-3, faces: Optional[
+    def thicken(self, thickness: float, tol: float = 1.0e-3, faces: Optional[
         Iterable[Face]] = None) -> Shape:
         """
         Thicken this shape.
@@ -325,15 +344,15 @@ class Shape:
         ishape = itool.Shape()
         return Shape.by_ishape(ishape)
 
-    def export_step(self, path: str) -> bool:
+    def export_step(self, path: str) -> None:
         """
         Export this shape to a STEP file.
 
         :param str path: File path.
-        :return: True if successful.
-        :rtype: bool
+        :raises RuntimeError: If the export fails.
         """
-        return self.ishape.ExportSTEP(path)
+        if not self.ishape.ExportSTEP(path):
+            raise RuntimeError(f'Failed to export STEP file: {path}')
 
 
 class Vertex(Shape):
@@ -348,8 +367,8 @@ class Vertex(Shape):
         :param IShape v: Underlying topological shape.
         """
         super().__init__(v)
-        assert v.Kind() == IShapeKind.Vertex
-        self._kind = ShapeKind.VERTEX
+        if v.Kind() != IShapeKind.Vertex:
+            raise TypeError(f'Expected IShapeKind.Vertex, got {v.Kind()}.')
 
 
 class Edge(Shape):
@@ -417,18 +436,19 @@ class Edge(Shape):
         :param IShape e: Underlying topological shape.
         """
         super().__init__(e)
-        assert e.Kind() == IShapeKind.Edge
-        self._kind = ShapeKind.EDGE
+        if e.Kind() != IShapeKind.Edge:
+            raise TypeError(f'Expected IShapeKind.Edge, got {e.Kind()}.')
 
-    @property
-    def curve(self) -> Curve:
+    @cached_property
+    def curve(self) -> Optional[Curve]:
         """
         Get the underlying curve of the edge.
 
-        :return: The underlying curve.
-        :rtype: Curve
+        :return: The underlying curve, or None if the edge has no 3D curve.
+        :rtype: Optional[Curve]
         """
-        return Curve.by_icurve(self.ishape.Curve())
+        icurve = self.ishape.Curve()
+        return None if icurve is None else Curve.by_icurve(icurve)
 
 
 class Wire(Shape):
@@ -437,7 +457,7 @@ class Wire(Shape):
     """
 
     @classmethod
-    def by_edge(cls, e: Edge):
+    def by_edge(cls, e: Edge) -> Wire:
         """
         Create a wire from an edge.
 
@@ -468,8 +488,8 @@ class Wire(Shape):
         :param IShape w: Underlying topological shape.
         """
         super().__init__(w)
-        assert w.Kind() == IShapeKind.Wire
-        self._kind = ShapeKind.WIRE
+        if w.Kind() != IShapeKind.Wire:
+            raise TypeError(f'Expected IShapeKind.Wire, got {w.Kind()}.')
 
     def combine(self, other: Wire) -> Wire:
         """
@@ -507,8 +527,8 @@ class Face(Shape):
         :param IShape f: Underlying topological shape.
         """
         super().__init__(f)
-        assert f.Kind() == IShapeKind.Face
-        self._kind = ShapeKind.FACE
+        if f.Kind() != IShapeKind.Face:
+            raise TypeError(f'Expected IShapeKind.Face, got {f.Kind()}.')
 
 
 class Shell(Shape):
@@ -523,8 +543,8 @@ class Shell(Shape):
         :param IShape s: Underlying topological shape.
         """
         super().__init__(s)
-        assert s.Kind() == IShapeKind.Shell
-        self._kind = ShapeKind.SHELL
+        if s.Kind() != IShapeKind.Shell:
+            raise TypeError(f'Expected IShapeKind.Shell, got {s.Kind()}.')
 
 
 class Solid(Shape):
@@ -534,7 +554,7 @@ class Solid(Shape):
 
     @classmethod
     def by_loft(cls, shapes: Iterable[Union[Vertex, Edge, Wire]],
-                is_ruled=False, tol=1.0e-6) -> Solid:
+                is_ruled: bool = False, tol: float = 1.0e-6) -> Solid:
         """
         Create a solid by lofting through shapes.
 
@@ -551,9 +571,8 @@ class Solid(Shape):
             else:
                 raise NotImplementedError()
 
-        itool.Build()
         ishape = itool.Shape()
-        return Solid(ishape)
+        return cls(ishape)
 
     def __init__(self, s: IShape):
         """
@@ -562,8 +581,8 @@ class Solid(Shape):
         :param IShape s: Underlying topological shape.
         """
         super().__init__(s)
-        assert s.Kind() == IShapeKind.Solid
-        self._kind = ShapeKind.SOLID
+        if s.Kind() != IShapeKind.Solid:
+            raise TypeError(f'Expected IShapeKind.Solid, got {s.Kind()}.')
 
 
 class CompSolid(Shape):
@@ -578,8 +597,8 @@ class CompSolid(Shape):
         :param IShape cs: Underlying topological shape.
         """
         super().__init__(cs)
-        assert cs.Kind() == IShapeKind.CompSolid
-        self._kind = ShapeKind.COMPSOLID
+        if cs.Kind() != IShapeKind.CompSolid:
+            raise TypeError(f'Expected IShapeKind.CompSolid, got {cs.Kind()}.')
 
 
 class Compound(Shape):
@@ -607,8 +626,25 @@ class Compound(Shape):
         :param IShape c: Underlying topological shape.
         """
         super().__init__(c)
-        assert c.Kind() == IShapeKind.Compound
-        self._kind = ShapeKind.COMPOUND
+        if c.Kind() != IShapeKind.Compound:
+            raise TypeError(f'Expected IShapeKind.Compound, got {c.Kind()}.')
+
+
+def _kind_of(cls: type[Shape]) -> ShapeKind:
+    """
+    Get the shape kind of a core shape class.
+
+    :param type[Shape] cls: Core shape class (e.g. ``Edge``).
+    :return: Shape kind.
+    :rtype: ShapeKind
+    :raises TypeError: If the class is not a core shape class (e.g. a composite).
+    """
+    kinds = {Shape: ShapeKind.SHAPE, Vertex: ShapeKind.VERTEX, Edge: ShapeKind.EDGE, Wire: ShapeKind.WIRE,
+             Face: ShapeKind.FACE, Shell: ShapeKind.SHELL, Solid: ShapeKind.SOLID,
+             CompSolid: ShapeKind.COMPSOLID, Compound: ShapeKind.COMPOUND}
+    if cls not in kinds:
+        raise TypeError(f'Expected a core shape class, got {cls.__name__}.')
+    return kinds[cls]
 
 
 class ShapeTool:
@@ -704,38 +740,111 @@ class CutShapes(ShapeTool):
         return [Edge(e) for e in self._itool.IntersectionEdges()]
 
 
-class ExtrudeShape(ShapeTool):
+class CopyShape(ShapeTool, Generic[T]):
     """
-    Tool to extrude a shape.
+    Tool to copy a shape. The copy has the same type as the source.
     """
 
-    def __init__(self, s: Shape, v: Vector):
+    def __init__(self, s: T, copy_geom: bool = True):
+        """
+        Initialize with shape.
+
+        :param Shape s: Source shape.
+        :param bool copy_geom: True to copy the underlying geometry.
+        """
+        itool = CopyIShape(s.ishape, copy_geom)
+        super().__init__(itool)
+
+
+    def shape(self) -> T:
+        """
+        Get the resulting shape.
+
+        :return: Resulting shape, of the same type as the source.
+        :rtype: T
+        """
+        return cast(T, super().shape())
+
+    def modified_shape(self, s: S) -> S:
+        """
+        Get the copy of a sub-shape of the source shape.
+
+        :param S s: Sub-shape of the source shape.
+        :return: Copied sub-shape, of the same type.
+        :rtype: S
+        """
+        return cast(S, Shape.by_ishape(self._itool.ModifiedShape(s.ishape)))
+
+
+class TransformShape(ShapeTool, Generic[T]):
+    """
+    Tool to transform a shape. The result has the same type as the source.
+    """
+
+    def __init__(self, s: T, t: Transform, copy_geom: bool = False):
+        """
+        Initialize with shape and transformation.
+
+        :param Shape s: Source shape.
+        :param Transform t: Transformation.
+        :param bool copy_geom: True to copy the underlying geometry.
+        """
+        itool = TransformIShape(s.ishape, t.itransform, copy_geom)
+        super().__init__(itool)
+
+
+    def shape(self) -> T:
+        """
+        Get the resulting shape.
+
+        :return: Resulting shape, of the same type as the source.
+        :rtype: T
+        """
+        return cast(T, super().shape())
+
+    def modified_shape(self, s: S) -> S:
+        """
+        Get the transformed version of a sub-shape of the source shape.
+
+        :param S s: Sub-shape of the source shape.
+        :return: Transformed sub-shape, of the same type.
+        :rtype: S
+        """
+        return cast(S, Shape.by_ishape(self._itool.ModifiedShape(s.ishape)))
+
+
+class ExtrudeShape(ShapeTool, Generic[T]):
+    """
+    Tool to extrude a shape. The result is one dimension higher than the source.
+    """
+
+    def __init__(self, s: T, v: Vector):
         """
         Initialize with shape and vector.
 
-        :param Shape s: Source shape.
+        :param T s: Source shape.
         :param Vector v: Extrusion vector.
         """
         itool = ExtrudeIShape(s.ishape, v.ivector)
         super().__init__(itool)
 
-    def first_shape(self) -> Shape:
+    def first_shape(self) -> T:
         """
         Get the shape at the start of extrusion.
 
-        :return: First shape.
-        :rtype: Shape
+        :return: First shape, of the same type as the source.
+        :rtype: T
         """
-        return Shape.by_ishape(self._itool.FirstShape())
+        return cast(T, Shape.by_ishape(self._itool.FirstShape()))
 
-    def last_shape(self) -> Shape:
+    def last_shape(self) -> T:
         """
         Get the shape at the end of extrusion.
 
-        :return: Last shape.
-        :rtype: Shape
+        :return: Last shape, of the same type as the source.
+        :rtype: T
         """
-        return Shape.by_ishape(self._itool.LastShape())
+        return cast(T, Shape.by_ishape(self._itool.LastShape()))
 
 
 class ThickenShape(ShapeTool):
@@ -743,7 +852,7 @@ class ThickenShape(ShapeTool):
     Tool to thicken a shape.
     """
 
-    def __init__(self, s: Shape, thickness: float, tol=1.0e-3, faces: Optional[
+    def __init__(self, s: Shape, thickness: float, tol: float = 1.0e-3, faces: Optional[
         Iterable[Face]] = None):
         """
         Initialize with shape and thickness.
@@ -766,7 +875,7 @@ class LoftShape(ShapeTool):
     Tool to loft through sections.
     """
 
-    def __init__(self, is_solid=False, is_ruled=False, tol=1.0e-6):
+    def __init__(self, is_solid: bool = False, is_ruled: bool = False, tol: float = 1.0e-6):
         """
         Initialize loft tool.
 
@@ -777,11 +886,6 @@ class LoftShape(ShapeTool):
         itool = LoftIShape(is_solid, is_ruled, tol)
         super().__init__(itool)
 
-    def build(self) -> None:
-        """
-        Build the loft.
-        """
-        self._itool.Build()
 
     def add_wire(self, w: Wire) -> None:
         """
@@ -797,14 +901,14 @@ class MapShape(Generic[T]):
     Tool to map and access sub-shapes.
     """
 
-    def __init__(self, shape: Shape, kind: ShapeKind):
+    def __init__(self, shape: Shape, kind: type[T]):
         """
-        Initialize with shape and kind.
+        Initialize with shape and class of sub-shapes.
 
         :param Shape shape: Source shape.
-        :param ShapeKind kind: Kind of sub-shapes to map.
+        :param type[T] kind: Class of sub-shapes to map (e.g. ``Edge``).
         """
-        self._itool = MapIShape(shape.ishape, kind.value)
+        self._itool = MapIShape(shape.ishape, _kind_of(kind).value)
 
     def __len__(self) -> int:
         """
@@ -903,17 +1007,17 @@ class ExploreShape(Generic[T]):
     Tool to explore sub-shapes.
     """
 
-    def __init__(self, shape: Shape, find: ShapeKind, ignore: ShapeKind = ShapeKind.SHAPE):
+    def __init__(self, shape: Shape, find: type[T], ignore: Optional[type[Shape]] = None):
         """
         Initialize explore tool.
 
         :param Shape shape: Source shape.
-        :param ShapeKind find: Kind of shapes to find.
-        :param ShapeKind ignore: Kind of shapes to ignore.
+        :param type[T] find: Class of shapes to find (e.g. ``Edge``).
+        :param Optional[type[Shape]] ignore: Class of shapes to skip over, if any.
         """
         self._shape = shape
-        self._find = find
-        self._ignore = ignore
+        self._find = _kind_of(find)
+        self._ignore = ShapeKind.SHAPE if ignore is None else _kind_of(ignore)
 
     def __iter__(self) -> Iterator[T]:
         """

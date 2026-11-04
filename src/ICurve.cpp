@@ -1,10 +1,29 @@
 #include "ICurve.hpp"
 
+#include <string>
+
 #include <gp_Pnt.hxx>
 #include <gp_Vec.hxx>
 #include <GC_MakeCircle.hxx>
 #include <GC_MakeArcOfCircle.hxx>
 #include <GC_MakeLine.hxx>
+
+#include "IErrors.hpp"
+
+static std::string kindToString(ICurveKind kind) {
+  switch (kind) {
+  case ICurveKind::Unknown:     return "Unknown";
+  case ICurveKind::Line:        return "Line";
+  case ICurveKind::Circle:      return "Circle";
+  case ICurveKind::Ellipse:     return "Ellipse";
+  case ICurveKind::Parabola:    return "Parabola";
+  case ICurveKind::Hyperbola:   return "Hyperbola";
+  case ICurveKind::Bezier:      return "Bezier";
+  case ICurveKind::BSpline:     return "BSpline";
+  case ICurveKind::Trimmed:     return "Trimmed";
+  default:                      return "Invalid";
+  }
+}
 
 ICurve ICurve::MakeLine(const IPoint& p1, const IPoint& p2) {
 
@@ -98,6 +117,13 @@ std::optional<ICircleData> ICurve::CircleData() const {
   double radius = circle->Radius();
   ICircleData data{frame, radius};
   return data;
+}
+
+void ICurve::ValidateKind(const ICurveKind expected) const {
+  if (kind_ != expected) {
+    throw IKindMismatch(
+      "Expected " + kindToString(expected) + " but got " + kindToString(kind_) + " instead.");
+  }
 }
 
 // Python bindings

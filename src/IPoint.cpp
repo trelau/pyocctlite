@@ -1,7 +1,7 @@
 #include "IPoint.hpp"
 
 IPoint IPoint::MakeByXYZ(double x, double y, double z) {
-  return IPoint(x, y, z);
+  return IPoint(gp_Pnt(x, y, z));
 }
 
 // Python bindings
@@ -9,8 +9,6 @@ void bind_IPoint(nb::module_& m) {
 
   nb::class_<IPoint>(m, "IPoint", "A point.")
     .def_static("MakeByXYZ", &IPoint::MakeByXYZ, nb::arg("x"), nb::arg("y"), nb::arg("z"), "Make a point by its X, Y, Z coordinates.")
-
-    .def(nb::init<double, double, double>(), nb::arg("x"), nb::arg("y"), nb::arg("z"), "Construct a point by its X, Y, Z coordinates.")
 
     .def("X", &IPoint::X, "Point X-location.")
     .def("Y", &IPoint::Y, "Point Y-location.")

@@ -76,36 +76,47 @@ public:
 
   // Downcast methods to specific curve types
   Handle(Geom2d_Line) AsLine() const {
+    ValidateKind(ICurve2DKind::Line);
     return Handle(Geom2d_Line)::DownCast(curve_);
   }
 
   Handle(Geom2d_Circle) AsCircle() const {
+    ValidateKind(ICurve2DKind::Circle);
     return Handle(Geom2d_Circle)::DownCast(curve_);
   }
 
   Handle(Geom2d_Ellipse) AsEllipse() const {
+    ValidateKind(ICurve2DKind::Ellipse);
     return Handle(Geom2d_Ellipse)::DownCast(curve_);
   }
 
   Handle(Geom2d_Parabola) AsParabola() const {
+    ValidateKind(ICurve2DKind::Parabola);
     return Handle(Geom2d_Parabola)::DownCast(curve_);
   }
 
   Handle(Geom2d_Hyperbola) AsHyperbola() const {
+    ValidateKind(ICurve2DKind::Hyperbola);
     return Handle(Geom2d_Hyperbola)::DownCast(curve_);
   }
 
   Handle(Geom2d_BezierCurve) AsBezier() const {
+    ValidateKind(ICurve2DKind::Bezier);
     return Handle(Geom2d_BezierCurve)::DownCast(curve_);
   }
 
   Handle(Geom2d_BSplineCurve) AsBSpline() const {
+    ValidateKind(ICurve2DKind::BSpline);
     return Handle(Geom2d_BSplineCurve)::DownCast(curve_);
   }
 
   Handle(Geom2d_TrimmedCurve) AsTrimmed() const {
+    ValidateKind(ICurve2DKind::Trimmed);
     return Handle(Geom2d_TrimmedCurve)::DownCast(curve_);
   }
+
+  // Validate that the curve2d is of the expected kind
+  void ValidateKind(const ICurve2DKind expected) const;
 
   // Conversion operator to Handle(Geom2d_Curve)
   operator Handle(Geom2d_Curve)() const {

@@ -1,7 +1,7 @@
 #include "IVector2D.hpp"
 
 IVector2D IVector2D::MakeByXY(double x, double y) {
-  return IVector2D(x, y);
+  return IVector2D(gp_Vec2d(x, y));
 }
 
 // Python bindings
@@ -9,8 +9,6 @@ void bind_IVector2D(nb::module_& m) {
 
   nb::class_<IVector2D>(m, "IVector2D", "A 2D vector.")
     .def_static("MakeByXY", &IVector2D::MakeByXY, nb::arg("x"), nb::arg("y"), "Make a vector by its X, Y components.")
-
-    .def(nb::init<double, double>(), nb::arg("x"), nb::arg("y"), "Construct a vector by its X, Y components.")
 
     .def("X", &IVector2D::X, "Vector X-component.")
     .def("Y", &IVector2D::Y, "Vector Y-component.")

@@ -18,9 +18,6 @@ public:
   // Construct from gp_Dir
   explicit IVector2D(const gp_Dir2d& d) : vec_(d) {}
 
-  // Construct a vector by its X, Y components
-  IVector2D(double x, double y) : vec_(x, y) {}
-
   // Getters for X, Y components
   double X() const {
     return vec_.X();

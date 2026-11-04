@@ -78,34 +78,42 @@ public:
 
   // Downcast methods to specific curve types
   Handle(Geom_Line) AsLine() const {
+    ValidateKind(ICurveKind::Line);
     return Handle(Geom_Line)::DownCast(curve_);
   }
 
   Handle(Geom_Circle) AsCircle() const {
+    ValidateKind(ICurveKind::Circle);
     return Handle(Geom_Circle)::DownCast(curve_);
   }
 
   Handle(Geom_Ellipse) AsEllipse() const {
+    ValidateKind(ICurveKind::Ellipse);
     return Handle(Geom_Ellipse)::DownCast(curve_);
   }
 
   Handle(Geom_Parabola) AsParabola() const {
+    ValidateKind(ICurveKind::Parabola);
     return Handle(Geom_Parabola)::DownCast(curve_);
   }
 
   Handle(Geom_Hyperbola) AsHyperbola() const {
+    ValidateKind(ICurveKind::Hyperbola);
     return Handle(Geom_Hyperbola)::DownCast(curve_);
   }
 
   Handle(Geom_BezierCurve) AsBezier() const {
+    ValidateKind(ICurveKind::Bezier);
     return Handle(Geom_BezierCurve)::DownCast(curve_);
   }
 
   Handle(Geom_BSplineCurve) AsBSpline() const {
+    ValidateKind(ICurveKind::BSpline);
     return Handle(Geom_BSplineCurve)::DownCast(curve_);
   }
 
   Handle(Geom_TrimmedCurve) AsTrimmed() const {
+    ValidateKind(ICurveKind::Trimmed);
     return Handle(Geom_TrimmedCurve)::DownCast(curve_);
   }
 
@@ -114,6 +122,9 @@ public:
 
   // Get circle data if this curve is a circle
   std::optional<ICircleData> CircleData() const;
+
+  // Validate that the curve is of the expected kind
+  void ValidateKind(const ICurveKind expected) const;
 
   // Conversion operator to Handle(Geom_Curve)
   operator Handle(Geom_Curve)() const {

@@ -32,17 +32,21 @@ public:
   // Constructor from Handle(Geom_Surface)
   explicit ISurface(const Handle(Geom_Surface)& s);
 
-  // Get the kind of the curve
+  // Get the kind of the surface
   ISurfaceKind Kind() const {
     return kind_;
   }
 
-  // Downcast methods to specific curve types
+  // Downcast methods to specific surface types
   Handle(Geom_CylindricalSurface) AsCylindrical() const {
+    ValidateKind(ISurfaceKind::Cylindrical);
     return Handle(Geom_CylindricalSurface)::DownCast(surface_);
   }
 
-  // Conversion operator to Handle(Geom_Curve)
+  // Validate that the surface is of the expected kind
+  void ValidateKind(const ISurfaceKind expected) const;
+
+  // Conversion operator to Handle(Geom_Surface)
   operator Handle(Geom_Surface)() const {
     return surface_;
   }

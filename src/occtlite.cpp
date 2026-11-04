@@ -26,7 +26,7 @@
 #include "CutIShapes.hpp"
 #include "ThickenIShape.hpp"
 #include "LoftIShape.hpp"
-#include "IShapeErrors.hpp"
+#include "IErrors.hpp"
 
 NB_MODULE(_occtlite, m) {
 
@@ -56,6 +56,6 @@ NB_MODULE(_occtlite, m) {
   bind_CutIShapes(m);
   bind_ThickenIShape(m);
   bind_LoftIShape(m);
-  bind_IShapeErrors(m);
+  bind_IErrors(m);
 
 }

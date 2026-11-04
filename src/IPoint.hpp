@@ -14,9 +14,6 @@ public:
   // Construct a point from a gp_Pnt
   explicit IPoint(const gp_Pnt& p) : point_(p) {}
 
-  // Construct a point by its X, Y, Z coordinates.
-  IPoint(double x, double y, double z) : point_(x, y, z) {}
-
   // Get X, Y, Z coordinates
   double X() const {
     return point_.X();

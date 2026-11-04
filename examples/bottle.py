@@ -53,8 +53,8 @@ bottle = bottle.fillet(neck.bottom_face.edges(), 1.5 * thickness / 50.)
 bottle = bottle.thicken(-thickness / 50., 1.0e-3, [neck.top_face])
 
 # Create thread surfaces (inner and outer radii)
-cs1 = CylindricalSurface.by_radius(frame, neck_radius * 0.99)
-cs2 = CylindricalSurface.by_radius(frame, neck_radius * 1.05)
+cs1 = CylindricalSurface.by_radius(neck_radius * 0.99, frame)
+cs2 = CylindricalSurface.by_radius(neck_radius * 1.05, frame)
 
 # Define thread geometry in 2D (parametric space)
 p2d = Point2D.by_xy(2. * math.pi, neck_height / 2.)
@@ -62,8 +62,8 @@ v2d = Vector2D.by_xy(2. * math.pi, neck_height / 4.)
 f2d = Frame2D.by_vector(p2d, v2d)
 rmajor = 2. * math.pi
 rminor = neck_height / 10.
-ellipse1 = Ellipse2D.by_radii(f2d, rmajor, rminor)
-ellipse2 = Ellipse2D.by_radii(f2d, rmajor, rminor / 4.)
+ellipse1 = Ellipse2D.by_radii(rmajor, rminor, f2d)
+ellipse2 = Ellipse2D.by_radii(rmajor, rminor / 4., f2d)
 arc1 = TrimmedCurve2D.by_curve(ellipse1, 0, math.pi)
 arc2 = TrimmedCurve2D.by_curve(ellipse2, 0., math.pi)
 ep1 = ellipse1.evaluate(0.)

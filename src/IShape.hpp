@@ -80,6 +80,11 @@ public:
     return shape_.IsSame(other);
   }
 
+  // Hash code consistent with IsSame
+  std::size_t HashCode() const {
+    return std::hash<TopoDS_Shape>{}(shape_);
+  }
+
   // Downcast methods to specific shape types
   TopoDS_Shape  AsShape() const {
     return shape_;
