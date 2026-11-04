@@ -37,7 +37,6 @@ enum class IShapeKind {
 // Interface class for a shape
 class IShape {
 public:
-
   // Factory methods to create shapes
   static std::vector<IShape> MakeByList(const NCollection_List<TopoDS_Shape>& shapes);
 

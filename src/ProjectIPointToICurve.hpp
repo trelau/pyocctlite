@@ -11,7 +11,6 @@
 // Tool to project a point onto a curve
 class ProjectIPointToICurve {
 public:
-
   // Constructor to project a point onto a curve
   ProjectIPointToICurve(const IPoint& p, const ICurve& c) : tool_(p, c) {};
 

@@ -1,8 +1,6 @@
 #include "IVector.hpp"
 
-IVector IVector::MakeByXYZ(double x, double y, double z) {
-  return IVector(gp_Vec(x, y, z));
-}
+IVector IVector::MakeByXYZ(double x, double y, double z) { return IVector(gp_Vec(x, y, z)); }
 
 // Python bindings
 void bind_IVector(nb::module_& m) {

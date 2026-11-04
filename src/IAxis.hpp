@@ -10,7 +10,6 @@
 // Interface class for a 3D axis
 class IAxis {
 public:
-
   // Construct a point from a gp_Ax1
   explicit IAxis(const gp_Ax1& a) : axis_(a) {}
 

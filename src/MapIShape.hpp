@@ -11,7 +11,6 @@
 // Tool to map shapes
 class MapIShape {
 public:
-
   // Constructor
   MapIShape(const IShape& shape, const IShapeKind kind);
 

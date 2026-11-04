@@ -10,7 +10,6 @@
 // Tool to make a hollow solid with a uniform thickness
 class ThickenIShape {
 public:
-
   // Construct a hollow solid from an open shell using a uniform thickness
   ThickenIShape(const IShape& shape, double thickness);
 

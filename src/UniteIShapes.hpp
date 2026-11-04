@@ -10,7 +10,6 @@
 // Tool to unite shapes
 class UniteIShapes {
 public:
-
   // Constructor to unite two shapes
   UniteIShapes(const IShape& target, const IShape& tool) : tool_(target, tool) {}
 

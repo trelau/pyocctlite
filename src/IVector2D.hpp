@@ -8,7 +8,6 @@
 // Interface class for a 2D vector
 class IVector2D {
 public:
-
   // Make a vector by its X, Y components
   static IVector2D MakeByXY(double x, double y);
 

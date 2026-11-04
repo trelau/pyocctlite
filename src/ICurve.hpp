@@ -33,7 +33,6 @@ enum class ICurveKind {
 // Interface class for a curve
 class ICurve {
 public:
-
   // Factory methods to create different types of curves
   static ICurve MakeLine(const IPoint& p1, const IPoint& p2);
 

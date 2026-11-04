@@ -9,7 +9,6 @@
 // Tool to explore shapes
 class ExploreIShape {
 public:
-
   // Constructor
   ExploreIShape(const IShape& shape, const IShapeKind find,
                 const IShapeKind avoid = IShapeKind::Shape)

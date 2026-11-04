@@ -10,7 +10,6 @@
 // Tool to loft shapes
 class LoftIShape {
 public:
-
   // Make a lofted shape
   LoftIShape(const bool isSolid = false, const bool isRuled = false, const double tol = 1.0e-6)
       : tool_(isSolid, isRuled, tol) {}

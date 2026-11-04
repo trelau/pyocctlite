@@ -10,7 +10,6 @@
 // Tool to fillet shapes
 class FilletIShape {
 public:
-
   // Construct fillet tool with the shape
   FilletIShape(const IShape& shape) : tool_(shape) {}
 

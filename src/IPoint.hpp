@@ -7,7 +7,6 @@
 // Interface class for a 3D point
 class IPoint {
 public:
-
   // Make a point by its X, Y, Z coordinates.
   static IPoint MakeByXYZ(double x, double y, double z);
 

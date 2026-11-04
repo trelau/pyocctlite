@@ -10,7 +10,6 @@
 // Tool to cut shapes (boolean subtraction)
 class CutIShapes {
 public:
-
   // Constructor to cut two shapes
   CutIShapes(const IShape& target, const IShape& tool) : tool_(target, tool) {}
 

@@ -1,8 +1,6 @@
 #include "IPoint2D.hpp"
 
-IPoint2D IPoint2D::MakeByXY(double x, double y) {
-  return IPoint2D(gp_Pnt2d(x, y));
-}
+IPoint2D IPoint2D::MakeByXY(double x, double y) { return IPoint2D(gp_Pnt2d(x, y)); }
 
 // Python bindings
 void bind_IPoint2D(nb::module_& m) {

@@ -8,7 +8,6 @@
 // Interface class for a 3D vector
 class IVector {
 public:
-
   // Make a vector by its X, Y, Z components
   static IVector MakeByXYZ(double x, double y, double z);
 

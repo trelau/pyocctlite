@@ -1,0 +1,10 @@
+# Normalize text files to LF in the repo and the working tree
+* text=auto eol=lf
+
+# Windows batch files need CRLF
+*.bat text eol=crlf
+
+# Build outputs
+*.pyd binary
+*.so binary
+*.dll binary

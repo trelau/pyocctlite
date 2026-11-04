@@ -25,7 +25,6 @@ enum class ISurfaceKind {
 // Interface class for a surface
 class ISurface {
 public:
-
   // Factory methods to create different types of surfaces
   static ISurface MakeCylindrical(const IFrame& frame, const double radius);
 

@@ -10,7 +10,6 @@
 // Interface class for a 2D coordinate frame
 class IFrame2D {
 public:
-
   // Make a frame at the given origin with standard orientation
   static IFrame2D MakeByOrigin(const IPoint2D& origin);
 

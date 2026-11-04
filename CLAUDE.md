@@ -25,7 +25,7 @@ clang-format -i src/*.hpp src/*.cpp
 
 `pyocctlite/_occtlite.pyi` (generated) is the reference for the C++ binding API.
 
-Formatting is automatic: `ruff format` for Python, `clang-format` (`.clang-format`, LLVM-based) for C++. A Claude Code hook (`.claude/settings.json`) formats every edited file and runs ruff and mypy after Python edits. Fix what it reports before moving on. After a C++ change, rebuild and install before editing Python that uses it; mypy reads the binding API from the regenerated stub.
+Prefer common, well-established conventions over project-specific style. Formatting is automatic: `ruff format` (Black style) for Python, `clang-format` (LLVM style) for C++. Text files are LF (`.gitattributes`). A Claude Code hook (`.claude/settings.json`) formats every edited file and runs ruff and mypy after Python edits. Fix what it reports before moving on. After a C++ change, rebuild and install before editing Python that uses it; mypy reads the binding API from the regenerated stub.
 
 ## Tone and Style
 

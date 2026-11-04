@@ -11,7 +11,6 @@
 // Interface class for a 3D coordinate frame
 class IFrame {
 public:
-
   // Make a frame at the given origin with standard orientation
   static IFrame MakeByOrigin(const IPoint& origin);
 

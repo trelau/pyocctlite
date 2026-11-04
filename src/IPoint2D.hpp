@@ -7,7 +7,6 @@
 // Interface class for a 2D point
 class IPoint2D {
 public:
-
   // Make a point by its X, Y coordinates.
   static IPoint2D MakeByXY(double x, double y);
 

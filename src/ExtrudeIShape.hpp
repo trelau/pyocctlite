@@ -10,7 +10,6 @@
 // Tool to extrude shapes
 class ExtrudeIShape {
 public:
-
   // Extrude the shape along the given vector
   ExtrudeIShape(const IShape& shape, const IVector& vector) : tool_(shape, vector) {}
 

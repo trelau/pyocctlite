@@ -10,7 +10,6 @@
 // Interface class for a 3D transformation
 class ITransform {
 public:
-
   // Make a mirror transformation defined by a point and a normal vector.
   static ITransform MakeMirror(const IPoint& origin, const IVector& normal);
 

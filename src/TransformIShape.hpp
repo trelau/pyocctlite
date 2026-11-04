@@ -11,7 +11,6 @@
 // Tool to transform shapes
 class TransformIShape {
 public:
-
   // Constructor
   TransformIShape(const IShape& shape, const ITransform& trsf, const bool copyGeom = false,
                   const bool copyMesh = false)

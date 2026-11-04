@@ -1,8 +1,6 @@
 #include "IPoint.hpp"
 
-IPoint IPoint::MakeByXYZ(double x, double y, double z) {
-  return IPoint(gp_Pnt(x, y, z));
-}
+IPoint IPoint::MakeByXYZ(double x, double y, double z) { return IPoint(gp_Pnt(x, y, z)); }
 
 // Python bindings
 void bind_IPoint(nb::module_& m) {

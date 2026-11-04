@@ -1,8 +1,6 @@
 #include "IVector2D.hpp"
 
-IVector2D IVector2D::MakeByXY(double x, double y) {
-  return IVector2D(gp_Vec2d(x, y));
-}
+IVector2D IVector2D::MakeByXY(double x, double y) { return IVector2D(gp_Vec2d(x, y)); }
 
 // Python bindings
 void bind_IVector2D(nb::module_& m) {
