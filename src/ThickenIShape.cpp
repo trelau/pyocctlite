@@ -7,7 +7,7 @@ ThickenIShape::ThickenIShape(const IShape& shape, double thickness) {
 
 ThickenIShape::ThickenIShape(const IShape& shape, const std::vector<IShape>& faces, double thickness, double tol) {
 
-  TopTools_ListOfShape removeShapes;
+  NCollection_List<TopoDS_Shape> removeShapes;
   for (const IShape& f : faces) { removeShapes.Append(f); }
 
   tool_.MakeThickSolidByJoin(shape, removeShapes, thickness, tol);

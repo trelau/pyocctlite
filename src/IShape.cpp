@@ -15,7 +15,9 @@
 #include <Message_Printer.hxx>
 #include <STEPControl_Writer.hxx>
 #include <TopExp.hxx>
-#include <TopTools_IndexedMapOfShape.hxx>
+#include <NCollection_IndexedMap.hxx>
+#include <TopoDS_Shape.hxx>
+#include <TopTools_ShapeMapHasher.hxx>
 
 #include "IErrors.hpp"
 
@@ -55,10 +57,10 @@ static std::string kindToString(IShapeKind kind) {
   }
 }
 
-std::vector<IShape> IShape::MakeByList(const TopTools_ListOfShape& shapes)
+std::vector<IShape> IShape::MakeByList(const NCollection_List<TopoDS_Shape>& shapes)
 {
   std::vector<IShape> ishapes;
-  for (TopTools_ListOfShape::Iterator it(shapes); it.More(); it.Next()) {
+  for (NCollection_List<TopoDS_Shape>::Iterator it(shapes); it.More(); it.Next()) {
     ishapes.emplace_back(IShape(it.Value()));
   }
 
@@ -96,7 +98,7 @@ IShape IShape::MakeWire(const IShape& edge) {
 
 IShape IShape::MakeWire(const std::vector<IShape>& edges) {
 
-  TopTools_ListOfShape oEdges;
+  NCollection_List<TopoDS_Shape> oEdges;
   for (const IShape& e : edges) { oEdges.Append(e.AsEdge()); }
 
   BRepBuilderAPI_MakeWire builder;

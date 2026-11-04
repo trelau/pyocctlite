@@ -13,7 +13,8 @@
 #include <TopoDS_Solid.hxx>
 #include <TopoDS_CompSolid.hxx>
 #include <TopoDS_Compound.hxx>
-#include <TopTools_ListOfShape.hxx>
+#include <NCollection_List.hxx>
+#include <TopoDS_Shape.hxx>
 
 #include "IPoint.hpp"
 #include "IVector.hpp"
@@ -39,7 +40,7 @@ class IShape {
 public:
 
   // Factory methods to create shapes
-  static std::vector<IShape> MakeByList(const TopTools_ListOfShape& shapes);
+  static std::vector<IShape> MakeByList(const NCollection_List<TopoDS_Shape>& shapes);
 
   static IShape MakeEdge(const IPoint& p1, const IPoint& p2);
 

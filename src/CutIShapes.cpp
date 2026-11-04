@@ -1,14 +1,15 @@
 #include "CutIShapes.hpp"
 
-#include <TopTools_ListOfShape.hxx>
+#include <NCollection_List.hxx>
+#include <TopoDS_Shape.hxx>
 
 CutIShapes::CutIShapes(const IShape& target, const std::vector<IShape>& tools) {
 
-  TopTools_ListOfShape oTargets;
+  NCollection_List<TopoDS_Shape> oTargets;
   oTargets.Append(target);
   tool_.SetArguments(oTargets);
 
-  TopTools_ListOfShape oTools;
+  NCollection_List<TopoDS_Shape> oTools;
   for (const IShape& s : tools) { oTools.Append(s); }
   tool_.SetTools(oTools);
   tool_.Build();
@@ -16,11 +17,11 @@ CutIShapes::CutIShapes(const IShape& target, const std::vector<IShape>& tools) {
 
 CutIShapes::CutIShapes(const std::vector<IShape>& targets, const IShape& tool) {
 
-  TopTools_ListOfShape oTargets;
+  NCollection_List<TopoDS_Shape> oTargets;
   for (const IShape& s : targets) { oTargets.Append(s); }
   tool_.SetArguments(oTargets);
 
-  TopTools_ListOfShape oTools;
+  NCollection_List<TopoDS_Shape> oTools;
   oTools.Append(tool);
   tool_.SetTools(oTools);
   tool_.Build();
@@ -28,11 +29,11 @@ CutIShapes::CutIShapes(const std::vector<IShape>& targets, const IShape& tool) {
 
 CutIShapes::CutIShapes(const std::vector<IShape>& targets, const std::vector<IShape>& tools) {
 
-  TopTools_ListOfShape oTargets;
+  NCollection_List<TopoDS_Shape> oTargets;
   for (const IShape& s : targets) { oTargets.Append(s); }
   tool_.SetArguments(oTargets);
 
-  TopTools_ListOfShape oTools;
+  NCollection_List<TopoDS_Shape> oTools;
   for (const IShape& s : tools) { oTools.Append(s); }
   tool_.SetTools(oTools);
   tool_.Build();

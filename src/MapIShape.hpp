@@ -2,7 +2,9 @@
 
 #include "occtlite.hpp"
 
-#include <TopTools_IndexedMapOfShape.hxx>
+#include <NCollection_IndexedMap.hxx>
+#include <TopoDS_Shape.hxx>
+#include <TopTools_ShapeMapHasher.hxx>
 
 #include "IShape.hpp"
 
@@ -39,7 +41,7 @@ public:
   }
 
 private:
-  TopTools_IndexedMapOfShape tool_;
+  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> tool_;
 };
 
 // Python bindings
