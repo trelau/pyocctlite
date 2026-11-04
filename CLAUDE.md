@@ -58,6 +58,7 @@ Unless otherwise instructed, when communicating with a user, be direct. Say (or 
 - Flat architecture. No new base classes, registries, plugin systems, or metaprogramming without asking.
 - Immutability. Types never change after construction; operations return new objects. Nothing mutates its inputs.
 - SI units (meters, radians) in C++. Unit conversion, if any, belongs in Python.
+- Python 3.12 is the minimum version (`pyproject.toml` checks against it). Don't use newer language or stdlib features.
 - Single-threaded. No threading, async, or GIL manipulation.
 
 ### Two layers

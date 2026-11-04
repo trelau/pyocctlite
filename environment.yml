@@ -4,7 +4,7 @@ channels:
   - defaults
 dependencies:
   - cmake
-  - python
+  - python>=3.12
   - nanobind
   - occt=8*=novtk_*
   - mypy

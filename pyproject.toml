@@ -1,5 +1,6 @@
 # Tool configuration only; the package is built with CMake (see CLAUDE.md).
 
+# 3.12 is the minimum supported Python; keep in sync with environment.yml
 [tool.mypy]
 files = ["pyocctlite"]
 python_version = "3.12"
