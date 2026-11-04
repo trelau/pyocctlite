@@ -149,6 +149,9 @@ public:
   // Get the curve if this shape is an edge
   std::optional<ICurve> Curve() const;
 
+  // Get the point if this shape is a vertex
+  std::optional<IPoint> Point() const;
+
   // Conversion operator to TopoDS_Shape
   operator const TopoDS_Shape& () const {
     return shape_;

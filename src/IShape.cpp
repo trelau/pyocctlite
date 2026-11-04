@@ -204,6 +204,15 @@ std::optional<ICurve> IShape::Curve() const {
   return ICurve(c);
 }
 
+std::optional<IPoint> IShape::Point() const {
+
+  if (Kind() != IShapeKind::Vertex) {
+    return std::nullopt;
+  }
+
+  return IPoint(BRep_Tool::Pnt(AsVertex()));
+}
+
 // Python bindings
 void bind_IShape(nb::module_& m) {
 
@@ -237,6 +246,7 @@ void bind_IShape(nb::module_& m) {
     .def("Length", &IShape::Length, "Calculate the length of all edges of this shape.")
     .def("Area", &IShape::Area, "Calculate the area of all faces of this shape.")
     .def("Volume", &IShape::Volume, "Calculate the volume of all solids of this shape.")
-    .def("Curve", &IShape::Curve, "Get the curve if this shape is an edge.");
+    .def("Curve", &IShape::Curve, "Get the curve if this shape is an edge.")
+    .def("Point", &IShape::Point, "Get the point if this shape is a vertex.");
 
 }

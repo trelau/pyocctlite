@@ -23,7 +23,7 @@ ruff check pyocctlite tests examples
 
 `pyocctlite/_occtlite.pyi` (generated) is the reference for the C++ binding API.
 
-A Claude Code hook (`.claude/settings.json`) runs ruff and mypy after every Python edit. Fix what it reports before moving on.
+A Claude Code hook (`.claude/settings.json`) runs ruff and mypy after every Python edit. Fix what it reports before moving on. After a C++ change, rebuild and install before editing Python that uses it; mypy reads the binding API from the regenerated stub.
 
 ## Tone and Style
 

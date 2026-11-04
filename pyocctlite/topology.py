@@ -387,9 +387,21 @@ class Vertex(Shape):
         if v.Kind() != IShapeKind.Vertex:
             raise TypeError(f'Expected IShapeKind.Vertex, got {v.Kind()}.')
 
+    @cached_property
+    def point(self) -> Point:
+        """
+        Get the location of the vertex.
+
+        :return: The vertex location.
+        :rtype: Point
+        """
+        ipoint = self.ishape.Point()
+        assert ipoint is not None  # guaranteed by the kind check in __init__
+        return Point(ipoint)
+
     def extrude(self, vector: Vector) -> Edge:
         """
-        Extrude this vertex along a vector into a edge.
+        Extrude this vertex along a vector into an edge.
 
         :param Vector vector: Extrusion vector.
         :return: Extruded edge.

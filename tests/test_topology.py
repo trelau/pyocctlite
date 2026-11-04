@@ -116,6 +116,26 @@ class TestShape(unittest.TestCase):
             _box().export_step('missing_dir/does/not/exist/box.step')
 
 
+class TestVertex(unittest.TestCase):
+
+    def test_point(self):
+        e = Edge.by_points(Point.by_xyz(1, 2, 3), Point.by_xyz(4, 5, 6))
+        points = [v.point for v in e.vertices()]
+        self.assertTrue(any(p.is_equal(Point.by_xyz(1, 2, 3)) for p in points))
+        self.assertTrue(any(p.is_equal(Point.by_xyz(4, 5, 6)) for p in points))
+
+    def test_box_corners(self):
+        zs = sorted(v.point.z for v in _box(z0=2.).vertices())
+        self.assertEqual(len(zs), 8)
+        for z, expected in zip(zs, [2.] * 4 + [3.] * 4, strict=True):
+            self.assertAlmostEqual(z, expected)
+
+    def test_init_wrong_kind(self):
+        e = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
+        with self.assertRaises(TypeError):
+            Vertex(e.ishape)
+
+
 class TestEdge(unittest.TestCase):
 
     def test_by_points(self):
@@ -238,6 +258,8 @@ class TestExtrudeShape(unittest.TestCase):
         self.assertIsInstance(last, Face)
         self.assertNotEqual(last, f)
         self.assertIn(last, set(tool.shape().faces()))
+        for v in last.vertices():
+            self.assertAlmostEqual(v.point.z, 2.)
 
     def test_generated_shapes(self):
         e = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
