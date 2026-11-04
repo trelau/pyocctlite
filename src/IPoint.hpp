@@ -15,31 +15,21 @@ public:
   explicit IPoint(const gp_Pnt& p) : point_(p) {}
 
   // Get X, Y, Z coordinates
-  double X() const {
-    return point_.X();
-  }
+  double X() const { return point_.X(); }
 
-  double Y() const {
-    return point_.Y();
-  }
+  double Y() const { return point_.Y(); }
 
-  double Z() const {
-    return point_.Z();
-  }
+  double Z() const { return point_.Z(); }
 
   // Compute the distance to another point
-  double Distance(const IPoint& other) const {
-    return point_.Distance(other);
-  }
+  double Distance(const IPoint& other) const { return point_.Distance(other); }
   // Check if this point is equal to the other within a tolerance
   bool IsEqual(const IPoint& other, double tol = 1.0e-7) const {
     return point_.IsEqual(other, tol);
   }
 
   // Conversion operator to gp_Pnt
-  operator gp_Pnt() const {
-    return point_;
-  }
+  operator gp_Pnt() const { return point_; }
 
 private:
   gp_Pnt point_;

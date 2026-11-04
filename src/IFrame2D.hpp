@@ -38,9 +38,7 @@ public:
   }
 
   // Conversion operator to gp_Ax22d
-  operator gp_Ax22d() const {
-    return frame_;
-  }
+  operator gp_Ax22d() const { return frame_; }
 
 private:
   gp_Ax22d frame_;

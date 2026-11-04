@@ -21,19 +21,28 @@ from pyocctlite._occtlite import (
 )
 from pyocctlite.geometry import Curve, Curve2D, Point, Surface, Transform, TrimmedCurve, Vector
 
-T = TypeVar('T', bound='Shape')
-S = TypeVar('S', bound='Shape')
+T = TypeVar("T", bound="Shape")
+S = TypeVar("S", bound="Shape")
 
 # C++ tools wrapping OCCT BRepBuilderAPI_MakeShape (see MakeIShape.hpp)
-MakeShapeITool = (CopyIShape | CutIShapes | ExtrudeIShape | FilletIShape | LoftIShape
-                  | ThickenIShape | TransformIShape | UniteIShapes)
-ToolT = TypeVar('ToolT', bound=MakeShapeITool)
+MakeShapeITool = (
+    CopyIShape
+    | CutIShapes
+    | ExtrudeIShape
+    | FilletIShape
+    | LoftIShape
+    | ThickenIShape
+    | TransformIShape
+    | UniteIShapes
+)
+ToolT = TypeVar("ToolT", bound=MakeShapeITool)
 
 
 class ShapeKind(Enum):
     """
     Kinds of shapes.
     """
+
     SHAPE = IShapeKind.Shape
     VERTEX = IShapeKind.Vertex
     EDGE = IShapeKind.Edge
@@ -80,7 +89,7 @@ class Shape:
             case IShapeKind.Compound:
                 return Compound(ishape)
             case _:
-                raise NotImplementedError(f'Unsupported shape kind: {ishape.Kind()}.')
+                raise NotImplementedError(f"Unsupported shape kind: {ishape.Kind()}.")
 
     @staticmethod
     def by_ishapes(ishapes: Iterable[IShape]) -> list[Shape]:
@@ -101,7 +110,7 @@ class Shape:
         :param IShape s: Underlying topological shape.
         """
         if not isinstance(s, IShape):
-            raise TypeError(f'Expected IShape, got {type(s).__name__}.')
+            raise TypeError(f"Expected IShape, got {type(s).__name__}.")
         self._ishape = s
 
     def __eq__(self, other: object) -> bool:
@@ -289,7 +298,6 @@ class Shape:
         t = Transform.by_mirror(origin, normal)
         return TransformShape(self, t).shape()
 
-
     def extrude(self, vector: Vector) -> Shape:
         """
         Extrude this shape along a vector. The result is one dimension higher (e.g. face to solid).
@@ -341,8 +349,9 @@ class Shape:
         ishape = itool.Shape()
         return Shape.by_ishape(ishape)
 
-    def thicken(self, thickness: float, tol: float = 1.0e-3,
-                faces: Iterable[Face] | None = None) -> Shape:
+    def thicken(
+        self, thickness: float, tol: float = 1.0e-3, faces: Iterable[Face] | None = None
+    ) -> Shape:
         """
         Thicken this shape.
 
@@ -369,7 +378,7 @@ class Shape:
         :raises RuntimeError: If the export fails.
         """
         if not self.ishape.ExportSTEP(path):
-            raise RuntimeError(f'Failed to export STEP file: {path}')
+            raise RuntimeError(f"Failed to export STEP file: {path}")
 
 
 class Vertex(Shape):
@@ -385,7 +394,7 @@ class Vertex(Shape):
         """
         super().__init__(v)
         if v.Kind() != IShapeKind.Vertex:
-            raise TypeError(f'Expected IShapeKind.Vertex, got {v.Kind()}.')
+            raise TypeError(f"Expected IShapeKind.Vertex, got {v.Kind()}.")
 
     @cached_property
     def point(self) -> Point:
@@ -476,7 +485,7 @@ class Edge(Shape):
         """
         super().__init__(e)
         if e.Kind() != IShapeKind.Edge:
-            raise TypeError(f'Expected IShapeKind.Edge, got {e.Kind()}.')
+            raise TypeError(f"Expected IShapeKind.Edge, got {e.Kind()}.")
 
     @cached_property
     def curve(self) -> Curve | None:
@@ -538,7 +547,7 @@ class Wire(Shape):
         """
         super().__init__(w)
         if w.Kind() != IShapeKind.Wire:
-            raise TypeError(f'Expected IShapeKind.Wire, got {w.Kind()}.')
+            raise TypeError(f"Expected IShapeKind.Wire, got {w.Kind()}.")
 
     def combine(self, other: Wire) -> Wire:
         """
@@ -587,7 +596,7 @@ class Face(Shape):
         """
         super().__init__(f)
         if f.Kind() != IShapeKind.Face:
-            raise TypeError(f'Expected IShapeKind.Face, got {f.Kind()}.')
+            raise TypeError(f"Expected IShapeKind.Face, got {f.Kind()}.")
 
     def extrude(self, vector: Vector) -> Solid:
         """
@@ -613,7 +622,7 @@ class Shell(Shape):
         """
         super().__init__(s)
         if s.Kind() != IShapeKind.Shell:
-            raise TypeError(f'Expected IShapeKind.Shell, got {s.Kind()}.')
+            raise TypeError(f"Expected IShapeKind.Shell, got {s.Kind()}.")
 
     def extrude(self, vector: Vector) -> CompSolid:
         """
@@ -632,8 +641,9 @@ class Solid(Shape):
     """
 
     @classmethod
-    def by_loft(cls, shapes: Iterable[Vertex | Edge | Wire],
-                is_ruled: bool = False, tol: float = 1.0e-6) -> Solid:
+    def by_loft(
+        cls, shapes: Iterable[Vertex | Edge | Wire], is_ruled: bool = False, tol: float = 1.0e-6
+    ) -> Solid:
         """
         Create a solid by lofting through shapes.
 
@@ -661,7 +671,7 @@ class Solid(Shape):
         """
         super().__init__(s)
         if s.Kind() != IShapeKind.Solid:
-            raise TypeError(f'Expected IShapeKind.Solid, got {s.Kind()}.')
+            raise TypeError(f"Expected IShapeKind.Solid, got {s.Kind()}.")
 
 
 class CompSolid(Shape):
@@ -677,7 +687,7 @@ class CompSolid(Shape):
         """
         super().__init__(cs)
         if cs.Kind() != IShapeKind.CompSolid:
-            raise TypeError(f'Expected IShapeKind.CompSolid, got {cs.Kind()}.')
+            raise TypeError(f"Expected IShapeKind.CompSolid, got {cs.Kind()}.")
 
 
 class Compound(Shape):
@@ -706,7 +716,7 @@ class Compound(Shape):
         """
         super().__init__(c)
         if c.Kind() != IShapeKind.Compound:
-            raise TypeError(f'Expected IShapeKind.Compound, got {c.Kind()}.')
+            raise TypeError(f"Expected IShapeKind.Compound, got {c.Kind()}.")
 
 
 def _kind_of(cls: type[Shape]) -> ShapeKind:
@@ -718,11 +728,19 @@ def _kind_of(cls: type[Shape]) -> ShapeKind:
     :rtype: ShapeKind
     :raises TypeError: If the class is not a core shape class (e.g. a composite).
     """
-    kinds = {Shape: ShapeKind.SHAPE, Vertex: ShapeKind.VERTEX, Edge: ShapeKind.EDGE,
-             Wire: ShapeKind.WIRE, Face: ShapeKind.FACE, Shell: ShapeKind.SHELL,
-             Solid: ShapeKind.SOLID, CompSolid: ShapeKind.COMPSOLID, Compound: ShapeKind.COMPOUND}
+    kinds = {
+        Shape: ShapeKind.SHAPE,
+        Vertex: ShapeKind.VERTEX,
+        Edge: ShapeKind.EDGE,
+        Wire: ShapeKind.WIRE,
+        Face: ShapeKind.FACE,
+        Shell: ShapeKind.SHELL,
+        Solid: ShapeKind.SOLID,
+        CompSolid: ShapeKind.COMPSOLID,
+        Compound: ShapeKind.COMPOUND,
+    }
     if cls not in kinds:
-        raise TypeError(f'Expected a core shape class, got {cls.__name__}.')
+        raise TypeError(f"Expected a core shape class, got {cls.__name__}.")
     return kinds[cls]
 
 
@@ -834,7 +852,6 @@ class CopyShape(ShapeTool[CopyIShape], Generic[T]):
         itool = CopyIShape(s.ishape, copy_geom)
         super().__init__(itool)
 
-
     def shape(self) -> T:
         """
         Get the resulting shape.
@@ -870,7 +887,6 @@ class TransformShape(ShapeTool[TransformIShape], Generic[T]):
         """
         itool = TransformIShape(s.ishape, t.itransform, copy_geom)
         super().__init__(itool)
-
 
     def shape(self) -> T:
         """
@@ -953,8 +969,9 @@ class ThickenShape(ShapeTool[ThickenIShape]):
     Tool to thicken a shape.
     """
 
-    def __init__(self, s: Shape, thickness: float, tol: float = 1.0e-3,
-                 faces: Iterable[Face] | None = None):
+    def __init__(
+        self, s: Shape, thickness: float, tol: float = 1.0e-3, faces: Iterable[Face] | None = None
+    ):
         """
         Initialize with shape and thickness.
 
@@ -986,7 +1003,6 @@ class LoftShape(ShapeTool[LoftIShape]):
         """
         itool = LoftIShape(is_solid, is_ruled, tol)
         super().__init__(itool)
-
 
     def add_wire(self, w: Wire) -> None:
         """

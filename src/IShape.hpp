@@ -2,25 +2,24 @@
 
 #include "occtlite.hpp"
 
-#include "TopAbs_ShapeEnum.hxx"
+#include <NCollection_List.hxx>
+#include <TopAbs_ShapeEnum.hxx>
 #include <TopoDS.hxx>
-#include <TopoDS_Shape.hxx>
-#include <TopoDS_Vertex.hxx>
-#include <TopoDS_Edge.hxx>
-#include <TopoDS_Wire.hxx>
-#include <TopoDS_Face.hxx>
-#include <TopoDS_Shell.hxx>
-#include <TopoDS_Solid.hxx>
 #include <TopoDS_CompSolid.hxx>
 #include <TopoDS_Compound.hxx>
-#include <NCollection_List.hxx>
+#include <TopoDS_Edge.hxx>
+#include <TopoDS_Face.hxx>
 #include <TopoDS_Shape.hxx>
+#include <TopoDS_Shell.hxx>
+#include <TopoDS_Solid.hxx>
+#include <TopoDS_Vertex.hxx>
+#include <TopoDS_Wire.hxx>
 
-#include "IPoint.hpp"
-#include "IVector.hpp"
 #include "ICurve.hpp"
 #include "ICurve2D.hpp"
+#include "IPoint.hpp"
 #include "ISurface.hpp"
+#include "IVector.hpp"
 
 // Enumeration for shape kinds
 enum class IShapeKind {
@@ -60,36 +59,25 @@ public:
 
   // Constructor from TopoDS_Shape
   explicit IShape(const TopoDS_Shape& s)
-    : shape_(s),
-    kind_(static_cast<IShapeKind>(s.ShapeType())) {}
+      : shape_(s), kind_(static_cast<IShapeKind>(s.ShapeType())) {}
 
   // Get the kind of the shape
   IShapeKind Kind() const { return kind_; }
 
   // Check if the shape is null
-  bool IsNull() const {
-    return shape_.IsNull();
-  }
+  bool IsNull() const { return shape_.IsNull(); }
 
   // Check if this shape is equal to another shape
-  bool IsEqual(const IShape& other) const {
-    return shape_.IsEqual(other);
-  }
+  bool IsEqual(const IShape& other) const { return shape_.IsEqual(other); }
 
   // Check if this shape is the same as another shape (orientation may differ)
-  bool IsSame(const IShape& other) const {
-    return shape_.IsSame(other);
-  }
+  bool IsSame(const IShape& other) const { return shape_.IsSame(other); }
 
   // Hash code consistent with IsSame
-  std::size_t HashCode() const {
-    return std::hash<TopoDS_Shape>{}(shape_);
-  }
+  std::size_t HashCode() const { return std::hash<TopoDS_Shape>{}(shape_); }
 
   // Downcast methods to specific shape types
-  TopoDS_Shape  AsShape() const {
-    return shape_;
-  }
+  TopoDS_Shape AsShape() const { return shape_; }
 
   TopoDS_Vertex AsVertex() const {
     ValidateKind(IShapeKind::Vertex);
@@ -153,13 +141,11 @@ public:
   std::optional<IPoint> Point() const;
 
   // Conversion operator to TopoDS_Shape
-  operator const TopoDS_Shape& () const {
-    return shape_;
-  }
+  operator const TopoDS_Shape&() const { return shape_; }
 
 private:
   TopoDS_Shape shape_;
-  IShapeKind   kind_;
+  IShapeKind kind_;
 };
 
 // Python bindings

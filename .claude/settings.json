@@ -6,9 +6,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/check_python.py\"",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/check_code.py\"",
             "timeout": 60,
-            "statusMessage": "ruff + mypy"
+            "statusMessage": "format + lint + mypy"
           }
         ]
       }

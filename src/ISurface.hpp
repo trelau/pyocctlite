@@ -2,12 +2,12 @@
 
 #include "occtlite.hpp"
 
-#include <Geom_Surface.hxx>
 #include <Geom_CylindricalSurface.hxx>
+#include <Geom_Surface.hxx>
 
+#include "IFrame.hpp"
 #include "IPoint.hpp"
 #include "IVector.hpp"
-#include "IFrame.hpp"
 
 // Enumeration for surface kinds
 enum class ISurfaceKind {
@@ -30,12 +30,10 @@ public:
   static ISurface MakeCylindrical(const IFrame& frame, const double radius);
 
   // Constructor from Handle(Geom_Surface)
-  explicit ISurface(const Handle(Geom_Surface)& s);
+  explicit ISurface(const Handle(Geom_Surface) & s);
 
   // Get the kind of the surface
-  ISurfaceKind Kind() const {
-    return kind_;
-  }
+  ISurfaceKind Kind() const { return kind_; }
 
   // Downcast methods to specific surface types
   Handle(Geom_CylindricalSurface) AsCylindrical() const {
@@ -47,13 +45,11 @@ public:
   void ValidateKind(const ISurfaceKind expected) const;
 
   // Conversion operator to Handle(Geom_Surface)
-  operator Handle(Geom_Surface)() const {
-    return surface_;
-  }
+  operator Handle(Geom_Surface)() const { return surface_; }
 
 private:
   Handle(Geom_Surface) surface_;
-  ISurfaceKind         kind_;
+  ISurfaceKind kind_;
 };
 
 // Python bindings

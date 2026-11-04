@@ -46,7 +46,7 @@ class Point2D:
         :param IPoint2D p: Underlying 2D point.
         """
         if not isinstance(p, IPoint2D):
-            raise TypeError(f'Expected IPoint2D, got {type(p).__name__}.')
+            raise TypeError(f"Expected IPoint2D, got {type(p).__name__}.")
         self._ipoint = p
 
     @property
@@ -117,7 +117,7 @@ class Vector2D:
         :param IVector2D v: Underlying 2D vector.
         """
         if not isinstance(v, IVector2D):
-            raise TypeError(f'Expected IVector2D, got {type(v).__name__}.')
+            raise TypeError(f"Expected IVector2D, got {type(v).__name__}.")
         self._ivector = v
 
     @property
@@ -210,7 +210,7 @@ class Frame2D:
         :param IFrame2D f: Underlying 2D frame.
         """
         if not isinstance(f, IFrame2D):
-            raise TypeError(f'Expected IFrame2D, got {type(f).__name__}.')
+            raise TypeError(f"Expected IFrame2D, got {type(f).__name__}.")
         self._iframe = f
 
     @property
@@ -266,7 +266,7 @@ class Curve2D:
             case ICurve2DKind.Trimmed:
                 return TrimmedCurve2D(icurve)
             case _:
-                raise NotImplementedError(f'Unsupported 2D curve kind: {icurve.Kind()}.')
+                raise NotImplementedError(f"Unsupported 2D curve kind: {icurve.Kind()}.")
 
     def __init__(self, c: ICurve2D):
         """
@@ -275,7 +275,7 @@ class Curve2D:
         :param ICurve2D c: Underlying 2D curve.
         """
         if not isinstance(c, ICurve2D):
-            raise TypeError(f'Expected ICurve2D, got {type(c).__name__}.')
+            raise TypeError(f"Expected ICurve2D, got {type(c).__name__}.")
         self._icurve = c
 
     @property
@@ -317,7 +317,7 @@ class Ellipse2D(Curve2D):
         :rtype: Ellipse2D
         """
         if frame is None:
-            frame = Frame2D.by_origin(Point2D.by_xy(0., 0.))
+            frame = Frame2D.by_origin(Point2D.by_xy(0.0, 0.0))
 
         icurve = ICurve2D.MakeEllipse(frame.iframe, rmajor, rminor)
         return cls(icurve)
@@ -330,7 +330,7 @@ class Ellipse2D(Curve2D):
         """
         super().__init__(c)
         if c.Kind() != ICurve2DKind.Ellipse:
-            raise TypeError(f'Expected ICurve2DKind.Ellipse, got {c.Kind()}.')
+            raise TypeError(f"Expected ICurve2DKind.Ellipse, got {c.Kind()}.")
 
 
 class TrimmedCurve2D(Curve2D):
@@ -373,7 +373,7 @@ class TrimmedCurve2D(Curve2D):
         """
         super().__init__(c)
         if c.Kind() != ICurve2DKind.Trimmed:
-            raise TypeError(f'Expected ICurve2DKind.Trimmed, got {c.Kind()}.')
+            raise TypeError(f"Expected ICurve2DKind.Trimmed, got {c.Kind()}.")
 
 
 class Point:
@@ -403,7 +403,7 @@ class Point:
         :param IPoint p: Underlying 3D point.
         """
         if not isinstance(p, IPoint):
-            raise TypeError(f'Expected IPoint, got {type(p).__name__}.')
+            raise TypeError(f"Expected IPoint, got {type(p).__name__}.")
         self._ipoint = p
 
     @property
@@ -485,7 +485,7 @@ class Vector:
         :param IVector v: Underlying 3D vector.
         """
         if not isinstance(v, IVector):
-            raise TypeError(f'Expected IVector, got {type(v).__name__}.')
+            raise TypeError(f"Expected IVector, got {type(v).__name__}.")
         self._ivector = v
 
     @property
@@ -563,7 +563,7 @@ class Axis:
         :param IAxis a: Underlying 3D axis.
         """
         if not isinstance(a, IAxis):
-            raise TypeError(f'Expected IAxis, got {type(a).__name__}.')
+            raise TypeError(f"Expected IAxis, got {type(a).__name__}.")
         self._iaxis = a
 
     @property
@@ -623,7 +623,7 @@ class Frame:
         :param IFrame f: Underlying 3D frame.
         """
         if not isinstance(f, IFrame):
-            raise TypeError(f'Expected IFrame, got {type(f).__name__}.')
+            raise TypeError(f"Expected IFrame, got {type(f).__name__}.")
         self._iframe = f
 
     @property
@@ -694,7 +694,7 @@ class Transform:
         :param ITransform t: Underlying transformation.
         """
         if not isinstance(t, ITransform):
-            raise TypeError(f'Expected ITransform, got {type(t).__name__}.')
+            raise TypeError(f"Expected ITransform, got {type(t).__name__}.")
         self._itransform = t
 
     @property
@@ -732,7 +732,7 @@ class Curve:
             case ICurveKind.Trimmed:
                 return TrimmedCurve(icurve)
             case _:
-                raise NotImplementedError(f'Unsupported curve kind: {icurve.Kind()}.')
+                raise NotImplementedError(f"Unsupported curve kind: {icurve.Kind()}.")
 
     def __init__(self, c: ICurve):
         """
@@ -741,7 +741,7 @@ class Curve:
         :param ICurve c: Underlying 3D curve.
         """
         if not isinstance(c, ICurve):
-            raise TypeError(f'Expected ICurve, got {type(c).__name__}.')
+            raise TypeError(f"Expected ICurve, got {type(c).__name__}.")
         self._icurve = c
 
     @property
@@ -792,7 +792,7 @@ class Line(Curve):
         """
         super().__init__(c)
         if c.Kind() != ICurveKind.Line:
-            raise TypeError(f'Expected ICurveKind.Line, got {c.Kind()}.')
+            raise TypeError(f"Expected ICurveKind.Line, got {c.Kind()}.")
 
     @cached_property
     def origin(self) -> Point:
@@ -835,7 +835,7 @@ class Circle(Curve):
         :rtype: Circle
         """
         if frame is None:
-            frame = Frame.by_origin(Point.by_xyz(0., 0., 0.))
+            frame = Frame.by_origin(Point.by_xyz(0.0, 0.0, 0.0))
 
         icurve = ICurve.MakeCircle(frame.iframe, radius)
         return cls(icurve)
@@ -862,7 +862,7 @@ class Circle(Curve):
         """
         super().__init__(c)
         if c.Kind() != ICurveKind.Circle:
-            raise TypeError(f'Expected ICurveKind.Circle, got {c.Kind()}.')
+            raise TypeError(f"Expected ICurveKind.Circle, got {c.Kind()}.")
 
     @cached_property
     def radius(self) -> float:
@@ -904,7 +904,7 @@ class TrimmedCurve(Curve):
         """
         super().__init__(c)
         if c.Kind() != ICurveKind.Trimmed:
-            raise TypeError(f'Expected ICurveKind.Trimmed, got {c.Kind()}.')
+            raise TypeError(f"Expected ICurveKind.Trimmed, got {c.Kind()}.")
 
 
 class Surface:
@@ -927,7 +927,7 @@ class Surface:
             case ISurfaceKind.Cylindrical:
                 return CylindricalSurface(isurface)
             case _:
-                raise NotImplementedError(f'Unsupported surface kind: {isurface.Kind()}.')
+                raise NotImplementedError(f"Unsupported surface kind: {isurface.Kind()}.")
 
     def __init__(self, s: ISurface):
         """
@@ -936,7 +936,7 @@ class Surface:
         :param ISurface s: Underlying surface.
         """
         if not isinstance(s, ISurface):
-            raise TypeError(f'Expected ISurface, got {type(s).__name__}.')
+            raise TypeError(f"Expected ISurface, got {type(s).__name__}.")
         self._isurface = s
 
     @property
@@ -966,7 +966,7 @@ class CylindricalSurface(Surface):
         :rtype: CylindricalSurface
         """
         if frame is None:
-            frame = Frame.by_origin(Point.by_xyz(0., 0., 0.))
+            frame = Frame.by_origin(Point.by_xyz(0.0, 0.0, 0.0))
 
         isurface = ISurface.MakeCylindrical(frame.iframe, radius)
         return cls(isurface)
@@ -979,4 +979,4 @@ class CylindricalSurface(Surface):
         """
         super().__init__(s)
         if s.Kind() != ISurfaceKind.Cylindrical:
-            raise TypeError(f'Expected ISurfaceKind.Cylindrical, got {s.Kind()}.')
+            raise TypeError(f"Expected ISurfaceKind.Cylindrical, got {s.Kind()}.")

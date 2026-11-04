@@ -4,8 +4,8 @@
 
 #include <BRepBuilderAPI_Transform.hxx>
 
-#include "ITransform.hpp"
 #include "IShape.hpp"
+#include "ITransform.hpp"
 #include "MakeIShape.hpp"
 
 // Tool to transform shapes
@@ -13,7 +13,9 @@ class TransformIShape {
 public:
 
   // Constructor
-  TransformIShape(const IShape& shape, const ITransform& trsf, const bool copyGeom = false, const bool copyMesh = false) : tool_(shape, trsf, copyGeom, copyMesh) {}
+  TransformIShape(const IShape& shape, const ITransform& trsf, const bool copyGeom = false,
+                  const bool copyMesh = false)
+      : tool_(shape, trsf, copyGeom, copyMesh) {}
 
   MAKE_SHAPE_METHODS(tool_);
 

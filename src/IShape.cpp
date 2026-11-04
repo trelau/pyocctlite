@@ -1,23 +1,23 @@
 #include "IShape.hpp"
 
-#include <BRep_Builder.hxx>
-#include <BRep_Tool.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepGProp.hxx>
 #include <BRepLib.hxx>
+#include <BRep_Builder.hxx>
+#include <BRep_Tool.hxx>
 #include <GC_MakeArcOfCircle.hxx>
-#include <Geom_TrimmedCurve.hxx>
 #include <GProp_GProps.hxx>
+#include <Geom_TrimmedCurve.hxx>
 #include <Message.hxx>
 #include <Message_Messenger.hxx>
 #include <Message_Printer.hxx>
+#include <NCollection_IndexedMap.hxx>
 #include <STEPControl_Writer.hxx>
 #include <TopExp.hxx>
-#include <NCollection_IndexedMap.hxx>
-#include <TopoDS_Shape.hxx>
 #include <TopTools_ShapeMapHasher.hxx>
+#include <TopoDS_Shape.hxx>
 
 #include "IErrors.hpp"
 
@@ -34,7 +34,9 @@ public:
   ~QuietMessenger() {
     std::size_t i = 0;
     for (const auto& printer : Message::DefaultMessenger()->Printers()) {
-      if (i < levels_.size()) { printer->SetTraceLevel(levels_[i++]); }
+      if (i < levels_.size()) {
+        printer->SetTraceLevel(levels_[i++]);
+      }
     }
   }
 
@@ -44,21 +46,30 @@ private:
 
 static std::string kindToString(IShapeKind kind) {
   switch (kind) {
-  case IShapeKind::Shape:     return "Shape";
-  case IShapeKind::Vertex:    return "Vertex";
-  case IShapeKind::Edge:      return "Edge";
-  case IShapeKind::Wire:      return "Wire";
-  case IShapeKind::Face:      return "Face";
-  case IShapeKind::Shell:     return "Shell";
-  case IShapeKind::Solid:     return "Solid";
-  case IShapeKind::CompSolid: return "CompSolid";
-  case IShapeKind::Compound:  return "Compound";
-  default:                    return "Invalid";
+  case IShapeKind::Shape:
+    return "Shape";
+  case IShapeKind::Vertex:
+    return "Vertex";
+  case IShapeKind::Edge:
+    return "Edge";
+  case IShapeKind::Wire:
+    return "Wire";
+  case IShapeKind::Face:
+    return "Face";
+  case IShapeKind::Shell:
+    return "Shell";
+  case IShapeKind::Solid:
+    return "Solid";
+  case IShapeKind::CompSolid:
+    return "CompSolid";
+  case IShapeKind::Compound:
+    return "Compound";
+  default:
+    return "Invalid";
   }
 }
 
-std::vector<IShape> IShape::MakeByList(const NCollection_List<TopoDS_Shape>& shapes)
-{
+std::vector<IShape> IShape::MakeByList(const NCollection_List<TopoDS_Shape>& shapes) {
   std::vector<IShape> ishapes;
   for (NCollection_List<TopoDS_Shape>::Iterator it(shapes); it.More(); it.Next()) {
     ishapes.emplace_back(IShape(it.Value()));
@@ -67,8 +78,7 @@ std::vector<IShape> IShape::MakeByList(const NCollection_List<TopoDS_Shape>& sha
   return ishapes;
 }
 
-IShape IShape::MakeEdge(const IPoint& p1, const IPoint& p2)
-{
+IShape IShape::MakeEdge(const IPoint& p1, const IPoint& p2) {
   TopoDS_Edge e = BRepBuilderAPI_MakeEdge(p1, p2);
 
   return IShape(e);
@@ -99,14 +109,15 @@ IShape IShape::MakeWire(const IShape& edge) {
 IShape IShape::MakeWire(const std::vector<IShape>& edges) {
 
   NCollection_List<TopoDS_Shape> oEdges;
-  for (const IShape& e : edges) { oEdges.Append(e.AsEdge()); }
+  for (const IShape& e : edges) {
+    oEdges.Append(e.AsEdge());
+  }
 
   BRepBuilderAPI_MakeWire builder;
   builder.Add(oEdges);
   TopoDS_Wire w = builder.Wire();
 
   return IShape(w);
-
 }
 
 IShape IShape::MakeWire(const IShape& w1, const IShape& w2) {
@@ -140,8 +151,8 @@ IShape IShape::MakeCompound(const std::vector<IShape>& shapes) {
 
 void IShape::ValidateKind(const IShapeKind expected) const {
   if (kind_ != expected) {
-    throw IKindMismatch(
-      "Expected " + kindToString(expected) + " but got " + kindToString(kind_) + " instead.");
+    throw IKindMismatch("Expected " + kindToString(expected) + " but got " + kindToString(kind_) +
+                        " instead.");
   }
 }
 
@@ -217,36 +228,46 @@ std::optional<IPoint> IShape::Point() const {
 void bind_IShape(nb::module_& m) {
 
   nb::enum_<IShapeKind>(m, "IShapeKind", "Enumeration for shape kinds.")
-    .value("Shape", IShapeKind::Shape)
-    .value("Vertex", IShapeKind::Vertex)
-    .value("Edge", IShapeKind::Edge)
-    .value("Wire", IShapeKind::Wire)
-    .value("Face", IShapeKind::Face)
-    .value("Shell", IShapeKind::Shell)
-    .value("Solid", IShapeKind::Solid)
-    .value("CompSolid", IShapeKind::CompSolid)
-    .value("Compound", IShapeKind::Compound);
+      .value("Shape", IShapeKind::Shape)
+      .value("Vertex", IShapeKind::Vertex)
+      .value("Edge", IShapeKind::Edge)
+      .value("Wire", IShapeKind::Wire)
+      .value("Face", IShapeKind::Face)
+      .value("Shell", IShapeKind::Shell)
+      .value("Solid", IShapeKind::Solid)
+      .value("CompSolid", IShapeKind::CompSolid)
+      .value("Compound", IShapeKind::Compound);
 
   nb::class_<IShape>(m, "IShape", "A shape.")
-    .def_static("MakeEdge", nb::overload_cast<const IPoint&, const IPoint&>(&IShape::MakeEdge), nb::arg("p1"), nb::arg("p2"), "Make an edge by two points.")
-    .def_static("MakeEdge", nb::overload_cast<const ICurve&>(&IShape::MakeEdge), nb::arg("curve"), "Make an edge by a curve.")
-    .def_static("MakeEdge", nb::overload_cast<const ICurve2D&, const ISurface&>(&IShape::MakeEdge), nb::arg("c"), nb::arg("s"), "Make an edge by a 2D curve on a surface.")
-    .def_static("MakeWire", nb::overload_cast<const IShape&>(&IShape::MakeWire), nb::arg("edge"), "Make a wire by a single edge.")
-    .def_static("MakeWire", nb::overload_cast<const std::vector<IShape>&>(&IShape::MakeWire), nb::arg("edges"), "Make a wire by topologically or geometrically connected edges.")
-    .def_static("MakeWire", nb::overload_cast<const IShape&, const IShape&>(&IShape::MakeWire), nb::arg("w1"), nb::arg("w2"), "Make a new wire by combining two wires.")
-    .def_static("MakeFace", &IShape::MakeFace, nb::arg("w"), "Make a face by a planar wire.")
-    .def_static("MakeCompound", &IShape::MakeCompound, nb::arg("shapes"), "Make a compound from a list of shapes.")
+      .def_static("MakeEdge", nb::overload_cast<const IPoint&, const IPoint&>(&IShape::MakeEdge),
+                  nb::arg("p1"), nb::arg("p2"), "Make an edge by two points.")
+      .def_static("MakeEdge", nb::overload_cast<const ICurve&>(&IShape::MakeEdge), nb::arg("curve"),
+                  "Make an edge by a curve.")
+      .def_static("MakeEdge",
+                  nb::overload_cast<const ICurve2D&, const ISurface&>(&IShape::MakeEdge),
+                  nb::arg("c"), nb::arg("s"), "Make an edge by a 2D curve on a surface.")
+      .def_static("MakeWire", nb::overload_cast<const IShape&>(&IShape::MakeWire), nb::arg("edge"),
+                  "Make a wire by a single edge.")
+      .def_static("MakeWire", nb::overload_cast<const std::vector<IShape>&>(&IShape::MakeWire),
+                  nb::arg("edges"),
+                  "Make a wire by topologically or geometrically connected edges.")
+      .def_static("MakeWire", nb::overload_cast<const IShape&, const IShape&>(&IShape::MakeWire),
+                  nb::arg("w1"), nb::arg("w2"), "Make a new wire by combining two wires.")
+      .def_static("MakeFace", &IShape::MakeFace, nb::arg("w"), "Make a face by a planar wire.")
+      .def_static("MakeCompound", &IShape::MakeCompound, nb::arg("shapes"),
+                  "Make a compound from a list of shapes.")
 
-    .def("Kind", &IShape::Kind, "The kind of this shape.")
-    .def("IsNull", &IShape::IsNull, "Whether or not this shape is null.")
-    .def("IsEqual", &IShape::IsEqual, nb::arg("other"), "Check if this shape is equal to the other.")
-    .def("IsSame", &IShape::IsSame, nb::arg("other"), "Check if this shape is the same as the other (orientation may differ).")
-    .def("HashCode", &IShape::HashCode, "Hash code consistent with IsSame.")
-    .def("ExportSTEP", &IShape::ExportSTEP, nb::arg("fname"), "Export this shape to a STEP file.")
-    .def("Length", &IShape::Length, "Calculate the length of all edges of this shape.")
-    .def("Area", &IShape::Area, "Calculate the area of all faces of this shape.")
-    .def("Volume", &IShape::Volume, "Calculate the volume of all solids of this shape.")
-    .def("Curve", &IShape::Curve, "Get the curve if this shape is an edge.")
-    .def("Point", &IShape::Point, "Get the point if this shape is a vertex.");
-
+      .def("Kind", &IShape::Kind, "The kind of this shape.")
+      .def("IsNull", &IShape::IsNull, "Whether or not this shape is null.")
+      .def("IsEqual", &IShape::IsEqual, nb::arg("other"),
+           "Check if this shape is equal to the other.")
+      .def("IsSame", &IShape::IsSame, nb::arg("other"),
+           "Check if this shape is the same as the other (orientation may differ).")
+      .def("HashCode", &IShape::HashCode, "Hash code consistent with IsSame.")
+      .def("ExportSTEP", &IShape::ExportSTEP, nb::arg("fname"), "Export this shape to a STEP file.")
+      .def("Length", &IShape::Length, "Calculate the length of all edges of this shape.")
+      .def("Area", &IShape::Area, "Calculate the area of all faces of this shape.")
+      .def("Volume", &IShape::Volume, "Calculate the volume of all solids of this shape.")
+      .def("Curve", &IShape::Curve, "Get the curve if this shape is an edge.")
+      .def("Point", &IShape::Point, "Get the point if this shape is a vertex.");
 }

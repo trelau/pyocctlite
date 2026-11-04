@@ -1,32 +1,32 @@
 #include "occtlite.hpp"
 
+#include "ICurve2D.hpp"
+#include "IFrame2D.hpp"
 #include "IPoint2D.hpp"
 #include "IVector2D.hpp"
-#include "IFrame2D.hpp"
-#include "ICurve2D.hpp"
 
-#include "IPoint.hpp"
-#include "IVector.hpp"
 #include "IAxis.hpp"
-#include "IFrame.hpp"
-#include "ITransform.hpp"
 #include "ICurve.hpp"
 #include "ICurveData.hpp"
+#include "IFrame.hpp"
+#include "IPoint.hpp"
 #include "ISurface.hpp"
+#include "ITransform.hpp"
+#include "IVector.hpp"
 #include "ProjectIPointToICurve.hpp"
 
-#include "IShape.hpp"
 #include "CopyIShape.hpp"
-#include "ExploreIShape.hpp"
-#include "MapIShape.hpp"
-#include "ExtrudeIShape.hpp"
-#include "TransformIShape.hpp"
-#include "FilletIShape.hpp"
-#include "UniteIShapes.hpp"
 #include "CutIShapes.hpp"
-#include "ThickenIShape.hpp"
-#include "LoftIShape.hpp"
+#include "ExploreIShape.hpp"
+#include "ExtrudeIShape.hpp"
+#include "FilletIShape.hpp"
 #include "IErrors.hpp"
+#include "IShape.hpp"
+#include "LoftIShape.hpp"
+#include "MapIShape.hpp"
+#include "ThickenIShape.hpp"
+#include "TransformIShape.hpp"
+#include "UniteIShapes.hpp"
 
 NB_MODULE(_occtlite, m) {
 
@@ -57,5 +57,4 @@ NB_MODULE(_occtlite, m) {
   bind_ThickenIShape(m);
   bind_LoftIShape(m);
   bind_IErrors(m);
-
 }

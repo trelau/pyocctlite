@@ -21,11 +21,12 @@ IFrame2D IFrame2D::MakeByVector(const IPoint2D& origin, const IVector2D& xVector
 void bind_IFrame2D(nb::module_& m) {
 
   nb::class_<IFrame2D>(m, "IFrame2D", "A 2D right-handed coordinate frame.")
-    .def_static("MakeByOrigin", &IFrame2D::MakeByOrigin, nb::arg("origin"), "Make a frame at the given origin with standard orientation.")
-    .def_static("MakeByVector", &IFrame2D::MakeByVector, nb::arg("origin"), nb::arg("xvec"), "Make a frame at the given origin with the specified X-direction.")
+      .def_static("MakeByOrigin", &IFrame2D::MakeByOrigin, nb::arg("origin"),
+                  "Make a frame at the given origin with standard orientation.")
+      .def_static("MakeByVector", &IFrame2D::MakeByVector, nb::arg("origin"), nb::arg("xvec"),
+                  "Make a frame at the given origin with the specified X-direction.")
 
-    .def("Origin", &IFrame2D::Origin, "Get the origin point of the frame.")
-    .def("XDirection", &IFrame2D::XDirection, "Get the X-direction of the frame.")
-    .def("YDirection", &IFrame2D::YDirection, "Get the Y-direction of the frame.");
-
+      .def("Origin", &IFrame2D::Origin, "Get the origin point of the frame.")
+      .def("XDirection", &IFrame2D::XDirection, "Get the X-direction of the frame.")
+      .def("YDirection", &IFrame2D::YDirection, "Get the Y-direction of the frame.");
 }

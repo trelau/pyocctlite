@@ -2,9 +2,9 @@
 
 #include "occtlite.hpp"
 
+#include "IFrame.hpp"
 #include "IPoint.hpp"
 #include "IVector.hpp"
-#include "IFrame.hpp"
 
 // Data structure for line data
 struct ILineData {

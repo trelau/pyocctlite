@@ -12,34 +12,34 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path('../..').resolve()))
+sys.path.insert(0, str(Path("../..").resolve()))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'pyOCCT Lite'
-copyright = '2025, Trevor Laughlin'
-author = 'Trevor Laughlin'
+project = "pyOCCT Lite"
+copyright = "2025, Trevor Laughlin"
+author = "Trevor Laughlin"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.ifconfig',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.ifconfig",
     # 'sphinx.ext.inheritance_diagram',
-    'sphinx.ext.autosummary',
+    "sphinx.ext.autosummary",
     # 'sphinx.ext.graphviz',
-    'sphinx.ext.githubpages'
+    "sphinx.ext.githubpages",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -51,16 +51,16 @@ extensions = [
 exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # Default options
 autodoc_default_options = {
-    'members': True,
-    'member-order': 'bysource',
-    'undoc-members': True,
-    'show-inheritance': True,
-    'inherited-members': True,
-    'special-members': '__iter__',
+    "members": True,
+    "member-order": "bysource",
+    "undoc-members": True,
+    "show-inheritance": True,
+    "inherited-members": True,
+    "special-members": "__iter__",
 }
 
 # -- Options for HTML output -------------------------------------------------
@@ -69,7 +69,7 @@ autodoc_default_options = {
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -85,4 +85,4 @@ html_theme = 'sphinx_rtd_theme'
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'pyOCCTLitedoc'
+htmlhelp_basename = "pyOCCTLitedoc"

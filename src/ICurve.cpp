@@ -2,26 +2,36 @@
 
 #include <string>
 
+#include <GC_MakeArcOfCircle.hxx>
+#include <GC_MakeCircle.hxx>
+#include <GC_MakeLine.hxx>
 #include <gp_Pnt.hxx>
 #include <gp_Vec.hxx>
-#include <GC_MakeCircle.hxx>
-#include <GC_MakeArcOfCircle.hxx>
-#include <GC_MakeLine.hxx>
 
 #include "IErrors.hpp"
 
 static std::string kindToString(ICurveKind kind) {
   switch (kind) {
-  case ICurveKind::Unknown:     return "Unknown";
-  case ICurveKind::Line:        return "Line";
-  case ICurveKind::Circle:      return "Circle";
-  case ICurveKind::Ellipse:     return "Ellipse";
-  case ICurveKind::Parabola:    return "Parabola";
-  case ICurveKind::Hyperbola:   return "Hyperbola";
-  case ICurveKind::Bezier:      return "Bezier";
-  case ICurveKind::BSpline:     return "BSpline";
-  case ICurveKind::Trimmed:     return "Trimmed";
-  default:                      return "Invalid";
+  case ICurveKind::Unknown:
+    return "Unknown";
+  case ICurveKind::Line:
+    return "Line";
+  case ICurveKind::Circle:
+    return "Circle";
+  case ICurveKind::Ellipse:
+    return "Ellipse";
+  case ICurveKind::Parabola:
+    return "Parabola";
+  case ICurveKind::Hyperbola:
+    return "Hyperbola";
+  case ICurveKind::Bezier:
+    return "Bezier";
+  case ICurveKind::BSpline:
+    return "BSpline";
+  case ICurveKind::Trimmed:
+    return "Trimmed";
+  default:
+    return "Invalid";
   }
 }
 
@@ -53,31 +63,23 @@ ICurve ICurve::MakeCircularArc(const IPoint& p1, const IPoint& p2, const IPoint&
   return ICurve(arc);
 }
 
-ICurve::ICurve(const Handle(Geom_Curve)& c)
-  : curve_(c), kind_(ICurveKind::Unknown) {
+ICurve::ICurve(const Handle(Geom_Curve) & c) : curve_(c), kind_(ICurveKind::Unknown) {
 
   if (c->IsKind(STANDARD_TYPE(Geom_Line))) {
     kind_ = ICurveKind::Line;
-  }
-  else if (c->IsKind(STANDARD_TYPE(Geom_Circle))) {
+  } else if (c->IsKind(STANDARD_TYPE(Geom_Circle))) {
     kind_ = ICurveKind::Circle;
-  }
-  else if (c->IsKind(STANDARD_TYPE(Geom_Ellipse))) {
+  } else if (c->IsKind(STANDARD_TYPE(Geom_Ellipse))) {
     kind_ = ICurveKind::Ellipse;
-  }
-  else if (c->IsKind(STANDARD_TYPE(Geom_Parabola))) {
+  } else if (c->IsKind(STANDARD_TYPE(Geom_Parabola))) {
     kind_ = ICurveKind::Parabola;
-  }
-  else if (c->IsKind(STANDARD_TYPE(Geom_Hyperbola))) {
+  } else if (c->IsKind(STANDARD_TYPE(Geom_Hyperbola))) {
     kind_ = ICurveKind::Hyperbola;
-  }
-  else if (c->IsKind(STANDARD_TYPE(Geom_BezierCurve))) {
+  } else if (c->IsKind(STANDARD_TYPE(Geom_BezierCurve))) {
     kind_ = ICurveKind::Bezier;
-  }
-  else if (c->IsKind(STANDARD_TYPE(Geom_BSplineCurve))) {
+  } else if (c->IsKind(STANDARD_TYPE(Geom_BSplineCurve))) {
     kind_ = ICurveKind::BSpline;
-  }
-  else if (c->IsKind(STANDARD_TYPE(Geom_TrimmedCurve))) {
+  } else if (c->IsKind(STANDARD_TYPE(Geom_TrimmedCurve))) {
     kind_ = ICurveKind::Trimmed;
   }
 }
@@ -121,8 +123,8 @@ std::optional<ICircleData> ICurve::CircleData() const {
 
 void ICurve::ValidateKind(const ICurveKind expected) const {
   if (kind_ != expected) {
-    throw IKindMismatch(
-      "Expected " + kindToString(expected) + " but got " + kindToString(kind_) + " instead.");
+    throw IKindMismatch("Expected " + kindToString(expected) + " but got " + kindToString(kind_) +
+                        " instead.");
   }
 }
 
@@ -130,31 +132,37 @@ void ICurve::ValidateKind(const ICurveKind expected) const {
 void bind_ICurve(nb::module_& m) {
 
   nb::enum_<ICurveKind>(m, "ICurveKind", "Enumeration for curve kinds.")
-    .value("Unknown", ICurveKind::Unknown)
-    .value("Line", ICurveKind::Line)
-    .value("Circle", ICurveKind::Circle)
-    .value("Ellipse", ICurveKind::Ellipse)
-    .value("Hyperbola", ICurveKind::Hyperbola)
-    .value("Parabola", ICurveKind::Parabola)
-    .value("Bezier", ICurveKind::Bezier)
-    .value("BSpline", ICurveKind::BSpline)
-    .value("Trimmed", ICurveKind::Trimmed);
+      .value("Unknown", ICurveKind::Unknown)
+      .value("Line", ICurveKind::Line)
+      .value("Circle", ICurveKind::Circle)
+      .value("Ellipse", ICurveKind::Ellipse)
+      .value("Hyperbola", ICurveKind::Hyperbola)
+      .value("Parabola", ICurveKind::Parabola)
+      .value("Bezier", ICurveKind::Bezier)
+      .value("BSpline", ICurveKind::BSpline)
+      .value("Trimmed", ICurveKind::Trimmed);
 
   nb::class_<ICurve>(m, "ICurve", "A curve.")
-    .def_static("MakeLine", &ICurve::MakeLine, nb::arg("p1"), nb::arg("p2"), "Make a line by two points.")
-    .def_static("MakeCircle", nb::overload_cast<const IFrame&, const double>(&ICurve::MakeCircle), nb::arg("frame"), nb::arg("radius"), "Make a circle by frame and radius.")
-    .def_static("MakeCircle", nb::overload_cast<const IPoint&, const IPoint&, const IPoint&>(&ICurve::MakeCircle), nb::arg("p1"), nb::arg("p2"), nb::arg("p3"), "Make a circle by three points.")
-    .def_static("MakeCircularArc", &ICurve::MakeCircularArc, nb::arg("p1"), nb::arg("p2"), nb::arg("p3"), "Make a circular arc by three points.")
+      .def_static("MakeLine", &ICurve::MakeLine, nb::arg("p1"), nb::arg("p2"),
+                  "Make a line by two points.")
+      .def_static("MakeCircle", nb::overload_cast<const IFrame&, const double>(&ICurve::MakeCircle),
+                  nb::arg("frame"), nb::arg("radius"), "Make a circle by frame and radius.")
+      .def_static(
+          "MakeCircle",
+          nb::overload_cast<const IPoint&, const IPoint&, const IPoint&>(&ICurve::MakeCircle),
+          nb::arg("p1"), nb::arg("p2"), nb::arg("p3"), "Make a circle by three points.")
+      .def_static("MakeCircularArc", &ICurve::MakeCircularArc, nb::arg("p1"), nb::arg("p2"),
+                  nb::arg("p3"), "Make a circular arc by three points.")
 
-    .def("Kind", &ICurve::Kind, "The kind of this curve.")
-    .def("IsClosed", &ICurve::IsClosed, "Whether or not this curve is closed.")
-    .def("IsPeriodic", &ICurve::IsPeriodic, "Whether or not this curve is periodic.")
-    .def("FirstParameter", &ICurve::FirstParameter, "The first parameter of this curve.")
-    .def("LastParameter", &ICurve::LastParameter, "The last parameter of this curve.")
-    .def("Evaluate", &ICurve::Evaluate, nb::arg("u"), "Evaluate a point on this curve.")
-    .def("Derivative", &ICurve::Derivative, nb::arg("u"), nb::arg("order") = 1, "Evaluate a derivative on this curve.")
+      .def("Kind", &ICurve::Kind, "The kind of this curve.")
+      .def("IsClosed", &ICurve::IsClosed, "Whether or not this curve is closed.")
+      .def("IsPeriodic", &ICurve::IsPeriodic, "Whether or not this curve is periodic.")
+      .def("FirstParameter", &ICurve::FirstParameter, "The first parameter of this curve.")
+      .def("LastParameter", &ICurve::LastParameter, "The last parameter of this curve.")
+      .def("Evaluate", &ICurve::Evaluate, nb::arg("u"), "Evaluate a point on this curve.")
+      .def("Derivative", &ICurve::Derivative, nb::arg("u"), nb::arg("order") = 1,
+           "Evaluate a derivative on this curve.")
 
-    .def("LineData", &ICurve::LineData, "Get line data if this curve is a line.")
-    .def("CircleData", &ICurve::CircleData, "Get circle data if this curve is a circle.");
-
+      .def("LineData", &ICurve::LineData, "Get line data if this curve is a line.")
+      .def("CircleData", &ICurve::CircleData, "Get circle data if this curve is a circle.");
 }

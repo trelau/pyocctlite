@@ -1,0 +1,12 @@
+# C++ formatting for src/. Applied by pre-commit and the Claude Code hook.
+BasedOnStyle: LLVM
+IndentWidth: 2
+ColumnLimit: 100
+PointerAlignment: Left
+# Short in-class accessors on one line; everything else gets a full body
+AllowShortFunctionsOnASingleLine: Inline
+EmptyLineAfterAccessModifier: Leave
+# Macro continuation backslashes (MakeIShape.hpp)
+AlignEscapedNewlines: Left
+# Keep include groups (project header, OCCT headers, local headers) as written
+IncludeBlocks: Preserve

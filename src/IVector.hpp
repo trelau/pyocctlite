@@ -19,32 +19,20 @@ public:
   explicit IVector(const gp_Dir& d) : vec_(d) {}
 
   // Getters for X, Y, Z components
-  double X() const {
-    return vec_.X();
-  }
+  double X() const { return vec_.X(); }
 
-  double Y() const {
-    return vec_.Y();
-  }
+  double Y() const { return vec_.Y(); }
 
-  double Z() const {
-    return vec_.Z();
-  }
+  double Z() const { return vec_.Z(); }
 
   // Get the magnitude of the vector
-  double Magnitude() const {
-    return vec_.Magnitude();
-  }
+  double Magnitude() const { return vec_.Magnitude(); }
 
   // Make a scaled copy of this vector
-  IVector Scaled(const double scale) const {
-    return IVector(vec_.Scaled(scale));
-  }
+  IVector Scaled(const double scale) const { return IVector(vec_.Scaled(scale)); }
 
   // Conversion operator to gp_Vec
-  operator gp_Vec() const {
-    return vec_;
-  }
+  operator gp_Vec() const { return vec_; }
 
 private:
   gp_Vec vec_;

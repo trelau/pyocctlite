@@ -8,11 +8,11 @@ IVector2D IVector2D::MakeByXY(double x, double y) {
 void bind_IVector2D(nb::module_& m) {
 
   nb::class_<IVector2D>(m, "IVector2D", "A 2D vector.")
-    .def_static("MakeByXY", &IVector2D::MakeByXY, nb::arg("x"), nb::arg("y"), "Make a vector by its X, Y components.")
+      .def_static("MakeByXY", &IVector2D::MakeByXY, nb::arg("x"), nb::arg("y"),
+                  "Make a vector by its X, Y components.")
 
-    .def("X", &IVector2D::X, "Vector X-component.")
-    .def("Y", &IVector2D::Y, "Vector Y-component.")
-    .def("Magnitude", &IVector2D::Magnitude, "Get the magnitude of the vector.")
-    .def("Scaled", &IVector2D::Scaled, nb::arg("scale"), "Return a scaled copy of this vector.");
-
+      .def("X", &IVector2D::X, "Vector X-component.")
+      .def("Y", &IVector2D::Y, "Vector Y-component.")
+      .def("Magnitude", &IVector2D::Magnitude, "Get the magnitude of the vector.")
+      .def("Scaled", &IVector2D::Scaled, nb::arg("scale"), "Return a scaled copy of this vector.");
 }

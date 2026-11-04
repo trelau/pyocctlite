@@ -27,7 +27,7 @@ class Cylinder(Solid):
         :rtype: Cylinder
         """
         if frame is None:
-            frame = Frame.by_origin(Point.by_xyz(0., 0., 0.))
+            frame = Frame.by_origin(Point.by_xyz(0.0, 0.0, 0.0))
 
         # make a circle at frame of radius
         c = Circle.by_radius(radius, frame)
@@ -133,7 +133,9 @@ class Cylinder(Solid):
         :return: New cylinder.
         :rtype: Self
         """
-        return type(self)(tool.shape(),
-                          tool.modified_shape(self.bottom_face),
-                          tool.modified_shape(self.top_face),
-                          tool.modified_shape(self.lateral_face))
+        return type(self)(
+            tool.shape(),
+            tool.modified_shape(self.bottom_face),
+            tool.modified_shape(self.top_face),
+            tool.modified_shape(self.lateral_face),
+        )

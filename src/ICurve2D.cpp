@@ -2,26 +2,36 @@
 
 #include <string>
 
-#include <gp_Pnt2d.hxx>
-#include <gp_Vec2d.hxx>
+#include <GCE2d_MakeEllipse.hxx>
 #include <GCE2d_MakeLine.hxx>
 #include <GCE2d_MakeSegment.hxx>
-#include <GCE2d_MakeEllipse.hxx>
+#include <gp_Pnt2d.hxx>
+#include <gp_Vec2d.hxx>
 
 #include "IErrors.hpp"
 
 static std::string kindToString(ICurve2DKind kind) {
   switch (kind) {
-  case ICurve2DKind::Unknown:     return "Unknown";
-  case ICurve2DKind::Line:        return "Line";
-  case ICurve2DKind::Circle:      return "Circle";
-  case ICurve2DKind::Ellipse:     return "Ellipse";
-  case ICurve2DKind::Parabola:    return "Parabola";
-  case ICurve2DKind::Hyperbola:   return "Hyperbola";
-  case ICurve2DKind::Bezier:      return "Bezier";
-  case ICurve2DKind::BSpline:     return "BSpline";
-  case ICurve2DKind::Trimmed:     return "Trimmed";
-  default:                        return "Invalid";
+  case ICurve2DKind::Unknown:
+    return "Unknown";
+  case ICurve2DKind::Line:
+    return "Line";
+  case ICurve2DKind::Circle:
+    return "Circle";
+  case ICurve2DKind::Ellipse:
+    return "Ellipse";
+  case ICurve2DKind::Parabola:
+    return "Parabola";
+  case ICurve2DKind::Hyperbola:
+    return "Hyperbola";
+  case ICurve2DKind::Bezier:
+    return "Bezier";
+  case ICurve2DKind::BSpline:
+    return "BSpline";
+  case ICurve2DKind::Trimmed:
+    return "Trimmed";
+  default:
+    return "Invalid";
   }
 }
 
@@ -32,7 +42,8 @@ ICurve2D ICurve2D::MakeLine(const IPoint2D& p1, const IPoint2D& p2) {
   return ICurve2D(c);
 }
 
-ICurve2D ICurve2D::MakeEllipse(const IFrame2D& frame, const double majorRadius, const double minorRadius) {
+ICurve2D ICurve2D::MakeEllipse(const IFrame2D& frame, const double majorRadius,
+                               const double minorRadius) {
 
   Handle(Geom2d_Ellipse) c = GCE2d_MakeEllipse(frame, majorRadius, minorRadius);
 
@@ -53,31 +64,23 @@ ICurve2D ICurve2D::MakeTrimmed(const IPoint2D& p1, const IPoint2D& p2) {
   return ICurve2D(c);
 }
 
-ICurve2D::ICurve2D(const Handle(Geom2d_Curve)& c)
-  : curve_(c), kind_(ICurve2DKind::Unknown) {
+ICurve2D::ICurve2D(const Handle(Geom2d_Curve) & c) : curve_(c), kind_(ICurve2DKind::Unknown) {
 
   if (c->IsKind(STANDARD_TYPE(Geom2d_Line))) {
     kind_ = ICurve2DKind::Line;
-  }
-  else if (c->IsKind(STANDARD_TYPE(Geom2d_Circle))) {
+  } else if (c->IsKind(STANDARD_TYPE(Geom2d_Circle))) {
     kind_ = ICurve2DKind::Circle;
-  }
-  else if (c->IsKind(STANDARD_TYPE(Geom2d_Ellipse))) {
+  } else if (c->IsKind(STANDARD_TYPE(Geom2d_Ellipse))) {
     kind_ = ICurve2DKind::Ellipse;
-  }
-  else if (c->IsKind(STANDARD_TYPE(Geom2d_Parabola))) {
+  } else if (c->IsKind(STANDARD_TYPE(Geom2d_Parabola))) {
     kind_ = ICurve2DKind::Parabola;
-  }
-  else if (c->IsKind(STANDARD_TYPE(Geom2d_Hyperbola))) {
+  } else if (c->IsKind(STANDARD_TYPE(Geom2d_Hyperbola))) {
     kind_ = ICurve2DKind::Hyperbola;
-  }
-  else if (c->IsKind(STANDARD_TYPE(Geom2d_BezierCurve))) {
+  } else if (c->IsKind(STANDARD_TYPE(Geom2d_BezierCurve))) {
     kind_ = ICurve2DKind::Bezier;
-  }
-  else if (c->IsKind(STANDARD_TYPE(Geom2d_BSplineCurve))) {
+  } else if (c->IsKind(STANDARD_TYPE(Geom2d_BSplineCurve))) {
     kind_ = ICurve2DKind::BSpline;
-  }
-  else if (c->IsKind(STANDARD_TYPE(Geom2d_TrimmedCurve))) {
+  } else if (c->IsKind(STANDARD_TYPE(Geom2d_TrimmedCurve))) {
     kind_ = ICurve2DKind::Trimmed;
   }
 }
@@ -98,8 +101,8 @@ IVector2D ICurve2D::Derivative(double u, int order) const {
 
 void ICurve2D::ValidateKind(const ICurve2DKind expected) const {
   if (kind_ != expected) {
-    throw IKindMismatch(
-      "Expected " + kindToString(expected) + " but got " + kindToString(kind_) + " instead.");
+    throw IKindMismatch("Expected " + kindToString(expected) + " but got " + kindToString(kind_) +
+                        " instead.");
   }
 }
 
@@ -107,29 +110,35 @@ void ICurve2D::ValidateKind(const ICurve2DKind expected) const {
 void bind_ICurve2D(nb::module_& m) {
 
   nb::enum_<ICurve2DKind>(m, "ICurve2DKind", "Enumeration for 2D curve kinds.")
-    .value("Unknown", ICurve2DKind::Unknown)
-    .value("Line", ICurve2DKind::Line)
-    .value("Circle", ICurve2DKind::Circle)
-    .value("Ellipse", ICurve2DKind::Ellipse)
-    .value("Hyperbola", ICurve2DKind::Hyperbola)
-    .value("Parabola", ICurve2DKind::Parabola)
-    .value("Bezier", ICurve2DKind::Bezier)
-    .value("BSpline", ICurve2DKind::BSpline)
-    .value("Trimmed", ICurve2DKind::Trimmed);
+      .value("Unknown", ICurve2DKind::Unknown)
+      .value("Line", ICurve2DKind::Line)
+      .value("Circle", ICurve2DKind::Circle)
+      .value("Ellipse", ICurve2DKind::Ellipse)
+      .value("Hyperbola", ICurve2DKind::Hyperbola)
+      .value("Parabola", ICurve2DKind::Parabola)
+      .value("Bezier", ICurve2DKind::Bezier)
+      .value("BSpline", ICurve2DKind::BSpline)
+      .value("Trimmed", ICurve2DKind::Trimmed);
 
   nb::class_<ICurve2D>(m, "ICurve2D", "A 2D curve.")
 
-    .def_static("MakeLine", &ICurve2D::MakeLine, nb::arg("p1"), nb::arg("p2"), "Make a line.")
-    .def_static("MakeEllipse", &ICurve2D::MakeEllipse, nb::arg("frame"), nb::arg("rmajor"), nb::arg("rminor"), "Make an ellipse.")
-    .def_static("MakeTrimmed", nb::overload_cast<const ICurve2D&, const double, const double>(&ICurve2D::MakeTrimmed), nb::arg("curve"), nb::arg("u0"), nb::arg("u1"), "Make a trimmed curve.")
-    .def_static("MakeTrimmed", nb::overload_cast<const IPoint2D&, const IPoint2D&>(&ICurve2D::MakeTrimmed), nb::arg("p1"), nb::arg("p2"), "Make a trimmed curve from two points.")
+      .def_static("MakeLine", &ICurve2D::MakeLine, nb::arg("p1"), nb::arg("p2"), "Make a line.")
+      .def_static("MakeEllipse", &ICurve2D::MakeEllipse, nb::arg("frame"), nb::arg("rmajor"),
+                  nb::arg("rminor"), "Make an ellipse.")
+      .def_static(
+          "MakeTrimmed",
+          nb::overload_cast<const ICurve2D&, const double, const double>(&ICurve2D::MakeTrimmed),
+          nb::arg("curve"), nb::arg("u0"), nb::arg("u1"), "Make a trimmed curve.")
+      .def_static("MakeTrimmed",
+                  nb::overload_cast<const IPoint2D&, const IPoint2D&>(&ICurve2D::MakeTrimmed),
+                  nb::arg("p1"), nb::arg("p2"), "Make a trimmed curve from two points.")
 
-    .def("Kind", &ICurve2D::Kind, "The kind of this curve.")
-    .def("IsClosed", &ICurve2D::IsClosed, "Whether or not this curve is closed.")
-    .def("IsPeriodic", &ICurve2D::IsPeriodic, "Whether or not this curve is periodic.")
-    .def("FirstParameter", &ICurve2D::FirstParameter, "The first parameter of this curve.")
-    .def("LastParameter", &ICurve2D::LastParameter, "The last parameter of this curve.")
-    .def("Evaluate", &ICurve2D::Evaluate, nb::arg("u"), "Evaluate a point on this curve.")
-    .def("Derivative", &ICurve2D::Derivative, nb::arg("u"), nb::arg("order") = 1, "Evaluate a derivative on this curve.");
-
+      .def("Kind", &ICurve2D::Kind, "The kind of this curve.")
+      .def("IsClosed", &ICurve2D::IsClosed, "Whether or not this curve is closed.")
+      .def("IsPeriodic", &ICurve2D::IsPeriodic, "Whether or not this curve is periodic.")
+      .def("FirstParameter", &ICurve2D::FirstParameter, "The first parameter of this curve.")
+      .def("LastParameter", &ICurve2D::LastParameter, "The last parameter of this curve.")
+      .def("Evaluate", &ICurve2D::Evaluate, nb::arg("u"), "Evaluate a point on this curve.")
+      .def("Derivative", &ICurve2D::Derivative, nb::arg("u"), nb::arg("order") = 1,
+           "Evaluate a derivative on this curve.");
 }

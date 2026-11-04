@@ -17,9 +17,7 @@ public:
   MAKE_SHAPE_METHODS(tool_);
 
   // Add an edge to be filleted with the given radius
-  void AddEdge(const IShape& edge, double radius) {
-    tool_.Add(radius, edge.AsEdge());
-  }
+  void AddEdge(const IShape& edge, double radius) { tool_.Add(radius, edge.AsEdge()); }
 
 private:
   BRepFilletAPI_MakeFillet tool_;

@@ -4,9 +4,9 @@
 
 #include <gp_Ax2.hxx>
 
+#include "IAxis.hpp"
 #include "IPoint.hpp"
 #include "IVector.hpp"
-#include "IAxis.hpp"
 
 // Interface class for a 3D coordinate frame
 class IFrame {
@@ -25,9 +25,7 @@ public:
   }
 
   // Get the axis of the frame
-  IAxis Axis() const {
-    return IAxis(frame_.Axis());
-  }
+  IAxis Axis() const { return IAxis(frame_.Axis()); }
 
   // Get the X-direction of the frame
   IVector XDirection() const {
@@ -48,9 +46,7 @@ public:
   }
 
   // Conversion operator to gp_Ax2
-  operator gp_Ax2() const {
-    return frame_;
-  }
+  operator gp_Ax2() const { return frame_; }
 
 private:
   gp_Ax2 frame_;

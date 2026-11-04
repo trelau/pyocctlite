@@ -3,6 +3,11 @@
 repos:
   - repo: local
     hooks:
+      - id: ruff-format
+        name: ruff format
+        entry: ruff format
+        language: system
+        types: [python]
       - id: ruff
         name: ruff
         entry: ruff check
@@ -14,3 +19,8 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+      - id: clang-format
+        name: clang-format
+        entry: clang-format -i
+        language: system
+        types_or: [c++]

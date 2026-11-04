@@ -19,28 +19,18 @@ public:
   explicit IVector2D(const gp_Dir2d& d) : vec_(d) {}
 
   // Getters for X, Y components
-  double X() const {
-    return vec_.X();
-  }
+  double X() const { return vec_.X(); }
 
-  double Y() const {
-    return vec_.Y();
-  }
+  double Y() const { return vec_.Y(); }
 
   // Get the magnitude of the vector
-  double Magnitude() const {
-    return vec_.Magnitude();
-  }
+  double Magnitude() const { return vec_.Magnitude(); }
 
   // Make a scaled copy of this vector
-  IVector2D Scaled(const double scale) const {
-    return IVector2D(vec_.Scaled(scale));
-  }
+  IVector2D Scaled(const double scale) const { return IVector2D(vec_.Scaled(scale)); }
 
   // Conversion operator to gp_Vec2d
-  operator gp_Vec2d() const {
-    return vec_;
-  }
+  operator gp_Vec2d() const { return vec_; }
 
 private:
   gp_Vec2d vec_;

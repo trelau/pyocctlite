@@ -10,3 +10,4 @@ dependencies:
   - mypy
   - ruff
   - pre-commit
+  - clang-format

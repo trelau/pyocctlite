@@ -2,15 +2,15 @@
 import math
 
 from pyocctlite.geometry import (
-                                 CylindricalSurface,
-                                 Ellipse2D,
-                                 Frame,
-                                 Frame2D,
-                                 Point,
-                                 Point2D,
-                                 TrimmedCurve2D,
-                                 Vector,
-                                 Vector2D,
+    CylindricalSurface,
+    Ellipse2D,
+    Frame,
+    Frame2D,
+    Point,
+    Point2D,
+    TrimmedCurve2D,
+    Vector,
+    Vector2D,
 )
 from pyocctlite.primitives import Cylinder
 from pyocctlite.topology import Edge, Face, Solid, Wire
@@ -19,15 +19,15 @@ from pyocctlite.topology import Edge, Face, Solid, Wire
 height = 70
 width = 50
 thickness = 30
-neck_radius = thickness / 4.
-neck_height = height / 10.
+neck_radius = thickness / 4.0
+neck_height = height / 10.0
 
 # Define points for the bottom profile (one half)
-p1 = Point.by_xyz(-width / 2., 0., 0.)
-p2 = Point.by_xyz(-width / 2., -thickness / 4., 0.)
-p3 = Point.by_xyz(0., -thickness / 2., 0.)
-p4 = Point.by_xyz(width / 2., -thickness / 4., 0.)
-p5 = Point.by_xyz(width / 2., 0., 0.)
+p1 = Point.by_xyz(-width / 2.0, 0.0, 0.0)
+p2 = Point.by_xyz(-width / 2.0, -thickness / 4.0, 0.0)
+p3 = Point.by_xyz(0.0, -thickness / 2.0, 0.0)
+p4 = Point.by_xyz(width / 2.0, -thickness / 4.0, 0.0)
+p5 = Point.by_xyz(width / 2.0, 0.0, 0.0)
 
 # Create edges and a wire for the first half of the profile
 e1 = Edge.by_points(p1, p2)
@@ -49,33 +49,33 @@ v = Vector.by_xyz(0, 0, height)
 extruded = bottom_face.extrude(v)
 
 # Fillet all edges for a smooth finish
-filleted = extruded.fillet(extruded.edges(), thickness / 12.)
+filleted = extruded.fillet(extruded.edges(), thickness / 12.0)
 
 # Add the neck of the bottle and fillet the junction
 o = Point.by_xyz(0, 0, height)
 frame = Frame.by_origin(o)
 neck = Cylinder.by_size(neck_radius, neck_height, frame)
 bottle = filleted.unite(neck)
-bottle = bottle.fillet(neck.bottom_face.edges(), 1.5 * thickness / 50.)
+bottle = bottle.fillet(neck.bottom_face.edges(), 1.5 * thickness / 50.0)
 
 # Create a hollow shell by thickening the solid and removing the top face
-bottle = bottle.thicken(-thickness / 50., 1.0e-3, [neck.top_face])
+bottle = bottle.thicken(-thickness / 50.0, 1.0e-3, [neck.top_face])
 
 # Create thread surfaces (inner and outer radii)
 cs1 = CylindricalSurface.by_radius(neck_radius * 0.99, frame)
 cs2 = CylindricalSurface.by_radius(neck_radius * 1.05, frame)
 
 # Define thread geometry in 2D (parametric space)
-p2d = Point2D.by_xy(2. * math.pi, neck_height / 2.)
-v2d = Vector2D.by_xy(2. * math.pi, neck_height / 4.)
+p2d = Point2D.by_xy(2.0 * math.pi, neck_height / 2.0)
+v2d = Vector2D.by_xy(2.0 * math.pi, neck_height / 4.0)
 f2d = Frame2D.by_vector(p2d, v2d)
-rmajor = 2. * math.pi
-rminor = neck_height / 10.
+rmajor = 2.0 * math.pi
+rminor = neck_height / 10.0
 ellipse1 = Ellipse2D.by_radii(rmajor, rminor, f2d)
-ellipse2 = Ellipse2D.by_radii(rmajor, rminor / 4., f2d)
+ellipse2 = Ellipse2D.by_radii(rmajor, rminor / 4.0, f2d)
 arc1 = TrimmedCurve2D.by_curve(ellipse1, 0, math.pi)
-arc2 = TrimmedCurve2D.by_curve(ellipse2, 0., math.pi)
-ep1 = ellipse1.evaluate(0.)
+arc2 = TrimmedCurve2D.by_curve(ellipse2, 0.0, math.pi)
+ep1 = ellipse1.evaluate(0.0)
 ep2 = ellipse2.evaluate(math.pi)
 aseg = TrimmedCurve2D.by_points(ep1, ep2)
 
@@ -94,4 +94,4 @@ threads = Solid.by_loft([w1, w2])
 bottle = bottle.unite(threads)
 
 # Export STEP
-bottle.export_step('bottle.step')
+bottle.export_step("bottle.step")

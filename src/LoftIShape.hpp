@@ -12,13 +12,12 @@ class LoftIShape {
 public:
 
   // Make a lofted shape
-  LoftIShape(const bool isSolid = false, const bool isRuled = false, const double tol = 1.0e-6) : tool_(isSolid, isRuled, tol) {}
+  LoftIShape(const bool isSolid = false, const bool isRuled = false, const double tol = 1.0e-6)
+      : tool_(isSolid, isRuled, tol) {}
 
   MAKE_SHAPE_METHODS(tool_);
 
-  void AddWire(const IShape& wire) {
-    tool_.AddWire(wire.AsWire());
-  }
+  void AddWire(const IShape& wire) { tool_.AddWire(wire.AsWire()); }
 
 private:
   BRepOffsetAPI_ThruSections tool_;

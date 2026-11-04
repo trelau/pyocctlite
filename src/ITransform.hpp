@@ -13,14 +13,12 @@ public:
 
   // Make a mirror transformation defined by a point and a normal vector.
   static ITransform MakeMirror(const IPoint& origin, const IVector& normal);
-  
+
   // Construct a transformation from a gp_Trsf
   explicit ITransform(const gp_Trsf& t) : trsf_(t) {}
 
   // Conversion operator to gp_Trsf
-  operator gp_Trsf() const {
-    return trsf_;
-  }
+  operator gp_Trsf() const { return trsf_; }
 
 private:
   gp_Trsf trsf_;

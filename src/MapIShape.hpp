@@ -3,8 +3,8 @@
 #include "occtlite.hpp"
 
 #include <NCollection_IndexedMap.hxx>
-#include <TopoDS_Shape.hxx>
 #include <TopTools_ShapeMapHasher.hxx>
+#include <TopoDS_Shape.hxx>
 
 #include "IShape.hpp"
 
@@ -16,29 +16,19 @@ public:
   MapIShape(const IShape& shape, const IShapeKind kind);
 
   // Get the extent of the map
-  int Extent() const {
-    return tool_.Extent();
-  }
+  int Extent() const { return tool_.Extent(); }
 
   // Get the size of the map
-  int Size() const {
-    return tool_.Size();
-  }
+  int Size() const { return tool_.Size(); }
 
   // Find the shape by index
-  IShape FindShape(const int index) const {
-    return IShape(tool_.FindKey(index));
-  }
+  IShape FindShape(const int index) const { return IShape(tool_.FindKey(index)); }
 
   // Find the index of the shape
-  int FindIndex(const IShape& shape) const {
-    return tool_.FindIndex(shape);
-  }
+  int FindIndex(const IShape& shape) const { return tool_.FindIndex(shape); }
 
   // Check if the map contains the shape
-  bool Contains(const IShape& shape) const {
-    return tool_.Contains(shape);
-  }
+  bool Contains(const IShape& shape) const { return tool_.Contains(shape); }
 
 private:
   NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> tool_;
