@@ -10,11 +10,35 @@
 #include <GC_MakeArcOfCircle.hxx>
 #include <Geom_TrimmedCurve.hxx>
 #include <GProp_GProps.hxx>
+#include <Message.hxx>
+#include <Message_Messenger.hxx>
+#include <Message_Printer.hxx>
 #include <STEPControl_Writer.hxx>
 #include <TopExp.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
 
 #include "IErrors.hpp"
+
+// Silence OCCT's default messenger below failures for the guard's lifetime
+class QuietMessenger {
+public:
+  QuietMessenger() {
+    for (const auto& printer : Message::DefaultMessenger()->Printers()) {
+      levels_.push_back(printer->GetTraceLevel());
+      printer->SetTraceLevel(Message_Fail);
+    }
+  }
+
+  ~QuietMessenger() {
+    std::size_t i = 0;
+    for (const auto& printer : Message::DefaultMessenger()->Printers()) {
+      if (i < levels_.size()) { printer->SetTraceLevel(levels_[i++]); }
+    }
+  }
+
+private:
+  std::vector<Message_Gravity> levels_;
+};
 
 static std::string kindToString(IShapeKind kind) {
   switch (kind) {
@@ -121,7 +145,7 @@ void IShape::ValidateKind(const IShapeKind expected) const {
 
 bool IShape::ExportSTEP(const std::string& fname) const {
 
-  // TODO: Suppress console output
+  QuietMessenger quiet;
 
   STEPControl_Writer writer;
   IFSelect_ReturnStatus status;
