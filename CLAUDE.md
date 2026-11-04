@@ -102,7 +102,7 @@ The public Python API takes and returns Python wrappers. `I` objects are reachab
   - `NotImplementedError` for unsupported kinds or inputs.
   - `RuntimeError` when an operation reports failure (e.g. a `False` status from C++).
   - `assert` only for internal invariants.
-  - The C++ domain errors aren't re-exported. Callers catch their built-in bases.
+  - C++ domain errors are re-exported under Python names in `pyocctlite.errors` (`KindMismatch`, `BuildFailed`). Add new ones there.
 - `from __future__ import annotations`. Type hints are as specific as they can be, using generics and `Self`. No `@overload` for now.
 - Sphinx-style docstrings (`:param:`, `:return:`, `:rtype:`) in the passive voice on all public API.
 
