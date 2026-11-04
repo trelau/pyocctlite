@@ -10,13 +10,17 @@ Run everything inside the conda env. Use the env's cmake: the system one may be 
 conda env create -f environment.yml
 conda activate pyocctlite
 
-# Rebuild after any C++ change; install copies _occtlite.pyd into pyocctlite/
+# Rebuild after any C++ change; install puts _occtlite.pyd and its .pyi stub in pyocctlite/
 cmake -B build
 cmake --build build --config Release
 cmake --install build
 
 python -m unittest discover -s tests
+python -m mypy
+ruff check pyocctlite tests examples
 ```
+
+`pyocctlite/_occtlite.pyi` (generated) is the reference for the C++ binding API.
 
 ## Tone and Style
 
@@ -28,6 +32,20 @@ Unless otherwise instructed, when communicating with a user, be direct. Say (or 
 - Follow the rules below. To break one, say so and ask first. When a rule is settled or changed, update this file in the same change.
 - Non-trivial features get a design doc in `docs/features/<name>.md` (copy `_TEMPLATE.md`) before code. Read the relevant doc before working on a feature.
 - A new binding touches: `src/<Name>.hpp/.cpp`, registration in `src/occtlite.cpp`, the wrapper in `pyocctlite/`, and tests.
+- Done means:
+  - The build has no warnings, and install succeeds.
+  - Tests, mypy and ruff are clean.
+  - `examples/` still run.
+  - A new module gets a `docs/source/*.rst` page.
+  - CLAUDE.md is updated.
+- Canonical examples to mirror:
+  - Value type: `IPoint` / `Point`
+  - Kind family: `ICurve` / `Curve`, `Line`
+  - Kind data: `ICurveData`
+  - Shape tool: `FilletIShape`, `MakeIShape.hpp` / `ShapeTool`, `UniteShapes`
+  - Composite: `Cylinder`
+  - Collection tool: `MapIShape` / `MapShape`
+  - Errors: `IErrors.hpp` / `errors.py`
 
 ## Design Rules
 
