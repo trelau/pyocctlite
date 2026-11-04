@@ -19,6 +19,7 @@ pre-commit run --all-files    # format, lint, type-check
 ```
 
 - `pyocctlite/_occtlite.pyi` (generated on install) is the reference for the C++ binding API.
+- OCCT API docs are the `//!` comments in its headers: grep `$CONDA_PREFIX/Library/include/opencascade` (Windows) or `$CONDA_PREFIX/include/opencascade`. For concepts and algorithm guides, see https://dev.opencascade.org/doc/overview/html/.
 - A Claude Code hook formats every edited file and runs ruff and mypy on Python edits. Fix what it reports before moving on.
 - After a C++ change, rebuild and install before editing Python that uses it; mypy reads the regenerated stub.
 - Style is whatever the formatters produce. Otherwise prefer common, well-established conventions.
