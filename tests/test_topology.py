@@ -1,84 +1,67 @@
+import math
 import unittest
 
-from pyocctlite.geometry import Line, Point, Vector
-from pyocctlite.topology import Compound, Edge, Face, ShapeKind, Solid, Vertex, Wire
+from pyocctlite.geometry import (
+    Circle,
+    CylindricalSurface,
+    Line,
+    Point,
+    Point2D,
+    TrimmedCurve2D,
+    Vector,
+)
+from pyocctlite.topology import (
+    Compound,
+    CutShapes,
+    Edge,
+    ExtrudeShape,
+    Face,
+    LoftShape,
+    ShapeKind,
+    Solid,
+    ThickenShape,
+    UniteShapes,
+    Vertex,
+    Wire,
+)
 
 
-class TestEdge(unittest.TestCase):
-
-    def test_by_points(self):
-        p1 = Point.by_xyz(0, 0, 0)
-        p2 = Point.by_xyz(1, 0, 0)
-        e = Edge.by_points(p1, p2)
-        self.assertEqual(e.kind, ShapeKind.EDGE)
-        self.assertEqual(e.length, 1.)
-
-    def test_curve(self):
-        p1 = Point.by_xyz(0, 0, 0)
-        p2 = Point.by_xyz(1, 0, 0)
-        e = Edge.by_points(p1, p2)
-        c = e.curve
-        p = c.evaluate(0.5)
-        self.assertIsInstance(c, Line)
-        self.assertEqual(p.x, 0.5)
-        self.assertEqual(p.y, 0.)
-        self.assertEqual(p.z, 0.)
+def _square(x0: float = 0., y0: float = 0., z: float = 0.) -> Wire:
+    pts = [Point.by_xyz(x0, y0, z), Point.by_xyz(x0 + 1, y0, z),
+           Point.by_xyz(x0 + 1, y0 + 1, z), Point.by_xyz(x0, y0 + 1, z)]
+    return Wire.by_edges([Edge.by_points(pts[i], pts[(i + 1) % 4]) for i in range(4)])
 
 
-    def test_init_wrong_kind(self):
-        e = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
-        w = Wire.by_edge(e)
-        with self.assertRaises(TypeError):
-            Edge(w.ishape)
+def _box(x0: float = 0., y0: float = 0., z0: float = 0.) -> Solid:
+    """Unit cube with its minimum corner at (x0, y0, z0)."""
+    return _box_and_top(x0, y0, z0)[0]
 
 
-class TestWire(unittest.TestCase):
-
-    def test_by_edge_wrong_kind(self):
-        e = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
-        w = Wire.by_edge(e)
-        with self.assertRaises(TypeError):
-            Wire.by_edge(w)
+def _box_and_top(x0: float = 0., y0: float = 0., z0: float = 0.) -> tuple[Solid, Face]:
+    tool = ExtrudeShape(Face.by_wire(_square(x0, y0, z0)), Vector.by_xyz(0, 0, 1))
+    solid = tool.shape()
+    assert isinstance(solid, Solid)
+    return solid, tool.last_shape()
 
 
 class TestShape(unittest.TestCase):
 
-    def _box(self) -> Solid:
-        pts = [Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0),
-               Point.by_xyz(1, 1, 0), Point.by_xyz(0, 1, 0)]
-        edges = [Edge.by_points(pts[i], pts[(i + 1) % 4]) for i in range(4)]
-        f = Face.by_wire(Wire.by_edges(edges))
-        return f.extrude(Vector.by_xyz(0, 0, 1))
+    def test_kind(self):
+        self.assertEqual(_box().kind, ShapeKind.SOLID)
 
-    def test_fillet(self):
-        box = self._box()
-        result = box.fillet(box.edges()[0], 0.1)
-        self.assertEqual(len(result.solids()), 1)
-        self.assertLess(result.volume, box.volume)
-
-    def test_fillet_fails(self):
-        box = self._box()
-        with self.assertRaises(RuntimeError):
-            box.fillet(box.edges(), 10.)
+    def test_mass_properties(self):
+        box = _box()
+        self.assertAlmostEqual(box.length, 12.)
+        self.assertAlmostEqual(box.area, 6.)
+        self.assertAlmostEqual(box.volume, 1.)
 
     def test_eq_hash(self):
-        box = self._box()
+        box = _box()
         edges = list(box.edges())
-        explored = list(box.explore(Edge))
         self.assertEqual(edges[0], Edge(edges[0].ishape))
         self.assertNotEqual(edges[0], edges[1])
-        self.assertEqual(len(set(explored)), len(edges))
-
-    def test_export_step_fails(self):
-        box = self._box()
-        with self.assertRaises(RuntimeError):
-            box.export_step('missing_dir/does/not/exist/box.step')
-
-    def test_mirror(self):
-        box = self._box()
-        result = box.mirror(Point.by_xyz(0, 0, 0), Vector.by_xyz(1, 0, 0))
-        self.assertIsInstance(result, Solid)
-        self.assertAlmostEqual(result.volume, box.volume)
+        self.assertEqual(len(set(box.explore(Edge))), len(edges))
+        self.assertNotEqual(box, 'not a shape')
 
     def test_copy(self):
         e = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
@@ -87,76 +70,242 @@ class TestShape(unittest.TestCase):
         self.assertNotEqual(result, e)
         self.assertAlmostEqual(result.length, 1.)
 
+    def test_mirror(self):
+        box = _box()
+        result = box.mirror(Point.by_xyz(0, 0, 0), Vector.by_xyz(1, 0, 0))
+        self.assertIsInstance(result, Solid)
+        self.assertAlmostEqual(result.volume, box.volume)
 
-class TestMapExplore(unittest.TestCase):
+    def test_extrude(self):
+        e = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
+        f = e.extrude(Vector.by_xyz(0, 1, 0))
+        self.assertIsInstance(f, Face)
+        self.assertAlmostEqual(f.area, 1.)
 
-    def _box(self) -> Solid:
-        return TestShape()._box()
+    def test_unite(self):
+        result = _box().unite(_box(0.5))
+        self.assertAlmostEqual(result.volume, 1.5)
 
-    def test_map(self):
-        box = self._box()
-        faces = box.map(Face)
-        self.assertEqual(len(faces), 6)
-        self.assertTrue(all(isinstance(f, Face) for f in faces))
+    def test_cut(self):
+        result = _box().cut(_box(0.5))
+        self.assertAlmostEqual(result.volume, 0.5)
 
-    def test_explore_ignore(self):
-        box = self._box()
-        self.assertEqual(len(list(box.explore(Vertex))), 48)
-        self.assertEqual(len(list(box.explore(Vertex, ignore=Edge))), 0)
+    def test_fillet(self):
+        box = _box()
+        result = box.fillet(box.edges()[0], 0.1)
+        self.assertEqual(len(result.solids()), 1)
+        self.assertLess(result.volume, box.volume)
 
-    def test_map_composite_rejected(self):
-        from pyocctlite.primitives import Cylinder
+    def test_fillet_many(self):
+        box = _box()
+        result = box.fillet(box.edges(), 0.1)
+        self.assertLess(result.volume, box.volume)
+
+    def test_fillet_fails(self):
+        box = _box()
+        with self.assertRaises(RuntimeError):
+            box.fillet(box.edges(), 10.)
+
+    def test_thicken(self):
+        box, top = _box_and_top()
+        result = box.thicken(-0.1, faces=[top])
+        self.assertAlmostEqual(result.volume, 1. - 0.8 * 0.8 * 0.9, places=5)
+
+    def test_export_step_fails(self):
+        with self.assertRaises(RuntimeError):
+            _box().export_step('missing_dir/does/not/exist/box.step')
+
+
+class TestEdge(unittest.TestCase):
+
+    def test_by_points(self):
+        e = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
+        self.assertEqual(e.kind, ShapeKind.EDGE)
+        self.assertAlmostEqual(e.length, 1.)
+
+    def test_by_curve(self):
+        e = Edge.by_curve(Circle.by_radius(1.))
+        self.assertAlmostEqual(e.length, 2. * math.pi)
+
+    def test_by_curve2d(self):
+        # On a unit cylinder, u is the angle, so a u-span of pi is half the circumference
+        segment = TrimmedCurve2D.by_points(Point2D.by_xy(0, 0), Point2D.by_xy(math.pi, 0))
+        e = Edge.by_curve2d(segment, CylindricalSurface.by_radius(1.))
+        # The 3D curve is approximated from the 2D one
+        self.assertAlmostEqual(e.length, math.pi, places=5)
+
+    def test_by_circular_arc(self):
+        e = Edge.by_circular_arc(Point.by_xyz(1, 0, 0), Point.by_xyz(0, 1, 0),
+                                 Point.by_xyz(-1, 0, 0))
+        self.assertAlmostEqual(e.length, math.pi)
+
+    def test_curve(self):
+        e = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
+        c = e.curve
+        self.assertIsInstance(c, Line)
+        assert c is not None
+        self.assertTrue(c.evaluate(0.5).is_equal(Point.by_xyz(0.5, 0, 0)))
+
+    def test_init_wrong_kind(self):
+        w = Wire.by_edge(Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0)))
         with self.assertRaises(TypeError):
-            self._box().map(Cylinder)
+            Edge(w.ishape)
 
 
-class TestExtrude(unittest.TestCase):
+class TestWire(unittest.TestCase):
 
-    def test_kinds(self):
-        p1, p2 = Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0)
-        e = Edge.by_points(p1, p2)
-        self.assertIsInstance(e.extrude(Vector.by_xyz(0, 1, 0)), Face)
+    def test_by_edge(self):
+        w = Wire.by_edge(Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0)))
+        self.assertEqual(len(w.edges()), 1)
+
+    def test_by_edges(self):
+        w = _square()
+        self.assertEqual(len(w.edges()), 4)
+        self.assertAlmostEqual(w.length, 4.)
+
+    def test_by_edge_wrong_kind(self):
+        w = Wire.by_edge(Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0)))
+        with self.assertRaises(TypeError):
+            Wire.by_edge(w)
+
+    def test_combine(self):
+        p1, p2, p3 = Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0), Point.by_xyz(1, 1, 0)
+        w1 = Wire.by_edge(Edge.by_points(p1, p2))
+        w2 = Wire.by_edge(Edge.by_points(p2, p3))
+        w = w1.combine(w2)
+        self.assertEqual(len(w.edges()), 2)
+        self.assertAlmostEqual(w.length, 2.)
+
+
+class TestFace(unittest.TestCase):
+
+    def test_by_wire(self):
+        f = Face.by_wire(_square())
+        self.assertEqual(f.kind, ShapeKind.FACE)
+        self.assertAlmostEqual(f.area, 1.)
+
+
+class TestSolid(unittest.TestCase):
+
+    def test_by_loft(self):
+        s = Solid.by_loft([_square(z=0.), _square(z=1.)])
+        self.assertAlmostEqual(s.volume, 1.)
+
+    def test_by_loft_unsupported(self):
+        e = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
+        with self.assertRaises(NotImplementedError):
+            Solid.by_loft([e])
 
 
 class TestCompound(unittest.TestCase):
 
     def test_by_shapes(self):
-        # Create multiple shapes to combine into a compound
-        p1 = Point.by_xyz(0, 0, 0)
-        p2 = Point.by_xyz(1, 0, 0)
-        p3 = Point.by_xyz(1, 1, 0)
-        p4 = Point.by_xyz(0, 1, 0)
-
-        # Create a wire and extrude to solid
-        e1 = Edge.by_points(p1, p2)
-        e2 = Edge.by_points(p2, p3)
-        e3 = Edge.by_points(p3, p4)
-        e4 = Edge.by_points(p4, p1)
-
-        w = Wire.by_edges([e1, e2, e3, e4])
-        f = Face.by_wire(w)
-        solid = f.extrude(Vector.by_xyz(0, 0, 1))
-
-        # Create another edge
         edge = Edge.by_points(Point.by_xyz(2, 0, 0), Point.by_xyz(3, 0, 0))
-
-        # Create compound from shapes
-        compound = Compound.by_shapes([solid, edge])
-
-        # Verify it's a compound
+        compound = Compound.by_shapes([_box(), edge])
         self.assertEqual(compound.kind, ShapeKind.COMPOUND)
+        self.assertEqual(len(compound.solids()), 1)
+        self.assertEqual(len(compound.edges()), 13)
+        self.assertAlmostEqual(compound.length, 13.)
+        self.assertAlmostEqual(compound.area, 6.)
+        self.assertAlmostEqual(compound.volume, 1.)
 
-        # Verify we can access the sub-shapes
-        solids = list(compound.solids())
-        self.assertEqual(len(solids), 1)
 
-        edges = list(compound.edges())
-        self.assertEqual(len(edges), 13)
+class TestBooleanTools(unittest.TestCase):
 
-        # Verify mass properties
-        self.assertAlmostEqual(compound.length, 13., 7)
-        self.assertAlmostEqual(compound.area, 6., 7)
-        self.assertAlmostEqual(compound.volume, 1., 7)
+    def test_unite_shapes(self):
+        # Offset in all directions: coplanar faces produce no section edges
+        tool = UniteShapes(_box(), _box(0.5, 0.5, 0.5))
+        self.assertAlmostEqual(tool.shape().volume, 1.875)
+        self.assertTrue(tool.is_done)
+        edges = tool.intersection_edges()
+        self.assertTrue(edges)
+        self.assertTrue(all(isinstance(e, Edge) for e in edges))
+
+    def test_cut_shapes(self):
+        tool = CutShapes(_box(), _box(0.5, 0.5, 0.5))
+        self.assertAlmostEqual(tool.shape().volume, 0.875)
+        self.assertTrue(tool.intersection_edges())
+
+
+class TestExtrudeShape(unittest.TestCase):
+
+    def test_first_last_shape(self):
+        f = Face.by_wire(_square())
+        tool = ExtrudeShape(f, Vector.by_xyz(0, 0, 2))
+        self.assertIsInstance(tool.shape(), Solid)
+        self.assertEqual(tool.first_shape(), f)
+        last = tool.last_shape()
+        self.assertIsInstance(last, Face)
+        self.assertNotEqual(last, f)
+        self.assertIn(last, set(tool.shape().faces()))
+
+    def test_generated_shapes(self):
+        e = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
+        tool = ExtrudeShape(e, Vector.by_xyz(0, 1, 0))
+        generated = tool.generated_shapes(e)
+        self.assertEqual(len(generated), 1)
+        self.assertIsInstance(generated[0], Face)
+
+
+class TestThickenShape(unittest.TestCase):
+
+    def test_faces(self):
+        box, top = _box_and_top()
+        tool = ThickenShape(box, -0.1, faces=[top])
+        self.assertAlmostEqual(tool.shape().volume, 1. - 0.8 * 0.8 * 0.9, places=5)
+
+
+class TestLoftShape(unittest.TestCase):
+
+    def test_add_wire(self):
+        tool = LoftShape(is_solid=True)
+        tool.add_wire(_square(z=0.))
+        tool.add_wire(_square(z=2.))
+        self.assertAlmostEqual(tool.shape().volume, 2.)
+
+
+class TestMapShape(unittest.TestCase):
+
+    def test_map(self):
+        faces = _box().map(Face)
+        self.assertEqual(len(faces), 6)
+        self.assertEqual(faces.size, 6)
+        self.assertEqual(faces.extent, 6)
+        self.assertTrue(all(isinstance(f, Face) for f in faces))
+
+    def test_indexing(self):
+        edges = _box().edges()
+        self.assertEqual(edges[-1], edges[len(edges) - 1])
+        self.assertEqual(edges.find_shape(0), edges[0])
+        with self.assertRaises(IndexError):
+            edges[len(edges)]
+        with self.assertRaises(IndexError):
+            edges[-len(edges) - 1]
+
+    def test_find_index_contains(self):
+        edges = _box().edges()
+        self.assertEqual(edges.find_index(edges[3]), 3)
+        other = Edge.by_points(Point.by_xyz(5, 0, 0), Point.by_xyz(6, 0, 0))
+        self.assertIsNone(edges.find_index(other))
+        self.assertTrue(edges.contains(edges[0]))
+        self.assertFalse(edges.contains(other))
+
+    def test_composite_rejected(self):
+        from pyocctlite.primitives import Cylinder
+        with self.assertRaises(TypeError):
+            _box().map(Cylinder)
+
+
+class TestExploreShape(unittest.TestCase):
+
+    def test_explore(self):
+        explored = list(_box().explore(Vertex))
+        self.assertEqual(len(explored), 48)
+        self.assertTrue(all(isinstance(v, Vertex) for v in explored))
+
+    def test_ignore(self):
+        self.assertEqual(len(list(_box().explore(Vertex, ignore=Edge))), 0)
+        self.assertEqual(len(list(_box().explore(Edge, ignore=Face))), 0)
 
 
 if __name__ == '__main__':

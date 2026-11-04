@@ -110,6 +110,7 @@ The public Python API takes and returns Python wrappers. `I` objects are reachab
 
 - `unittest`, one file per module (`tests/test_<module>.py`).
 - Cover the Python API: every `by_*` constructor, every property, and error cases. No tests for raw bindings.
+- Compare floats with `assertAlmostEqual` (or `is_equal` for points).
 
 ### Open questions
 
