@@ -7,3 +7,5 @@ dependencies:
   - python
   - nanobind
   - occt=8*=novtk_*
+  - mypy
+  - ruff

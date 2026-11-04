@@ -262,3 +262,5 @@ __marimo__/
 
 # debug information files
 *.dwo
+# IDE
+.idea/
