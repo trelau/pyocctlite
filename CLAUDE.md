@@ -9,6 +9,7 @@ Run everything inside the conda env. Use the env's cmake: the system one may be 
 ```bash
 conda env create -f environment.yml
 conda activate pyocctlite
+pre-commit install  # once per clone: ruff + mypy on every commit
 
 # Rebuild after any C++ change; install puts _occtlite.pyd and its .pyi stub in pyocctlite/
 cmake -B build
@@ -21,6 +22,8 @@ ruff check pyocctlite tests examples
 ```
 
 `pyocctlite/_occtlite.pyi` (generated) is the reference for the C++ binding API.
+
+A Claude Code hook (`.claude/settings.json`) runs ruff and mypy after every Python edit. Fix what it reports before moving on.
 
 ## Tone and Style
 

@@ -9,3 +9,4 @@ dependencies:
   - occt=8*=novtk_*
   - mypy
   - ruff
+  - pre-commit
