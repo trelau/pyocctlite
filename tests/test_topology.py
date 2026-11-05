@@ -122,6 +122,11 @@ class TestShape(unittest.TestCase):
 
 
 class TestVertex(unittest.TestCase):
+    def test_by_point(self):
+        v = Vertex.by_point(Point.by_xyz(1, 2, 3))
+        self.assertEqual(v.kind, ShapeKind.VERTEX)
+        self.assertTrue(v.point.is_equal(Point.by_xyz(1, 2, 3)))
+
     def test_point(self):
         e = Edge.by_points(Point.by_xyz(1, 2, 3), Point.by_xyz(4, 5, 6))
         points = [v.point for v in e.vertices()]
@@ -145,6 +150,28 @@ class TestEdge(unittest.TestCase):
         e = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
         self.assertEqual(e.kind, ShapeKind.EDGE)
         self.assertAlmostEqual(e.length, 1.0)
+
+    def test_by_vertices(self):
+        v1 = Vertex.by_point(Point.by_xyz(0, 0, 0))
+        v2 = Vertex.by_point(Point.by_xyz(1, 0, 0))
+        e = Edge.by_vertices(v1, v2)
+        self.assertEqual(e.kind, ShapeKind.EDGE)
+        self.assertAlmostEqual(e.length, 1.0)
+        self.assertEqual(set(e.vertices()), {v1, v2})
+
+    def test_by_vertices_shared_in_wire(self):
+        # edges sharing vertices stay the same edges in a wire
+        vs = [
+            Vertex.by_point(p)
+            for p in (Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0), Point.by_xyz(0, 1, 0))
+        ]
+        edges = [Edge.by_vertices(vs[i], vs[(i + 1) % 3]) for i in range(3)]
+        self.assertEqual(set(Wire.by_edges(edges).edges()), set(edges))
+
+    def test_by_vertices_same_vertex(self):
+        v = Vertex.by_point(Point.by_xyz(0, 0, 0))
+        with self.assertRaises(RuntimeError):
+            Edge.by_vertices(v, v)
 
     def test_by_curve(self):
         e = Edge.by_curve(Circle.by_radius(1.0))

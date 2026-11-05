@@ -152,6 +152,10 @@ class TestVector(unittest.TestCase):
 
 
 class TestFrame(unittest.TestCase):
+    def test_origin(self):
+        p = Point.by_xyz(1, 2, 3)
+        self.assertTrue(Frame.by_origin(p).origin.is_equal(p))
+
     def test_by_origin(self):
         f = Frame.by_origin(Point.by_xyz(1, 2, 3))
         for d, expected in [

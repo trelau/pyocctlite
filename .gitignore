@@ -267,3 +267,9 @@ __marimo__/
 
 # Generated nanobind stubs
 pyocctlite/_occtlite.pyi
+
+# Local working files
+scratch/*
+!scratch/.gitkeep
+outputs/*
+!outputs/.gitkeep

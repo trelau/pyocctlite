@@ -29,7 +29,7 @@ def main() -> int:
 
     root = pathlib.Path(__file__).resolve().parents[2]
     file = pathlib.Path(path).resolve()
-    if root not in file.parents:
+    if root not in file.parents or root / "scratch" in file.parents:
         return 0
 
     if file.suffix in (".hpp", ".cpp"):

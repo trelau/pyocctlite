@@ -17,6 +17,7 @@
 
 #include "ICurve.hpp"
 #include "ICurve2D.hpp"
+#include "IFrame.hpp"
 #include "IPoint.hpp"
 #include "ISurface.hpp"
 #include "IVector.hpp"
@@ -40,7 +41,11 @@ public:
   // Factory methods to create shapes
   static std::vector<IShape> MakeByList(const NCollection_List<TopoDS_Shape>& shapes);
 
+  static IShape MakeVertex(const IPoint& p);
+
   static IShape MakeEdge(const IPoint& p1, const IPoint& p2);
+
+  static IShape MakeEdge(const IShape& v1, const IShape& v2);
 
   static IShape MakeEdge(const ICurve& curve);
 
@@ -53,6 +58,8 @@ public:
   static IShape MakeWire(const IShape& w1, const IShape& w2);
 
   static IShape MakeFace(const IShape& w);
+
+  static IShape MakeSphere(const IFrame& frame, double radius);
 
   static IShape MakeCompound(const std::vector<IShape>& shapes);
 

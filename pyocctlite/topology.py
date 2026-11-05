@@ -386,6 +386,18 @@ class Vertex(Shape):
     Represents a vertex.
     """
 
+    @classmethod
+    def by_point(cls, p: Point) -> Vertex:
+        """
+        Create a vertex at a point.
+
+        :param Point p: Location.
+        :return: New vertex.
+        :rtype: Vertex
+        """
+        ivertex = IShape.MakeVertex(p.ipoint)
+        return cls(ivertex)
+
     def __init__(self, v: IShape):
         """
         Initialize from an IShape.
@@ -460,6 +472,19 @@ class Edge(Shape):
         :rtype: Edge
         """
         iedge = IShape.MakeEdge(p1.ipoint, p2.ipoint)
+        return cls(iedge)
+
+    @classmethod
+    def by_vertices(cls, v1: Vertex, v2: Vertex) -> Edge:
+        """
+        Create an edge between two vertices, which it shares rather than copies.
+
+        :param Vertex v1: Start vertex.
+        :param Vertex v2: End vertex.
+        :return: New edge.
+        :rtype: Edge
+        """
+        iedge = IShape.MakeEdge(v1.ishape, v2.ishape)
         return cls(iedge)
 
     @classmethod

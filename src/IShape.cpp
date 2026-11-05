@@ -2,9 +2,11 @@
 
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
+#include <BRepBuilderAPI_MakeVertex.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepGProp.hxx>
 #include <BRepLib.hxx>
+#include <BRepPrimAPI_MakeSphere.hxx>
 #include <BRep_Builder.hxx>
 #include <BRep_Tool.hxx>
 #include <GC_MakeArcOfCircle.hxx>
@@ -78,8 +80,22 @@ std::vector<IShape> IShape::MakeByList(const NCollection_List<TopoDS_Shape>& sha
   return ishapes;
 }
 
+IShape IShape::MakeVertex(const IPoint& p) {
+
+  TopoDS_Vertex v = BRepBuilderAPI_MakeVertex(p);
+
+  return IShape(v);
+}
+
 IShape IShape::MakeEdge(const IPoint& p1, const IPoint& p2) {
   TopoDS_Edge e = BRepBuilderAPI_MakeEdge(p1, p2);
+
+  return IShape(e);
+}
+
+IShape IShape::MakeEdge(const IShape& v1, const IShape& v2) {
+
+  TopoDS_Edge e = BRepBuilderAPI_MakeEdge(v1.AsVertex(), v2.AsVertex());
 
   return IShape(e);
 }
@@ -134,6 +150,13 @@ IShape IShape::MakeFace(const IShape& w) {
   TopoDS_Face f = BRepBuilderAPI_MakeFace(w.AsWire(), true);
 
   return IShape(f);
+}
+
+IShape IShape::MakeSphere(const IFrame& frame, double radius) {
+
+  TopoDS_Solid s = BRepPrimAPI_MakeSphere(frame, radius);
+
+  return IShape(s);
 }
 
 IShape IShape::MakeCompound(const std::vector<IShape>& shapes) {
@@ -239,8 +262,11 @@ void bind_IShape(nb::module_& m) {
       .value("Compound", IShapeKind::Compound);
 
   nb::class_<IShape>(m, "IShape", "A shape.")
+      .def_static("MakeVertex", &IShape::MakeVertex, nb::arg("p"), "Make a vertex at a point.")
       .def_static("MakeEdge", nb::overload_cast<const IPoint&, const IPoint&>(&IShape::MakeEdge),
                   nb::arg("p1"), nb::arg("p2"), "Make an edge by two points.")
+      .def_static("MakeEdge", nb::overload_cast<const IShape&, const IShape&>(&IShape::MakeEdge),
+                  nb::arg("v1"), nb::arg("v2"), "Make an edge by two vertices, which it shares.")
       .def_static("MakeEdge", nb::overload_cast<const ICurve&>(&IShape::MakeEdge), nb::arg("curve"),
                   "Make an edge by a curve.")
       .def_static("MakeEdge",
@@ -254,6 +280,8 @@ void bind_IShape(nb::module_& m) {
       .def_static("MakeWire", nb::overload_cast<const IShape&, const IShape&>(&IShape::MakeWire),
                   nb::arg("w1"), nb::arg("w2"), "Make a new wire by combining two wires.")
       .def_static("MakeFace", &IShape::MakeFace, nb::arg("w"), "Make a face by a planar wire.")
+      .def_static("MakeSphere", &IShape::MakeSphere, nb::arg("frame"), nb::arg("radius"),
+                  "Make a solid sphere given a frame at its center and a radius.")
       .def_static("MakeCompound", &IShape::MakeCompound, nb::arg("shapes"),
                   "Make a compound from a list of shapes.")
 

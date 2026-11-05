@@ -637,6 +637,16 @@ class Frame:
         return self._iframe
 
     @cached_property
+    def origin(self) -> Point:
+        """
+        Origin of the frame.
+
+        :return: Origin point.
+        :rtype: Point
+        """
+        return Point(self.iframe.Origin())
+
+    @cached_property
     def x_direction(self) -> Vector:
         """
         X direction vector.

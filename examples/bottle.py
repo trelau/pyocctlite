@@ -96,4 +96,4 @@ threads = Solid.by_loft([w1, w2])
 bottle = bottle.unite(threads)
 
 # Export STEP
-bottle.export_step("bottle.step")
+bottle.export_step("outputs/bottle.step")
