@@ -153,13 +153,31 @@ class View(Enum)
     View.BACK
     View.LEFT
     View.RIGHT
+class Shading(Enum)
+    Shading.LIGHT
+    Shading.DEPTH
 class Styled
     Styled(shape: Shape, color: tuple[float, float, float] | None = None, transparency: float = 0.0)
     .shape: Shape
     .color: tuple[float, float, float]
     .transparency: float
-render_image(shapes: Shape | Styled | Iterable[Shape | Styled], path: str, view: View = View.ISO, width: int = 1200, height: int = 900) -> None
-render_views(shapes: Shape | Styled | Iterable[Shape | Styled], path: str, width: int = 1500, height: int = 1124) -> None
+class Camera
+    Camera.by_direction(direction: Vector, up: Vector | None = None, target: Point | None = None, span: float | None = None) -> Camera
+    Camera.by_position(position: Point, target: Point, up: Vector | None = None, span: float | None = None) -> Camera
+    Camera.by_view(view: View, target: Point | None = None, span: float | None = None) -> Camera
+    .direction: Vector
+    .up: Vector
+    .target: Point | None
+    .span: float | None
+    .label: str
+class Callout
+    Callout(target: Shape | Point, text: str)
+    .target: Shape | Point
+    .text: str
+render_image(shapes: Shape | Styled | Iterable[Shape | Styled], path: str, view: View | Camera = View.ISO, width: int = 1200, height: int = 900, callouts: Callout | Iterable[Callout] = (), shading: Shading = Shading.LIGHT, labels: bool = True) -> None
+render_faces(shape: Shape, path: str, view: View | Camera = View.ISO, width: int = 1200, height: int = 900, shading: Shading = Shading.LIGHT, labels: bool = True) -> dict[int, int]
+render_edges(shape: Shape, path: str, view: View | Camera = View.ISO, width: int = 1200, height: int = 900, shading: Shading = Shading.LIGHT, labels: bool = True) -> dict[int, int]
+render_views(shapes: Shape | Styled | Iterable[Shape | Styled], path: str, width: int = 1500, height: int = 1124, shading: Shading = Shading.LIGHT, labels: bool = True) -> None
 ```
 
 # pyocctlite.topology
