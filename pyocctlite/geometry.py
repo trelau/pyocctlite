@@ -32,8 +32,8 @@ class Point2D:
         """
         Create a 2D point from coordinates.
 
-        :param float x: X coordinate.
-        :param float y: Y coordinate.
+        :param float x: x coordinate.
+        :param float y: y coordinate.
         :return: New 2D point.
         :rtype: Point2D
         """
@@ -62,9 +62,9 @@ class Point2D:
     @property
     def x(self) -> float:
         """
-        X coordinate.
+        x coordinate.
 
-        :return: X value.
+        :return: x value.
         :rtype: float
         """
         return self.ipoint.X()
@@ -72,9 +72,9 @@ class Point2D:
     @property
     def y(self) -> float:
         """
-        Y coordinate.
+        y coordinate.
 
-        :return: Y value.
+        :return: y value.
         :rtype: float
         """
         return self.ipoint.Y()
@@ -103,8 +103,8 @@ class Vector2D:
         """
         Create a 2D vector from components.
 
-        :param float x: X component.
-        :param float y: Y component.
+        :param float x: x component.
+        :param float y: y component.
         :return: New 2D vector.
         :rtype: Vector2D
         """
@@ -133,9 +133,9 @@ class Vector2D:
     @property
     def x(self) -> float:
         """
-        X component.
+        x component.
 
-        :return: X value.
+        :return: x value.
         :rtype: float
         """
         return self.ivector.X()
@@ -143,9 +143,9 @@ class Vector2D:
     @property
     def y(self) -> float:
         """
-        Y component.
+        y component.
 
-        :return: Y value.
+        :return: y value.
         :rtype: float
         """
         return self.ivector.Y()
@@ -181,7 +181,7 @@ class Frame2D:
     @classmethod
     def by_origin(cls, origin: Point2D) -> Frame2D:
         """
-        Create a 2D frame from an origin.
+        Create a 2D frame at an origin, aligned with the global axes.
 
         :param Point2D origin: Origin point.
         :return: New 2D frame.
@@ -193,12 +193,15 @@ class Frame2D:
     @classmethod
     def by_vector(cls, origin: Point2D, xvec: Vector2D) -> Frame2D:
         """
-        Create a 2D frame from origin and X direction.
+        Create a 2D frame from an origin and x-direction.
+
+        The y-direction is the x-direction rotated 90 degrees counterclockwise.
 
         :param Point2D origin: Origin point.
-        :param Vector2D xvec: X direction vector.
+        :param Vector2D xvec: x-direction vector. Must be non-zero.
         :return: New 2D frame.
         :rtype: Frame2D
+        :raises RuntimeError: If the vector has zero length.
         """
         iframe = IFrame2D.MakeByVector(origin.ipoint, xvec.ivector)
         return cls(iframe)
@@ -226,9 +229,9 @@ class Frame2D:
     @cached_property
     def x_direction(self) -> Vector2D:
         """
-        X direction vector.
+        x-direction vector.
 
-        :return: X direction.
+        :return: x-direction vector.
         :rtype: Vector2D
         """
         return Vector2D(self.iframe.XDirection())
@@ -236,9 +239,9 @@ class Frame2D:
     @cached_property
     def y_direction(self) -> Vector2D:
         """
-        Y direction vector.
+        y-direction vector.
 
-        :return: Y direction.
+        :return: y-direction vector.
         :rtype: Vector2D
         """
         return Vector2D(self.iframe.YDirection())
@@ -257,7 +260,7 @@ class Curve2D:
         Create a 2D curve from an ICurve2D.
 
         :param ICurve2D icurve: Underlying 2D curve.
-        :return: The 2D curve.
+        :return: New 2D curve.
         :rtype: Curve2D
         """
         match icurve.Kind():
@@ -292,7 +295,7 @@ class Curve2D:
         """
         Evaluate the curve at a parameter.
 
-        :param float u: Parameter value.
+        :param float u: Curve parameter.
         :return: Evaluated point.
         :rtype: Point2D
         """
@@ -302,7 +305,9 @@ class Curve2D:
 
 class Ellipse2D(Curve2D):
     """
-    Represents a 2D ellipse.
+    Represents a 2D ellipse with its major axis along the x-direction of the frame.
+
+    The curve parameter is the angle in radians from the major axis.
     """
 
     @classmethod
@@ -311,10 +316,11 @@ class Ellipse2D(Curve2D):
         Create an ellipse from radii and frame.
 
         :param float rmajor: Major radius.
-        :param float rminor: Minor radius.
+        :param float rminor: Minor radius. Must not exceed the major radius.
         :param Frame2D | None frame: Coordinate system. Defaults to the global origin.
         :return: New 2D ellipse.
         :rtype: Ellipse2D
+        :raises RuntimeError: If the minor radius exceeds the major radius.
         """
         if frame is None:
             frame = Frame2D.by_origin(Point2D.by_xy(0.0, 0.0))
@@ -336,6 +342,9 @@ class Ellipse2D(Curve2D):
 class TrimmedCurve2D(Curve2D):
     """
     Represents a trimmed 2D curve.
+
+    The curve parameter is that of the underlying curve. Evaluating outside the trimmed range
+    does not raise.
     """
 
     @classmethod
@@ -345,9 +354,10 @@ class TrimmedCurve2D(Curve2D):
 
         :param Curve2D curve: Curve to trim.
         :param float u0: Start parameter.
-        :param float u1: End parameter.
+        :param float u1: End parameter. Must differ from the start parameter.
         :return: New trimmed curve.
         :rtype: TrimmedCurve2D
+        :raises RuntimeError: If the parameters are equal.
         """
         icurve = ICurve2D.MakeTrimmed(curve.icurve, u0, u1)
         return cls(icurve)
@@ -357,10 +367,13 @@ class TrimmedCurve2D(Curve2D):
         """
         Create a line segment between points.
 
+        The curve parameter is the distance from the start point.
+
         :param Point2D p1: Start point.
         :param Point2D p2: End point.
         :return: New trimmed curve.
         :rtype: TrimmedCurve2D
+        :raises RuntimeError: If the points coincide.
         """
         icurve = ICurve2D.MakeTrimmed(p1.ipoint, p2.ipoint)
         return cls(icurve)
@@ -388,9 +401,9 @@ class Point:
         """
         Create a 3D point from coordinates.
 
-        :param float x: X coordinate.
-        :param float y: Y coordinate.
-        :param float z: Z coordinate.
+        :param float x: x coordinate.
+        :param float y: y coordinate.
+        :param float z: z coordinate.
         :return: New 3D point.
         :rtype: Point
         """
@@ -419,9 +432,9 @@ class Point:
     @property
     def x(self) -> float:
         """
-        X coordinate.
+        x coordinate.
 
-        :return: X value.
+        :return: x value.
         :rtype: float
         """
         return self.ipoint.X()
@@ -429,9 +442,9 @@ class Point:
     @property
     def y(self) -> float:
         """
-        Y coordinate.
+        y coordinate.
 
-        :return: Y value.
+        :return: y value.
         :rtype: float
         """
         return self.ipoint.Y()
@@ -439,9 +452,9 @@ class Point:
     @property
     def z(self) -> float:
         """
-        Z coordinate.
+        z coordinate.
 
-        :return: Z value.
+        :return: z value.
         :rtype: float
         """
         return self.ipoint.Z()
@@ -470,9 +483,9 @@ class Vector:
         """
         Create a 3D vector from components.
 
-        :param float x: X component.
-        :param float y: Y component.
-        :param float z: Z component.
+        :param float x: x component.
+        :param float y: y component.
+        :param float z: z component.
         :return: New 3D vector.
         :rtype: Vector
         """
@@ -501,9 +514,9 @@ class Vector:
     @property
     def x(self) -> float:
         """
-        X component.
+        x component.
 
-        :return: X value.
+        :return: x value.
         :rtype: float
         """
         return self.ivector.X()
@@ -511,9 +524,9 @@ class Vector:
     @property
     def y(self) -> float:
         """
-        Y component.
+        y component.
 
-        :return: Y value.
+        :return: y value.
         :rtype: float
         """
         return self.ivector.Y()
@@ -521,9 +534,9 @@ class Vector:
     @property
     def z(self) -> float:
         """
-        Z component.
+        z component.
 
-        :return: Z value.
+        :return: z value.
         :rtype: float
         """
         return self.ivector.Z()
@@ -581,7 +594,7 @@ class Axis:
         """
         Origin of the axis.
 
-        :return: Origin of the axis.
+        :return: Origin point.
         :rtype: Point
         """
         return Point(self.iaxis.Origin())
@@ -591,7 +604,7 @@ class Axis:
         """
         Direction of the axis.
 
-        :return: Direction of the axis.
+        :return: Direction vector.
         :rtype: Vector
         """
         return Vector(self.iaxis.Direction())
@@ -607,7 +620,7 @@ class Frame:
     @classmethod
     def by_origin(cls, origin: Point) -> Frame:
         """
-        Create a 3D frame from an origin.
+        Create a 3D frame at an origin, aligned with the global axes.
 
         :param Point origin: Origin point.
         :return: New 3D frame.
@@ -649,9 +662,9 @@ class Frame:
     @cached_property
     def x_direction(self) -> Vector:
         """
-        X direction vector.
+        x-direction vector.
 
-        :return: X direction.
+        :return: x-direction vector.
         :rtype: Vector
         """
         return Vector(self.iframe.XDirection())
@@ -659,9 +672,9 @@ class Frame:
     @cached_property
     def y_direction(self) -> Vector:
         """
-        Y direction vector.
+        y-direction vector.
 
-        :return: Y direction.
+        :return: y-direction vector.
         :rtype: Vector
         """
         return Vector(self.iframe.YDirection())
@@ -669,9 +682,9 @@ class Frame:
     @cached_property
     def z_direction(self) -> Vector:
         """
-        Z direction vector.
+        z-direction vector.
 
-        :return: Z direction.
+        :return: z-direction vector.
         :rtype: Vector
         """
         return Vector(self.iframe.ZDirection())
@@ -689,10 +702,11 @@ class Transform:
         """
         Create a mirror transformation.
 
-        :param Point origin: Point on mirror plane.
-        :param Vector normal: Mirror plane normal.
+        :param Point origin: Point on the mirror plane.
+        :param Vector normal: Normal of the mirror plane. Must be non-zero.
         :return: New transformation.
         :rtype: Transform
+        :raises RuntimeError: If the normal has zero length.
         """
         itransform = ITransform.MakeMirror(origin.ipoint, normal.ivector)
         return cls(itransform)
@@ -730,8 +744,8 @@ class Curve:
         """
         Create a curve from an ICurve.
 
-        :param ICurve icurve: Underlying curve.
-        :return: The curve.
+        :param ICurve icurve: Underlying 3D curve.
+        :return: New curve.
         :rtype: Curve
         """
         match icurve.Kind():
@@ -768,7 +782,7 @@ class Curve:
         """
         Evaluate the curve at a parameter.
 
-        :param float u: Parameter value.
+        :param float u: Curve parameter.
         :return: Evaluated point.
         :rtype: Point
         """
@@ -778,18 +792,21 @@ class Curve:
 
 class Line(Curve):
     """
-    Represents a 3D line.
+    Represents an unbounded 3D line.
+
+    The curve parameter is the distance from the origin along the direction.
     """
 
     @classmethod
     def by_points(cls, p1: Point, p2: Point) -> Line:
         """
-        Create a line through two points.
+        Create a line through two points, with its origin at the first point.
 
         :param Point p1: First point.
         :param Point p2: Second point.
         :return: New 3D line.
         :rtype: Line
+        :raises RuntimeError: If the points coincide.
         """
         icurve = ICurve.MakeLine(p1.ipoint, p2.ipoint)
         return cls(icurve)
@@ -807,9 +824,9 @@ class Line(Curve):
     @cached_property
     def origin(self) -> Point:
         """
-        Origin of the line
+        Origin of the line.
 
-        :return: The origin of the line.
+        :return: Origin point.
         :rtype: Point
         """
         idata = self.icurve.LineData()
@@ -819,9 +836,9 @@ class Line(Curve):
     @cached_property
     def direction(self) -> Vector:
         """
-        Direction vector of the line
+        Unit direction of the line.
 
-        :return: The direction vector of the line.
+        :return: Unit direction vector.
         :rtype: Vector
         """
         idata = self.icurve.LineData()
@@ -832,17 +849,22 @@ class Line(Curve):
 class Circle(Curve):
     """
     Represents a 3D circle.
+
+    The curve parameter is the angle in radians from the x-direction of the frame.
     """
 
     @classmethod
     def by_radius(cls, radius: float, frame: Frame | None = None) -> Circle:
         """
-        Create a circle from frame and radius.
+        Create a circle from radius and frame.
 
-        :param float radius: Circle radius.
+        The circle is centered at the frame origin, in its xy-plane.
+
+        :param float radius: Circle radius. Must not be negative.
         :param Frame | None frame: Coordinate system. Defaults to the global origin.
         :return: New 3D circle.
         :rtype: Circle
+        :raises RuntimeError: If the radius is negative.
         """
         if frame is None:
             frame = Frame.by_origin(Point.by_xyz(0.0, 0.0, 0.0))
@@ -860,6 +882,7 @@ class Circle(Curve):
         :param Point p3: Third point.
         :return: New 3D circle.
         :rtype: Circle
+        :raises RuntimeError: If the points are collinear.
         """
         icurve = ICurve.MakeCircle(p1.ipoint, p2.ipoint, p3.ipoint)
         return cls(icurve)
@@ -890,6 +913,9 @@ class Circle(Curve):
 class TrimmedCurve(Curve):
     """
     Represents a trimmed 3D curve.
+
+    The curve parameter is that of the underlying curve. Evaluating outside the trimmed range
+    does not raise.
     """
 
     @classmethod
@@ -902,6 +928,7 @@ class TrimmedCurve(Curve):
         :param Point p3: End point.
         :return: New trimmed curve.
         :rtype: TrimmedCurve
+        :raises RuntimeError: If the points are collinear.
         """
         icurve = ICurve.MakeCircularArc(p1.ipoint, p2.ipoint, p3.ipoint)
         return cls(icurve)
@@ -930,7 +957,7 @@ class Surface:
         Create a surface from an ISurface.
 
         :param ISurface isurface: Underlying surface.
-        :return: The surface.
+        :return: New surface.
         :rtype: Surface
         """
         match isurface.Kind():
@@ -963,6 +990,9 @@ class Surface:
 class CylindricalSurface(Surface):
     """
     Represents a cylindrical surface.
+
+    The surface parameters are u, the angle in radians about the z-direction from the
+    x-direction of the frame, and v, the distance along the z-direction.
     """
 
     @classmethod

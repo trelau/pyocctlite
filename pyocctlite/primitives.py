@@ -218,10 +218,14 @@ class Box(Solid):
         """
         Create a mirrored version of this box, including its named faces.
 
-        :param Point origin: Mirror origin.
-        :param Vector normal: Mirror normal.
+        Each named face is the image of the original face, so its position can differ from the class
+        description (e.g. ``back_face`` at maximum x).
+
+        :param Point origin: Point on the mirror plane.
+        :param Vector normal: Normal of the mirror plane. Must be non-zero.
         :return: Mirrored box.
         :rtype: Self
+        :raises RuntimeError: If the normal has zero length.
         """
         t = Transform.by_mirror(origin, normal)
         return self._by_history(TransformShape(self, t))
@@ -309,10 +313,11 @@ class Sphere(Solid):
         """
         Create a mirrored version of this sphere, including its named face.
 
-        :param Point origin: Mirror origin.
-        :param Vector normal: Mirror normal.
+        :param Point origin: Point on the mirror plane.
+        :param Vector normal: Normal of the mirror plane. Must be non-zero.
         :return: Mirrored sphere.
         :rtype: Self
+        :raises RuntimeError: If the normal has zero length.
         """
         t = Transform.by_mirror(origin, normal)
         return self._by_history(TransformShape(self, t))
@@ -330,7 +335,8 @@ class Sphere(Solid):
 
 class Cylinder(Solid):
     """
-    Represents a cylinder.
+    Represents a cylinder with its base centered at the frame origin, extending along its
+    z-direction.
 
     :ivar Face bottom_face: Bottom face.
     :ivar Face top_face: Top face.
@@ -443,10 +449,11 @@ class Cylinder(Solid):
         """
         Create a mirrored version of this cylinder, including its named faces.
 
-        :param Point origin: Mirror origin.
-        :param Vector normal: Mirror normal.
+        :param Point origin: Point on the mirror plane.
+        :param Vector normal: Normal of the mirror plane. Must be non-zero.
         :return: Mirrored cylinder.
         :rtype: Self
+        :raises RuntimeError: If the normal has zero length.
         """
         t = Transform.by_mirror(origin, normal)
         return self._by_history(TransformShape(self, t))

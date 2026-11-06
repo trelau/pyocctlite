@@ -1,13 +1,3 @@
-"""
-Claude Code PostToolUse hook: format, lint and type-check after a source file is edited.
-
-- Python: ruff format and ruff check on the file, then mypy on the package.
-- C++ (.hpp/.cpp): clang-format in place.
-
-Formatting is applied silently. Lint or type errors are printed to stderr with exit
-code 2 so Claude sees and fixes them.
-"""
-
 from __future__ import annotations
 
 import json
@@ -54,6 +44,12 @@ def main() -> int:
     types = run([sys.executable, "-m", "mypy"], root)
     if types.returncode != 0:
         problems.append(f"mypy:\n{types.stdout}{types.stderr}")
+
+    generator = root / "docs" / "gen_api.py"
+    if root / "pyocctlite" in file.parents or file == generator:
+        api = run([sys.executable, str(generator)], root)
+        if api.returncode != 0:
+            problems.append(f"gen_api:\n{api.stdout}{api.stderr}")
 
     if problems:
         print("\n".join(problems), file=sys.stderr)

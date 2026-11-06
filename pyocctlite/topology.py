@@ -40,7 +40,7 @@ ToolT = TypeVar("ToolT", bound=MakeShapeITool)
 
 class ShapeKind(Enum):
     """
-    Kinds of shapes.
+    Enumeration of shape kinds.
     """
 
     SHAPE = IShapeKind.Shape
@@ -157,57 +157,63 @@ class Shape:
     @cached_property
     def length(self) -> float:
         """
-        The length of all edges of the shape.
+        Total length of all edges.
 
+        :return: Total length.
         :rtype: float
-        :return: The length of all edges of the shape.
         """
         return self.ishape.Length()
 
     @cached_property
     def area(self) -> float:
         """
-        The area of all faces of the shape.
+        Total area of all faces.
 
+        :return: Total area.
         :rtype: float
-        :return: The area of all faces of the shape.
         """
         return self.ishape.Area()
 
     @cached_property
     def volume(self) -> float:
         """
-        The volume of all solids of the shape.
+        Total volume of all solids. Can be negative (e.g. after ``face.thicken(1.0)``).
 
+        :return: Total volume.
         :rtype: float
-        :return: The volume of all solids of the shape.
         """
         return self.ishape.Volume()
 
     def explore(self, find: type[T], ignore: type[Shape] | None = None) -> ExploreShape[T]:
         """
-        Explore sub-shapes.
+        Iterate over sub-shapes, including repeats of shared sub-shapes (e.g. 24 edges for a box).
+
+        Use :meth:`map` for unique sub-shapes.
 
         :param type[T] find: Class of shapes to find (e.g. ``Edge``).
-        :param type[Shape] | None ignore: Class of shapes to skip over, if any.
+        :param type[Shape] | None ignore: Class of shapes to skip, along with their sub-shapes.
         :return: Explore tool.
         :rtype: ExploreShape[T]
+        :raises TypeError: If a class is not a core shape class (e.g. ``Box``).
         """
         return ExploreShape(self, find, ignore)
 
     def map(self, kind: type[T]) -> MapShape[T]:
         """
-        Map sub-shapes.
+        Map the unique sub-shapes (e.g. 12 edges for a box).
+
+        Use :meth:`explore` to include repeats of shared sub-shapes.
 
         :param type[T] kind: Class of shapes to map (e.g. ``Edge``).
         :return: Map tool.
         :rtype: MapShape[T]
+        :raises TypeError: If a class is not a core shape class (e.g. ``Box``).
         """
         return MapShape(self, kind)
 
     def vertices(self) -> MapShape[Vertex]:
         """
-        Get all vertices.
+        Get all vertices. A closed edge has one vertex.
 
         :return: Map of vertices.
         :rtype: MapShape[Vertex]
@@ -290,10 +296,11 @@ class Shape:
         """
         Create a mirrored version of this shape.
 
-        :param Point origin: Mirror origin.
-        :param Vector normal: Mirror normal.
+        :param Point origin: Point on the mirror plane.
+        :param Vector normal: Normal of the mirror plane. Must be non-zero.
         :return: Mirrored shape of the same type.
         :rtype: Self
+        :raises RuntimeError: If the normal has zero length.
         """
         t = Transform.by_mirror(origin, normal)
         return TransformShape(self, t).shape()
@@ -302,9 +309,10 @@ class Shape:
         """
         Extrude this shape along a vector. The result is one dimension higher (e.g. face to solid).
 
-        :param Vector vector: Extrusion vector.
+        :param Vector vector: Extrusion direction and distance.
         :return: Extruded shape.
         :rtype: Shape
+        :raises RuntimeError: If this is a solid or the vector has zero length.
         """
         return ExtrudeShape(self, vector).shape()
 
@@ -312,9 +320,13 @@ class Shape:
         """
         Unite this shape with another (boolean union).
 
+        Sub-shapes that the operation does not modify compare equal (``==``) to their counterparts
+        in the result.
+
         :param Shape other: Shape to unite.
-        :return: United shape.
+        :return: United shape. Typically a ``Compound``, even for one solid.
         :rtype: Shape
+        :raises BuildFailed: If the operation fails.
         """
         ishape = UniteIShapes(self.ishape, other.ishape).Shape()
         return Shape.by_ishape(ishape)
@@ -324,20 +336,23 @@ class Shape:
         Cut another shape from this shape (boolean subtraction).
 
         :param Shape other: Shape to subtract.
-        :return: Resulting shape.
+        :return: Resulting shape. Typically a ``Compound``, even for one solid.
         :rtype: Shape
+        :raises BuildFailed: If the operation fails.
         """
         ishape = CutIShapes(self.ishape, other.ishape).Shape()
         return Shape.by_ishape(ishape)
 
     def fillet(self, edge: Edge | Iterable[Edge], radius: float) -> Shape:
         """
-        Fillet edges of this shape.
+        Fillet edges of this shape with a constant radius.
 
-        :param Edge | Iterable[Edge] edge: Edge(s) to fillet.
-        :param float radius: Fillet radius.
-        :return: Filleted shape.
+        :param Edge | Iterable[Edge] edge: Edge(s) to fillet. Must belong to this shape.
+        :param float radius: Fillet radius. Must be positive.
+        :return: Filleted shape. Typically a ``Compound``, even for one solid.
         :rtype: Shape
+        :raises BuildFailed: If the radius is not positive or is too large.
+        :raises RuntimeError: If no edges are given or they do not belong to this shape.
         """
         itool = FilletIShape(self.ishape)
         if isinstance(edge, Edge):
@@ -353,13 +368,18 @@ class Shape:
         self, thickness: float, tol: float = 1.0e-3, faces: Iterable[Face] | None = None
     ) -> Shape:
         """
-        Thicken this shape.
+        Create a hollow solid with uniform wall thickness.
 
-        :param float thickness: Thickness.
-        :param float tol: Tolerance.
+        If ``faces`` is given, the solid is opened at those faces. Otherwise, the shape must be a
+        face or open shell. A thickness that is too large may produce an empty or non-hollow shape
+        without raising.
+
+        :param float thickness: Wall thickness. Negative builds inward; positive builds outward.
+        :param float tol: Tolerance. Used only with ``faces``.
         :param Iterable[Face] | None faces: Faces to remove.
-        :return: Thickened shape.
+        :return: Hollow solid.
         :rtype: Shape
+        :raises BuildFailed: If the operation fails (e.g. a solid without ``faces``).
         """
         if faces is None:
             itool = ThickenIShape(self.ishape, thickness)
@@ -411,9 +431,9 @@ class Vertex(Shape):
     @cached_property
     def point(self) -> Point:
         """
-        Get the location of the vertex.
+        Location of the vertex.
 
-        :return: The vertex location.
+        :return: Location.
         :rtype: Point
         """
         ipoint = self.ishape.Point()
@@ -424,9 +444,10 @@ class Vertex(Shape):
         """
         Extrude this vertex along a vector into an edge.
 
-        :param Vector vector: Extrusion vector.
+        :param Vector vector: Extrusion direction and distance.
         :return: Extruded edge.
         :rtype: Edge
+        :raises RuntimeError: If the vector has zero length.
         """
         return ExtrudeShape(self, vector).shape()
 
@@ -441,6 +462,8 @@ class Edge(Shape):
         """
         Create an edge from a 3D curve.
 
+        A ``Line`` is unbounded and produces a very long edge. Use :meth:`by_points` for a segment.
+
         :param Curve c: 3D curve.
         :return: New edge.
         :rtype: Edge
@@ -451,9 +474,9 @@ class Edge(Shape):
     @classmethod
     def by_curve2d(cls, c: Curve2D, s: Surface) -> Edge:
         """
-        Create an edge from a 2D curve and a surface.
+        Create an edge from a 2D curve in the (u, v) parameter space of a surface.
 
-        :param Curve2D c: 2D curve.
+        :param Curve2D c: 2D curve, with x as u and y as v.
         :param Surface s: Surface.
         :return: New edge.
         :rtype: Edge
@@ -470,6 +493,7 @@ class Edge(Shape):
         :param Point p2: End point.
         :return: New edge.
         :rtype: Edge
+        :raises RuntimeError: If the points coincide.
         """
         iedge = IShape.MakeEdge(p1.ipoint, p2.ipoint)
         return cls(iedge)
@@ -477,12 +501,14 @@ class Edge(Shape):
     @classmethod
     def by_vertices(cls, v1: Vertex, v2: Vertex) -> Edge:
         """
-        Create an edge between two vertices, which it shares rather than copies.
+        Create an edge between two vertices without copying them.
 
         :param Vertex v1: Start vertex.
         :param Vertex v2: End vertex.
         :return: New edge.
         :rtype: Edge
+        :raises KindMismatch: If an argument is a shape other than a vertex.
+        :raises RuntimeError: If the vertices coincide.
         """
         iedge = IShape.MakeEdge(v1.ishape, v2.ishape)
         return cls(iedge)
@@ -497,6 +523,7 @@ class Edge(Shape):
         :param Point p3: End point.
         :return: New edge.
         :rtype: Edge
+        :raises RuntimeError: If the points are collinear.
         """
         c = TrimmedCurve.by_circular_arc(p1, p2, p3)
         iedge = IShape.MakeEdge(c.icurve)
@@ -515,10 +542,12 @@ class Edge(Shape):
     @cached_property
     def curve(self) -> Curve | None:
         """
-        Get the underlying curve of the edge.
+        Underlying curve of the edge.
 
-        :return: The underlying curve, or None if the edge has no 3D curve.
+        :return: Underlying curve, or None if the edge has no 3D curve.
         :rtype: Curve | None
+        :raises NotImplementedError: If the curve kind is not wrapped (e.g. an edge from
+            :meth:`by_curve2d`).
         """
         icurve = self.ishape.Curve()
         return None if icurve is None else Curve.by_icurve(icurve)
@@ -527,9 +556,10 @@ class Edge(Shape):
         """
         Extrude this edge along a vector into a face.
 
-        :param Vector vector: Extrusion vector.
+        :param Vector vector: Extrusion direction and distance.
         :return: Extruded face.
         :rtype: Face
+        :raises RuntimeError: If the vector has zero length.
         """
         return ExtrudeShape(self, vector).shape()
 
@@ -547,6 +577,7 @@ class Wire(Shape):
         :param Edge e: Edge.
         :return: New wire.
         :rtype: Wire
+        :raises KindMismatch: If the argument is a shape other than an edge.
         """
         iwire = IShape.MakeWire(e.ishape)
         return cls(iwire)
@@ -554,11 +585,15 @@ class Wire(Shape):
     @classmethod
     def by_edges(cls, edges: Iterable[Edge]) -> Wire:
         """
-        Create a wire from edges.
+        Create a wire from connected edges in any order.
 
-        :param Iterable[Edge] edges: Edges.
+        Crashes the interpreter if ``edges`` is empty.
+
+        :param Iterable[Edge] edges: Edges. Must not be empty.
         :return: New wire.
         :rtype: Wire
+        :raises KindMismatch: If an item is a shape other than an edge.
+        :raises RuntimeError: If the edges are not connected.
         """
         iedges = [e.ishape for e in edges]
         iwire = IShape.MakeWire(iedges)
@@ -576,11 +611,13 @@ class Wire(Shape):
 
     def combine(self, other: Wire) -> Wire:
         """
-        Combine this wire with another.
+        Create a wire by joining this wire to a connected wire.
 
         :param Wire other: Other wire.
         :return: New wire.
         :rtype: Wire
+        :raises KindMismatch: If the argument is a shape other than a wire.
+        :raises RuntimeError: If the wires are not connected.
         """
         iwire = IShape.MakeWire(self.ishape, other.ishape)
         return Wire(iwire)
@@ -589,9 +626,10 @@ class Wire(Shape):
         """
         Extrude this wire along a vector into a shell.
 
-        :param Vector vector: Extrusion vector.
+        :param Vector vector: Extrusion direction and distance.
         :return: Extruded shell.
         :rtype: Shell
+        :raises RuntimeError: If the vector has zero length.
         """
         return ExtrudeShape(self, vector).shape()
 
@@ -604,11 +642,15 @@ class Face(Shape):
     @classmethod
     def by_wire(cls, w: Wire) -> Face:
         """
-        Create a face from a wire.
+        Create a planar face from a wire.
 
-        :param Wire w: Wire.
+        Crashes the interpreter if the wire is closed but not planar. An open wire is accepted, but
+        the area of the resulting face is not valid.
+
+        :param Wire w: Closed, planar wire.
         :return: New face.
         :rtype: Face
+        :raises KindMismatch: If the argument is a shape other than a wire.
         """
         iface = IShape.MakeFace(w.ishape)
         return cls(iface)
@@ -627,9 +669,10 @@ class Face(Shape):
         """
         Extrude this face along a vector into a solid.
 
-        :param Vector vector: Extrusion vector.
+        :param Vector vector: Extrusion direction and distance.
         :return: Extruded solid.
         :rtype: Solid
+        :raises RuntimeError: If the vector has zero length.
         """
         return ExtrudeShape(self, vector).shape()
 
@@ -653,9 +696,10 @@ class Shell(Shape):
         """
         Extrude this shell along a vector into a compsolid.
 
-        :param Vector vector: Extrusion vector.
+        :param Vector vector: Extrusion direction and distance.
         :return: Extruded compsolid.
         :rtype: CompSolid
+        :raises RuntimeError: If the vector has zero length.
         """
         return ExtrudeShape(self, vector).shape()
 
@@ -670,13 +714,17 @@ class Solid(Shape):
         cls, shapes: Iterable[Vertex | Edge | Wire], is_ruled: bool = False, tol: float = 1.0e-6
     ) -> Solid:
         """
-        Create a solid by lofting through shapes.
+        Create a solid by lofting through sections in order.
+
+        Only wire sections are implemented. Crashes the interpreter if given a single wire.
 
         :param Iterable[Vertex | Edge | Wire] shapes: Sections.
-        :param bool is_ruled: True if ruled.
+        :param bool is_ruled: True for ruled surfaces between sections, False for smooth surfaces.
         :param float tol: Tolerance.
         :return: New solid.
         :rtype: Solid
+        :raises NotImplementedError: If a section is not a wire.
+        :raises BuildFailed: If no sections are given or the loft fails.
         """
         itool = LoftIShape(is_solid=True, is_ruled=is_ruled, tol=tol)
         for s in shapes:
@@ -798,16 +846,18 @@ class ShapeTool(Generic[ToolT]):
 
         :return: Resulting shape.
         :rtype: Shape
+        :raises BuildFailed: If the operation fails.
         """
         return Shape.by_ishape(self._itool.Shape())
 
     def generated_shapes(self, s: Shape) -> list[Shape]:
         """
-        Get shapes generated from a source shape.
+        Get shapes generated from a sub-shape of the source shape (e.g. the face from an edge).
 
-        :param Shape s: Source shape.
-        :return: Generated shapes.
+        :param Shape s: Sub-shape of the source shape.
+        :return: Generated shapes. Empty if there are none.
         :rtype: list[Shape]
+        :raises BuildFailed: If the operation fails.
         """
         return Shape.by_ishapes(self._itool.GeneratedShapes(s.ishape))
 
@@ -821,7 +871,7 @@ class UniteShapes(ShapeTool[UniteIShapes]):
         """
         Initialize with target and tool shapes.
 
-        :param Shape target: Target shape to unit with.
+        :param Shape target: Target shape to unite with.
         :param Shape tool: Tool shape to unite.
         """
         itool = UniteIShapes(target.ishape, tool.ishape)
@@ -829,9 +879,9 @@ class UniteShapes(ShapeTool[UniteIShapes]):
 
     def intersection_edges(self) -> list[Edge]:
         """
-        Get intersection edges.
+        Get the edges where the surfaces of the shapes intersect.
 
-        :return: Intersection edges.
+        :return: Intersection edges. Empty if the shapes only touch or one contains the other.
         :rtype: list[Edge]
         """
         return [Edge(e) for e in self._itool.IntersectionEdges()]
@@ -854,9 +904,9 @@ class CutShapes(ShapeTool[CutIShapes]):
 
     def intersection_edges(self) -> list[Edge]:
         """
-        Get intersection edges.
+        Get the edges where the surfaces of the shapes intersect.
 
-        :return: Intersection edges.
+        :return: Intersection edges. Empty if the shapes only touch or one contains the other.
         :rtype: list[Edge]
         """
         return [Edge(e) for e in self._itool.IntersectionEdges()]
@@ -864,7 +914,7 @@ class CutShapes(ShapeTool[CutIShapes]):
 
 class CopyShape(ShapeTool[CopyIShape], Generic[T]):
     """
-    Tool to copy a shape. The copy has the same type as the source.
+    Tool to copy a shape. The result has the same type as the source.
     """
 
     def __init__(self, s: T, copy_geom: bool = True):
@@ -881,7 +931,7 @@ class CopyShape(ShapeTool[CopyIShape], Generic[T]):
         """
         Get the resulting shape.
 
-        :return: Resulting shape, of the same type as the source.
+        :return: Resulting shape of the same type as the source.
         :rtype: T
         """
         return cast(T, super().shape())
@@ -891,8 +941,9 @@ class CopyShape(ShapeTool[CopyIShape], Generic[T]):
         Get the copy of a sub-shape of the source shape.
 
         :param S s: Sub-shape of the source shape.
-        :return: Copied sub-shape, of the same type.
+        :return: Copied sub-shape of the same type.
         :rtype: S
+        :raises RuntimeError: If the shape is not a sub-shape of the source shape.
         """
         return cast(S, Shape.by_ishape(self._itool.ModifiedShape(s.ishape)))
 
@@ -917,7 +968,7 @@ class TransformShape(ShapeTool[TransformIShape], Generic[T]):
         """
         Get the resulting shape.
 
-        :return: Resulting shape, of the same type as the source.
+        :return: Resulting shape of the same type as the source.
         :rtype: T
         """
         return cast(T, super().shape())
@@ -927,15 +978,16 @@ class TransformShape(ShapeTool[TransformIShape], Generic[T]):
         Get the transformed version of a sub-shape of the source shape.
 
         :param S s: Sub-shape of the source shape.
-        :return: Transformed sub-shape, of the same type.
+        :return: Transformed sub-shape of the same type.
         :rtype: S
+        :raises RuntimeError: If the shape is not a sub-shape of the source shape.
         """
         return cast(S, Shape.by_ishape(self._itool.ModifiedShape(s.ishape)))
 
 
 class ExtrudeShape(ShapeTool[ExtrudeIShape], Generic[T]):
     """
-    Tool to extrude a shape. The result is one dimension higher than the source.
+    Tool to extrude a shape. The result is one dimension higher (e.g. face to solid).
     """
 
     def __init__(self, s: T, v: Vector):
@@ -943,7 +995,8 @@ class ExtrudeShape(ShapeTool[ExtrudeIShape], Generic[T]):
         Initialize with shape and vector.
 
         :param T s: Source shape.
-        :param Vector v: Extrusion vector.
+        :param Vector v: Extrusion direction and distance.
+        :raises RuntimeError: If the source is a solid or the vector has zero length.
         """
         itool = ExtrudeIShape(s.ishape, v.ivector)
         super().__init__(itool)
@@ -972,18 +1025,18 @@ class ExtrudeShape(ShapeTool[ExtrudeIShape], Generic[T]):
 
     def first_shape(self) -> T:
         """
-        Get the shape at the start of extrusion.
+        Get the shape at the start of the extrusion. This is the source shape.
 
-        :return: First shape, of the same type as the source.
+        :return: First shape of the same type as the source.
         :rtype: T
         """
         return cast(T, Shape.by_ishape(self._itool.FirstShape()))
 
     def last_shape(self) -> T:
         """
-        Get the shape at the end of extrusion.
+        Get the shape at the end of the extrusion.
 
-        :return: Last shape, of the same type as the source.
+        :return: Last shape of the same type as the source.
         :rtype: T
         """
         return cast(T, Shape.by_ishape(self._itool.LastShape()))
@@ -991,7 +1044,7 @@ class ExtrudeShape(ShapeTool[ExtrudeIShape], Generic[T]):
 
 class ThickenShape(ShapeTool[ThickenIShape]):
     """
-    Tool to thicken a shape.
+    Tool to create a hollow solid with uniform wall thickness.
     """
 
     def __init__(
@@ -1001,8 +1054,8 @@ class ThickenShape(ShapeTool[ThickenIShape]):
         Initialize with shape and thickness.
 
         :param Shape s: Source shape.
-        :param float thickness: Thickness.
-        :param float tol: Tolerance.
+        :param float thickness: Wall thickness. Negative builds inward; positive builds outward.
+        :param float tol: Tolerance. Used only with ``faces``.
         :param Iterable[Face] | None faces: Faces to remove.
         """
         if faces is None:
@@ -1015,15 +1068,17 @@ class ThickenShape(ShapeTool[ThickenIShape]):
 
 class LoftShape(ShapeTool[LoftIShape]):
     """
-    Tool to loft through sections.
+    Tool to loft through section wires in the order they are added.
+
+    Crashes the interpreter if built from a single wire.
     """
 
     def __init__(self, is_solid: bool = False, is_ruled: bool = False, tol: float = 1.0e-6):
         """
-        Initialize loft tool.
+        Initialize with loft options.
 
-        :param bool is_solid: True to create a solid.
-        :param bool is_ruled: True if ruled.
+        :param bool is_solid: True to create a solid, False to create a shell.
+        :param bool is_ruled: True for ruled surfaces between sections, False for smooth surfaces.
         :param float tol: Tolerance.
         """
         itool = LoftIShape(is_solid, is_ruled, tol)
@@ -1031,7 +1086,7 @@ class LoftShape(ShapeTool[LoftIShape]):
 
     def add_wire(self, w: Wire) -> None:
         """
-        Add a section wire.
+        Add the next section wire.
 
         :param Wire w: Section wire.
         """
@@ -1040,7 +1095,7 @@ class LoftShape(ShapeTool[LoftIShape]):
 
 class MapShape(Generic[T]):
     """
-    Tool to map and access sub-shapes.
+    Tool to map the unique sub-shapes of a shape.
     """
 
     def __init__(self, shape: Shape, kind: type[T]):
@@ -1049,6 +1104,7 @@ class MapShape(Generic[T]):
 
         :param Shape shape: Source shape.
         :param type[T] kind: Class of sub-shapes to map (e.g. ``Edge``).
+        :raises TypeError: If a class is not a core shape class (e.g. ``Box``).
         """
         self._itool = MapIShape(shape.ishape, _kind_of(kind).value)
 
@@ -1066,7 +1122,7 @@ class MapShape(Generic[T]):
         Iterate over mapped shapes.
 
         :return: Iterator of shapes.
-        :rtype: Iterator[Shape]
+        :rtype: Iterator[T]
         """
         # OCCT is 1-based
         for i in range(1, self._itool.Size() + 1):
@@ -1074,11 +1130,12 @@ class MapShape(Generic[T]):
 
     def __getitem__(self, index: int) -> T:
         """
-        Get shape by index.
+        Get shape by 0-based index.
 
-        :param int index: 0-based index.
+        :param int index: 0-based index. Negative values count from the end.
         :return: Sub-shape.
-        :rtype: Shape
+        :rtype: T
+        :raises IndexError: If the index is out of range.
         """
         n = len(self)
         if index < 0:
@@ -1111,11 +1168,12 @@ class MapShape(Generic[T]):
 
     def find_shape(self, index: int) -> T:
         """
-        Find shape by 0-based index.
+        Find shape by 0-based index. Negative values are not supported.
 
         :param int index: 0-based index.
         :return: Sub-shape.
         :rtype: T
+        :raises RuntimeError: If the index is out of range.
         """
         # OCCT is 1-based, Python is 0-based
         ishape = self._itool.FindShape(index + 1)
@@ -1146,16 +1204,17 @@ class MapShape(Generic[T]):
 
 class ExploreShape(Generic[T]):
     """
-    Tool to explore sub-shapes.
+    Tool to iterate over sub-shapes, including repeats of shared sub-shapes.
     """
 
     def __init__(self, shape: Shape, find: type[T], ignore: type[Shape] | None = None):
         """
-        Initialize explore tool.
+        Initialize with shape and classes of sub-shapes to find and skip.
 
         :param Shape shape: Source shape.
         :param type[T] find: Class of shapes to find (e.g. ``Edge``).
-        :param type[Shape] | None ignore: Class of shapes to skip over, if any.
+        :param type[Shape] | None ignore: Class of shapes to skip, along with their sub-shapes.
+        :raises TypeError: If a class is not a core shape class (e.g. ``Box``).
         """
         self._shape = shape
         self._find = _kind_of(find)
@@ -1165,7 +1224,7 @@ class ExploreShape(Generic[T]):
         """
         Iterate over discovered shapes.
 
-        :return: Iterator of shapes of type T.
+        :return: Iterator of shapes.
         :rtype: Iterator[T]
         """
         itool = ExploreIShape(self._shape.ishape, self._find.value, self._ignore.value)
