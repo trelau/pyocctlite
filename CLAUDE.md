@@ -46,14 +46,14 @@ These are guardrails. Use judgment on how to achieve a task. If a change seems t
 - **Familiar to CAD users.** Terms, orientations, and argument meanings follow common CAD conventions.
 - **Implementation stays private.** Public names and docstrings don't reference OCCT.
 - **Clear layers.**
-  - C++ (`src/` → `_occtlite`, `I`-prefixed) is kept thin and mostly handles OCCT calls and memory safety. It takes its inputs, runs the OCCT algorithm, and handles any errors, with minimal other logic.
-  - Python (`pyocctlite/`) owns everything that makes the API feel Pythonic: validation, defaults, naming, composition, and conventions like 0-based indices (OCCT's are usually 1-based).
+  - C++ (`src/` → `_occtlite`, `I`-prefixed) is thin: it takes its inputs, runs the OCCT algorithm, and returns the result or its error. Beyond memory safety, validation and application logic stay out of it. Special-purpose tools like the rasterizer are the exception.
+  - Python (`pyocctlite/`) owns everything that makes the API feel Pythonic: defaults, naming, composition, conventions like 0-based indices (OCCT's are usually 1-based), and any validation a real failure has shown is needed.
   - Users work with Python wrappers; `I` objects stay behind `i<name>`.
 - **Python features are backed by what's below.** Each Python argument or mode is a direct call or a true composition of lower-layer calls. What isn't implemented yet raises, and an argument that doesn't apply is documented as having no effect.
 - **Immutable values.** Objects don't change after construction; operations return new objects and never mutate their inputs.
 - **Unitless lengths.** OCCT has no length unit, so callers keep theirs consistent.
-- **Root causes, not guards.** Fix the cause of a problem, or report it and leave the code alone. Don't add checks or workarounds preemptively. A signature broader than its implementation is unfinished intent, not a bug.
-- **Docs for humans and agents.** Say what the name and signature can't in plain technical language. Make it clear but make it concise.
+- **Root causes, not guards.** Take inputs, run the algorithm, return the result. Don't handle bad data or edge cases speculatively; consider adding logic when something actually fails. Fix the cause of a problem, or report it and leave the code alone. A signature broader than its implementation is unfinished intent, not a bug.
+- **Short docs.** A docstring is one sentence on what the thing is or does, followed by its parameters, return value, and errors. No paragraphs on the underlying logic or what-ifs.
 
 ## Patterns
 
