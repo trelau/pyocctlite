@@ -42,6 +42,8 @@ public:
 
   static ICurve MakeCircularArc(const IPoint& p1, const IPoint& p2, const IPoint& p3);
 
+  static ICurve MakeBSplineByInterpolation(const std::vector<IPoint>& points, double tol = 1.0e-7);
+
   // Constructor from Handle(Geom_Curve)
   explicit ICurve(const Handle(Geom_Curve) & c);
 

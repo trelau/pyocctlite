@@ -3,10 +3,11 @@ from __future__ import annotations
 import math
 import unittest
 
-from pyocctlite.errors import BuildFailed
+from pyocctlite.errors import BuildFailed, KindMismatch
 from pyocctlite.geometry import (
     Axis,
     BoundingBox,
+    BSplineCurve,
     Circle,
     CylindricalSurface,
     Line,
@@ -27,6 +28,7 @@ from pyocctlite.topology import (
     FilletShape,
     IntersectShapes,
     LoftShape,
+    OffsetWire,
     RevolveShape,
     Shape,
     ShapeKind,
@@ -422,6 +424,14 @@ class TestBooleanTools(unittest.TestCase):
         self.assertAlmostEqual(tool.shape().volume, 0.125)
         self.assertTrue(tool.intersection_edges())
 
+    def test_tolerance_treats_near_faces_as_touching(self):
+        # The second box stands a hair clear of the first, so a coarse tolerance makes them touch
+        a, b = _box(), _box(1.0 + 1.0e-5, 0.0, 0.0)
+        self.assertEqual(len(a.unite(b).solids()), 2)
+        self.assertEqual(len(a.unite(b, 1.0e-3).solids()), 1)
+        self.assertAlmostEqual(a.cut(_box(0.5, 0.5, 0.5), 1.0e-3).volume, 0.875, places=2)
+        self.assertAlmostEqual(a.intersect(_box(0.5, 0.5, 0.5), 1.0e-3).volume, 0.125, places=2)
+
     def test_lists(self):
         a, b, c = _box(), _box(0.5, 0.5, 0.5), _box(-0.5, -0.5, -0.5)
         self.assertAlmostEqual(a.cut([b, c]).volume, 0.75)
@@ -612,6 +622,90 @@ class TestThickenShape(unittest.TestCase):
         box, top = _box_and_top()
         tool = ThickenShape(box, -0.1, faces=top)
         self.assertAlmostEqual(tool.shape().volume, 1.0 - 0.8 * 0.8 * 0.9, places=5)
+
+
+class TestEdgeByInterpolation(unittest.TestCase):
+    def test_passes_through_points_and_keeps_the_curve_kind(self):
+        points = [Point.by_xyz(0, 0, 0), Point.by_xyz(1, 1, 0), Point.by_xyz(2, 0, 0)]
+        edge = Edge.by_interpolation(points)
+        self.assertIsInstance(edge.curve, BSplineCurve)
+        ends = [v.point for v in edge.vertices()]
+        self.assertTrue(ends[0].is_equal(points[0]))
+        self.assertTrue(ends[1].is_equal(points[2]))
+
+    def test_too_few_points(self):
+        with self.assertRaises(RuntimeError):
+            Edge.by_interpolation([Point.by_xyz(0, 0, 0)])
+
+
+class TestOffsetWire(unittest.TestCase):
+    def setUp(self):
+        self.corners = [
+            Point.by_xyz(0, 0, 0),
+            Point.by_xyz(100, 0, 0),
+            Point.by_xyz(100, 100, 0),
+            Point.by_xyz(0, 100, 0),
+        ]
+        self.spine = Face.by_wire(
+            self._square(
+                [
+                    Point.by_xyz(-500, -500, 0),
+                    Point.by_xyz(500, -500, 0),
+                    Point.by_xyz(500, 500, 0),
+                    Point.by_xyz(-500, 500, 0),
+                ]
+            )
+        )
+        self.line = Wire.by_edge(Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(100, 0, 0)))
+
+    def _square(self, corners):
+        pairs = zip(corners, corners[1:] + corners[:1], strict=True)
+        return Wire.by_edges([Edge.by_points(a, b) for a, b in pairs])
+
+    def _area(self, shape):
+        return Face.by_wire(shape.wires()[0]).area
+
+    def test_sign_does_not_depend_on_wire_direction(self):
+        for corners in (self.corners, self.corners[::-1]):
+            wire = self._square(corners)
+            self.assertAlmostEqual(self._area(wire.offset(-10.0)), 6400.0, places=6)
+            self.assertAlmostEqual(
+                self._area(wire.offset(10.0)), 14000.0 + math.pi * 100.0, places=6
+            )
+
+    def test_straight_wire_on_a_spine_becomes_a_rounded_strip_after_the_boundary(self):
+        boundary, strip = self.line.offset(-2.0, self.spine).wires()
+        self.assertAlmostEqual(Face.by_wire(boundary).area, 992016.0, places=6)
+        self.assertAlmostEqual(Face.by_wire(strip).area, 400.0 + math.pi * 4.0, places=6)
+
+    def test_positive_distance_on_a_spine_drops_an_open_wire(self):
+        self.assertEqual(len(self.line.offset(2.0, self.spine).wires()), 1)
+
+    def test_sign_on_a_spine_depends_on_wire_direction(self):
+        forward = self._square(self.corners).offset(10.0, self.spine).wires()[1]
+        backward = self._square(self.corners[::-1]).offset(10.0, self.spine).wires()[1]
+        self.assertAlmostEqual(Face.by_wire(forward).area, 14000.0 + math.pi * 100.0, places=6)
+        self.assertAlmostEqual(Face.by_wire(backward).area, 6400.0, places=6)
+
+    def test_spine_must_be_a_face(self):
+        with self.assertRaises(KindMismatch):
+            OffsetWire(self.line, -2.0, self._square(self.corners))
+
+    def test_inset_past_the_middle_leaves_no_wire(self):
+        self.assertEqual(len(self._square(self.corners).offset(-60.0).wires()), 0)
+
+    def test_spline_wire(self):
+        points = [Point.by_xyz(100 * math.cos(a / 8), 50 * math.sin(a / 8), 0) for a in range(26)]
+        spline = Edge.by_interpolation(points)
+        closing = Edge.by_points(points[-1], points[0])
+        wire = Wire.by_edges([spline, closing])
+        self.assertLess(self._area(wire.offset(-5.0)), Face.by_wire(wire).area)
+        self.assertTrue(wire.offset(-5.0).is_valid)
+
+    def test_tool_generates_edges_from_input_edge(self):
+        wire = self._square(self.corners)
+        tool = OffsetWire(wire, -10.0)
+        self.assertTrue(tool.generated_shapes(wire.edges()[0]))
 
 
 class TestLoftShape(unittest.TestCase):

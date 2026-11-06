@@ -46,7 +46,7 @@ These are guardrails. Use judgment on how to achieve a task. If a change seems t
 - **Familiar to CAD users.** Terms, orientations, and argument meanings follow common CAD conventions.
 - **Implementation stays private.** Public names and docstrings don't reference OCCT.
 - **Clear layers.**
-  - C++ (`src/` → `_occtlite`, `I`-prefixed) handles OCCT calls and memory safety.
+  - C++ (`src/` → `_occtlite`, `I`-prefixed) is kept thin and mostly handles OCCT calls and memory safety. It takes its inputs, runs the OCCT algorithm, and handles any errors, with minimal other logic.
   - Python (`pyocctlite/`) owns everything that makes the API feel Pythonic: validation, defaults, naming, composition, and conventions like 0-based indices (OCCT's are usually 1-based).
   - Users work with Python wrappers; `I` objects stay behind `i<name>`.
 - **Python features are backed by what's below.** Each Python argument or mode is a direct call or a true composition of lower-layer calls. What isn't implemented yet raises, and an argument that doesn't apply is documented as having no effect.

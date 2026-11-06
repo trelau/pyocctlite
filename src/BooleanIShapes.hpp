@@ -15,9 +15,11 @@
 template <typename Tool> class BooleanIShapes {
 public:
   // Apply the operation between the targets and the tools
-  BooleanIShapes(const std::vector<IShape>& targets, const std::vector<IShape>& tools) {
+  BooleanIShapes(const std::vector<IShape>& targets, const std::vector<IShape>& tools,
+                 double tol = 0.0) {
     tool_.SetArguments(ToList(targets));
     tool_.SetTools(ToList(tools));
+    tool_.SetFuzzyValue(tol);
     tool_.Build();
   }
 

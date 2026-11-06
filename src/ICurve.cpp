@@ -5,6 +5,8 @@
 #include <GC_MakeArcOfCircle.hxx>
 #include <GC_MakeCircle.hxx>
 #include <GC_MakeLine.hxx>
+#include <GeomAPI_Interpolate.hxx>
+#include <NCollection_HArray1.hxx>
 #include <gp_Pnt.hxx>
 #include <gp_Vec.hxx>
 
@@ -61,6 +63,22 @@ ICurve ICurve::MakeCircularArc(const IPoint& p1, const IPoint& p2, const IPoint&
   Handle(Geom_TrimmedCurve) arc = GC_MakeArcOfCircle(p1, p2, p3);
 
   return ICurve(arc);
+}
+
+ICurve ICurve::MakeBSplineByInterpolation(const std::vector<IPoint>& points, double tol) {
+
+  auto array = new NCollection_HArray1<gp_Pnt>(1, static_cast<int>(points.size()));
+  for (int i = 0; i < static_cast<int>(points.size()); ++i) {
+    array->SetValue(i + 1, points[i]);
+  }
+
+  GeomAPI_Interpolate tool(array, false, tol);
+  tool.Perform();
+  if (!tool.IsDone()) {
+    throw IBuildFailed("Interpolation failed.");
+  }
+
+  return ICurve(tool.Curve());
 }
 
 ICurve::ICurve(const Handle(Geom_Curve) & c) : curve_(c), kind_(ICurveKind::Unknown) {
@@ -153,6 +171,9 @@ void bind_ICurve(nb::module_& m) {
           nb::arg("p1"), nb::arg("p2"), nb::arg("p3"), "Make a circle by three points.")
       .def_static("MakeCircularArc", &ICurve::MakeCircularArc, nb::arg("p1"), nb::arg("p2"),
                   nb::arg("p3"), "Make a circular arc by three points.")
+      .def_static("MakeBSplineByInterpolation", &ICurve::MakeBSplineByInterpolation,
+                  nb::arg("points"), nb::arg("tol") = 1.0e-7,
+                  "Make a spline passing through points in order.")
 
       .def("Kind", &ICurve::Kind, "The kind of this curve.")
       .def("IsClosed", &ICurve::IsClosed, "Whether or not this curve is closed.")

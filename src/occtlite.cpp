@@ -26,6 +26,7 @@
 #include "IShape.hpp"
 #include "LoftIShape.hpp"
 #include "MapIShape.hpp"
+#include "OffsetIWire.hpp"
 #include "RenderIShapes.hpp"
 #include "RevolveIShape.hpp"
 #include "ThickenIShape.hpp"
@@ -60,6 +61,7 @@ NB_MODULE(_occtlite, m) {
   bind_ChamferIShape(m);
   bind_BooleanIShapes(m);
   bind_ThickenIShape(m);
+  bind_OffsetIWire(m);
   bind_LoftIShape(m);
   bind_RenderIShapes(m);
   bind_IErrors(m);

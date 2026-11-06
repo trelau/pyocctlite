@@ -6,6 +6,7 @@ import unittest
 from pyocctlite._occtlite import ICurve2D
 from pyocctlite.geometry import (
     Axis,
+    BSplineCurve,
     Circle,
     Curve,
     Curve2D,
@@ -448,6 +449,26 @@ class TestTrimmedCurve(unittest.TestCase):
         )
         self.assertIsInstance(t, TrimmedCurve)
         self.assertTrue(t.evaluate(math.pi / 2.0).is_equal(Point.by_xyz(0, 1, 0)))
+
+
+class TestBSplineCurve(unittest.TestCase):
+    def setUp(self):
+        self.points = [Point.by_xyz(0, 0, 0), Point.by_xyz(1, 1, 0), Point.by_xyz(2, 0, 1)]
+
+    def test_by_interpolation_passes_through_ends(self):
+        c = BSplineCurve.by_interpolation(self.points)
+        self.assertTrue(c.evaluate(c.first_parameter).is_equal(self.points[0]))
+        self.assertTrue(c.evaluate(c.last_parameter).is_equal(self.points[2]))
+        self.assertFalse(c.is_closed)
+
+    def test_by_icurve_returns_subclass(self):
+        c = BSplineCurve.by_interpolation(self.points)
+        self.assertIsInstance(Curve.by_icurve(c.icurve), BSplineCurve)
+
+    def test_init_rejects_other_kinds(self):
+        line = Line.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
+        with self.assertRaises(TypeError):
+            BSplineCurve(line.icurve)
 
 
 class TestSurface(unittest.TestCase):

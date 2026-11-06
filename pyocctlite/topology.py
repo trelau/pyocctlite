@@ -17,6 +17,7 @@ from pyocctlite._occtlite import (
     IShapeKind,
     LoftIShape,
     MapIShape,
+    OffsetIWire,
     RevolveIShape,
     ThickenIShape,
     TransformIShape,
@@ -25,6 +26,7 @@ from pyocctlite._occtlite import (
 from pyocctlite.geometry import (
     Axis,
     BoundingBox,
+    BSplineCurve,
     Curve,
     Curve2D,
     Point,
@@ -46,6 +48,7 @@ MakeShapeITool = (
     | FilletIShape
     | IntersectIShapes
     | LoftIShape
+    | OffsetIWire
     | RevolveIShape
     | ThickenIShape
     | TransformIShape
@@ -436,44 +439,44 @@ class Shape:
         """
         return RevolveShape(self, axis).shape()
 
-    def unite(self, other: Shape | Iterable[Shape]) -> Shape:
+    def unite(self, other: Shape | Iterable[Shape], tol: float = 0.0) -> Shape:
         """
         Unite this shape with others (boolean union).
 
-        Sub-shapes that the operation does not modify compare equal (``==``) to their counterparts
-        in the result.
-
         :param Shape | Iterable[Shape] other: Shape(s) to unite.
+        :param float tol: Distance below which geometry counts as touching.
         :return: United shape. Typically a ``Compound``, even for one solid.
         :rtype: Shape
         :raises BuildFailed: If the operation fails or no shapes are given.
         """
-        return UniteShapes(self, other).shape()
+        return UniteShapes(self, other, tol).shape()
 
-    def cut(self, other: Shape | Iterable[Shape]) -> Shape:
+    def cut(self, other: Shape | Iterable[Shape], tol: float = 0.0) -> Shape:
         """
         Cut other shapes from this shape (boolean subtraction).
 
         :param Shape | Iterable[Shape] other: Shape(s) to subtract.
+        :param float tol: Distance below which geometry counts as touching.
         :return: Resulting shape. Typically a ``Compound``, even for one solid.
         :rtype: Shape
         :raises BuildFailed: If the operation fails or no shapes are given.
         """
-        return CutShapes(self, other).shape()
+        return CutShapes(self, other, tol).shape()
 
-    def intersect(self, other: Shape | Iterable[Shape]) -> Shape:
+    def intersect(self, other: Shape | Iterable[Shape], tol: float = 0.0) -> Shape:
         """
         Keep the part of this shape inside any of the other shapes (boolean common).
 
         Multiple shapes act as their union, not as successive intersections.
 
         :param Shape | Iterable[Shape] other: Shape(s) to intersect with.
+        :param float tol: Distance below which geometry counts as touching.
         :return: Resulting shape. Typically a ``Compound``, even for one solid. Empty if the shapes
             do not overlap.
         :rtype: Shape
         :raises BuildFailed: If the operation fails or no shapes are given.
         """
-        return IntersectShapes(self, other).shape()
+        return IntersectShapes(self, other, tol).shape()
 
     def fillet(self, edge: Edge | Iterable[Edge], radius: float) -> Shape:
         """
@@ -681,6 +684,22 @@ class Edge(Shape):
         iedge = IShape.MakeEdge(c.icurve)
         return cls(iedge)
 
+    @classmethod
+    def by_interpolation(cls, points: Iterable[Point], tol: float = 1.0e-7) -> Edge:
+        """
+        Create an edge from a smooth curve passing through points in order.
+
+        :param Iterable[Point] points: At least two points.
+        :param float tol: Distance below which two points count as coincident.
+        :return: New edge.
+        :rtype: Edge
+        :raises BuildFailed: If the interpolation fails.
+        :raises RuntimeError: If there are fewer than two points.
+        """
+        c = BSplineCurve.by_interpolation(points, tol)
+        iedge = IShape.MakeEdge(c.icurve)
+        return cls(iedge)
+
     def __init__(self, e: IShape):
         """
         Initialize from an IShape.
@@ -786,6 +805,30 @@ class Wire(Shape):
         """
         iwire = IShape.MakeWire(self.ishape, other.ishape)
         return Wire(iwire)
+
+    def offset(self, distance: float, spine: Face | None = None) -> Shape:
+        """
+        Offset this planar wire within its plane.
+
+        Without a spine, a closed wire grows for a positive distance and shrinks for a negative
+        one, whichever way it runs, and an open wire becomes a closed wire around it for either
+        sign. Convex corners that grow become arcs. Shrinking past the middle gives no wires.
+
+        With a spine, the spine's boundary is offset too and comes first in the result. The sign
+        for a closed wire then depends on which way it runs. An open wire inside the spine needs a
+        negative distance, since a positive one returns only the grown boundary.
+
+        Offsetting splines can leave edges of about 1e-5, which a later boolean silently fails to
+        cut unless its ``tol`` is raised.
+
+        :param float distance: Offset distance.
+        :param Face | None spine: Planar face the wire lies on. Crashes the interpreter if omitted
+            for a straight wire, which does not define a plane by itself.
+        :return: Offset wire or wires. Use :meth:`wires` to read them.
+        :rtype: Shape
+        :raises BuildFailed: If the offset fails.
+        """
+        return OffsetWire(self, distance, spine).shape()
 
     def extrude(self, vector: Vector) -> Shell:
         """
@@ -1124,14 +1167,21 @@ class UniteShapes(BooleanShapes[UniteIShapes]):
     Tool to unite shapes.
     """
 
-    def __init__(self, target: Shape | Iterable[Shape], tool: Shape | Iterable[Shape]):
+    def __init__(
+        self,
+        target: Shape | Iterable[Shape],
+        tool: Shape | Iterable[Shape],
+        tol: float = 0.0,
+    ):
         """
         Initialize with target and tool shapes.
 
         :param Shape | Iterable[Shape] target: Target shape(s) to unite with.
         :param Shape | Iterable[Shape] tool: Tool shape(s) to unite.
+        :param float tol: Distance below which geometry counts as touching. Raise it when an
+            input has edges too short for the default to resolve.
         """
-        super().__init__(UniteIShapes(_ishapes(target), _ishapes(tool)))
+        super().__init__(UniteIShapes(_ishapes(target), _ishapes(tool), tol))
 
 
 class CutShapes(BooleanShapes[CutIShapes]):
@@ -1139,14 +1189,21 @@ class CutShapes(BooleanShapes[CutIShapes]):
     Tool to cut shapes (boolean subtraction).
     """
 
-    def __init__(self, target: Shape | Iterable[Shape], tool: Shape | Iterable[Shape]):
+    def __init__(
+        self,
+        target: Shape | Iterable[Shape],
+        tool: Shape | Iterable[Shape],
+        tol: float = 0.0,
+    ):
         """
         Initialize with target and tool shapes.
 
         :param Shape | Iterable[Shape] target: Target shape(s) to cut from.
         :param Shape | Iterable[Shape] tool: Tool shape(s) to subtract.
+        :param float tol: Distance below which geometry counts as touching. Raise it when an
+            input has edges too short for the default to resolve.
         """
-        super().__init__(CutIShapes(_ishapes(target), _ishapes(tool)))
+        super().__init__(CutIShapes(_ishapes(target), _ishapes(tool), tol))
 
 
 class IntersectShapes(BooleanShapes[IntersectIShapes]):
@@ -1154,14 +1211,21 @@ class IntersectShapes(BooleanShapes[IntersectIShapes]):
     Tool to intersect shapes (boolean common). Multiple targets or tools act as their union.
     """
 
-    def __init__(self, target: Shape | Iterable[Shape], tool: Shape | Iterable[Shape]):
+    def __init__(
+        self,
+        target: Shape | Iterable[Shape],
+        tool: Shape | Iterable[Shape],
+        tol: float = 0.0,
+    ):
         """
         Initialize with target and tool shapes.
 
         :param Shape | Iterable[Shape] target: Target shape(s) to intersect.
         :param Shape | Iterable[Shape] tool: Tool shape(s) to intersect with.
+        :param float tol: Distance below which geometry counts as touching. Raise it when an
+            input has edges too short for the default to resolve.
         """
-        super().__init__(IntersectIShapes(_ishapes(target), _ishapes(tool)))
+        super().__init__(IntersectIShapes(_ishapes(target), _ishapes(tool), tol))
 
 
 class CopyShape(ShapeTool[CopyIShape], Generic[T]):
@@ -1435,6 +1499,29 @@ class ThickenShape(ShapeTool[ThickenIShape]):
             itool = ThickenIShape(s.ishape, thickness)
         else:
             itool = ThickenIShape(s.ishape, _ishapes(faces), thickness, tol)
+        super().__init__(itool)
+
+
+class OffsetWire(ShapeTool[OffsetIWire]):
+    """
+    Tool to offset a planar wire within its plane.
+
+    See :meth:`Wire.offset` for how the sign of the distance and a spine affect the result.
+    """
+
+    def __init__(self, w: Wire, distance: float, spine: Face | None = None):
+        """
+        Initialize with wire and distance.
+
+        :param Wire w: Source wire.
+        :param float distance: Offset distance.
+        :param Face | None spine: Planar face the wire lies on. Crashes the interpreter if omitted
+            for a straight wire, which does not define a plane by itself.
+        """
+        if spine is None:
+            itool = OffsetIWire(w.ishape, distance)
+        else:
+            itool = OffsetIWire(w.ishape, spine.ishape, distance)
         super().__init__(itool)
 
 

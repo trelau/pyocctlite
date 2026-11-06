@@ -105,6 +105,8 @@ class Circle(Curve)
     .radius: float
 class TrimmedCurve(Curve)
     TrimmedCurve.by_circular_arc(p1: Point, p2: Point, p3: Point) -> TrimmedCurve
+class BSplineCurve(Curve)
+    BSplineCurve.by_interpolation(points: Iterable[Point], tol: float = 1e-07) -> BSplineCurve
 class Surface
 class CylindricalSurface(Surface)
     CylindricalSurface.by_radius(radius: float, frame: Frame | None = None) -> CylindricalSurface
@@ -223,9 +225,9 @@ class Shape
     .translate(vector: Vector) -> Self
     .extrude(vector: Vector) -> Shape
     .revolve(axis: Axis) -> Shape
-    .unite(other: Shape | Iterable[Shape]) -> Shape
-    .cut(other: Shape | Iterable[Shape]) -> Shape
-    .intersect(other: Shape | Iterable[Shape]) -> Shape
+    .unite(other: Shape | Iterable[Shape], tol: float = 0.0) -> Shape
+    .cut(other: Shape | Iterable[Shape], tol: float = 0.0) -> Shape
+    .intersect(other: Shape | Iterable[Shape], tol: float = 0.0) -> Shape
     .fillet(edge: Edge | Iterable[Edge], radius: float) -> Shape
     .chamfer(edge: Edge | Iterable[Edge], distance: float) -> Shape
     .thicken(thickness: float, faces: Face | Iterable[Face] | None = None, tol: float = 0.001) -> Shape
@@ -241,6 +243,7 @@ class Edge(Shape)
     Edge.by_points(p1: Point, p2: Point) -> Edge
     Edge.by_vertices(v1: Vertex, v2: Vertex) -> Edge
     Edge.by_circular_arc(p1: Point, p2: Point, p3: Point) -> Edge
+    Edge.by_interpolation(points: Iterable[Point], tol: float = 1e-07) -> Edge
     .curve: Curve | None
     .extrude(vector: Vector) -> Face
     .revolve(axis: Axis) -> Face
@@ -248,6 +251,7 @@ class Wire(Shape)
     Wire.by_edge(e: Edge) -> Wire
     Wire.by_edges(edges: Iterable[Edge]) -> Wire
     .combine(other: Wire) -> Wire
+    .offset(distance: float, spine: Face | None = None) -> Shape
     .extrude(vector: Vector) -> Shell
     .revolve(axis: Axis) -> Shell
 class Face(Shape)
@@ -272,11 +276,11 @@ class ShapeTool
 class BooleanShapes(ShapeTool)
     .intersection_edges() -> list[Edge]
 class UniteShapes(BooleanShapes)
-    UniteShapes(target: Shape | Iterable[Shape], tool: Shape | Iterable[Shape])
+    UniteShapes(target: Shape | Iterable[Shape], tool: Shape | Iterable[Shape], tol: float = 0.0)
 class CutShapes(BooleanShapes)
-    CutShapes(target: Shape | Iterable[Shape], tool: Shape | Iterable[Shape])
+    CutShapes(target: Shape | Iterable[Shape], tool: Shape | Iterable[Shape], tol: float = 0.0)
 class IntersectShapes(BooleanShapes)
-    IntersectShapes(target: Shape | Iterable[Shape], tool: Shape | Iterable[Shape])
+    IntersectShapes(target: Shape | Iterable[Shape], tool: Shape | Iterable[Shape], tol: float = 0.0)
 class CopyShape(ShapeTool, Generic[T])
     CopyShape(s: T, copy_geom: bool = True)
     .shape() -> T
@@ -313,6 +317,8 @@ class ChamferShape(ShapeTool)
     .add_edge(e: Edge, distance: float) -> None
 class ThickenShape(ShapeTool)
     ThickenShape(s: Shape, thickness: float, faces: Face | Iterable[Face] | None = None, tol: float = 0.001)
+class OffsetWire(ShapeTool)
+    OffsetWire(w: Wire, distance: float, spine: Face | None = None)
 class LoftShape(ShapeTool)
     LoftShape(is_solid: bool = False, is_ruled: bool = False, tol: float = 1e-06)
     .add_wire(w: Wire) -> None

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from functools import cached_property
 
 from pyocctlite._occtlite import (
@@ -1129,6 +1130,8 @@ class Curve:
                 return Circle(icurve)
             case ICurveKind.Trimmed:
                 return TrimmedCurve(icurve)
+            case ICurveKind.BSpline:
+                return BSplineCurve(icurve)
             case _:
                 raise NotImplementedError(f"Unsupported curve kind: {icurve.Kind()}.")
 
@@ -1380,6 +1383,36 @@ class TrimmedCurve(Curve):
         super().__init__(c)
         if c.Kind() != ICurveKind.Trimmed:
             raise TypeError(f"Expected ICurveKind.Trimmed, got {c.Kind()}.")
+
+
+class BSplineCurve(Curve):
+    """
+    Represents a 3D B-spline curve.
+    """
+
+    @classmethod
+    def by_interpolation(cls, points: Iterable[Point], tol: float = 1.0e-7) -> BSplineCurve:
+        """
+        Create a smooth curve passing through ordered points.
+
+        :param Iterable[Point] points: At least two points.
+        :param float tol: Distance below which two points count as coincident.
+        :return: New B-spline curve.
+        :rtype: BSplineCurve
+        :raises BuildFailed: If the interpolation fails.
+        """
+        icurve = ICurve.MakeBSplineByInterpolation([p.ipoint for p in points], tol)
+        return cls(icurve)
+
+    def __init__(self, c: ICurve):
+        """
+        Initialize from an ICurve.
+
+        :param ICurve c: Underlying 3D curve.
+        """
+        super().__init__(c)
+        if c.Kind() != ICurveKind.BSpline:
+            raise TypeError(f"Expected ICurveKind.BSpline, got {c.Kind()}.")
 
 
 class Surface:

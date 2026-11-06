@@ -3,8 +3,8 @@
 template <typename T> static void bind_Boolean(nb::module_& m, const char* name, const char* doc) {
 
   auto cls = nb::class_<T>(m, name, doc)
-                 .def(nb::init<const std::vector<IShape>&, const std::vector<IShape>&>(),
-                      nb::arg("targets"), nb::arg("tools"),
+                 .def(nb::init<const std::vector<IShape>&, const std::vector<IShape>&, double>(),
+                      nb::arg("targets"), nb::arg("tools"), nb::arg("tol") = 0.0,
                       "Apply the operation between the targets and the tools.")
 
                  .def("IntersectionEdges", &T::IntersectionEdges,
