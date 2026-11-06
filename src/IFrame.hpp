@@ -14,6 +14,9 @@ public:
   // Make a frame at the given origin with standard orientation
   static IFrame MakeByOrigin(const IPoint& origin);
 
+  // Make a frame at the given origin with the specified X and Z directions
+  static IFrame MakeByVectors(const IPoint& origin, const IVector& xVector, const IVector& zVector);
+
   // Construct from gp_Ax2
   explicit IFrame(const gp_Ax2& f) : frame_(f) {}
 

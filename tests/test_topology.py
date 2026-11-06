@@ -23,6 +23,7 @@ from pyocctlite.topology import (
     ExtrudeShape,
     Face,
     FilletShape,
+    IntersectShapes,
     LoftShape,
     RevolveShape,
     ShapeKind,
@@ -114,6 +115,13 @@ class TestShape(unittest.TestCase):
         self.assertTrue(result.point.is_equal(Point.by_xyz(0, 1, 5)))
         self.assertTrue(v.point.is_equal(Point.by_xyz(1, 0, 5)))
 
+    def test_translate(self):
+        v = Vertex.by_point(Point.by_xyz(1, 0, 5))
+        result = v.translate(Vector.by_xyz(1, 2, 3))
+        self.assertIsInstance(result, Vertex)
+        self.assertTrue(result.point.is_equal(Point.by_xyz(2, 2, 8)))
+        self.assertTrue(v.point.is_equal(Point.by_xyz(1, 0, 5)))
+
     def test_extrude(self):
         e = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
         f = e.extrude(Vector.by_xyz(0, 1, 0))
@@ -198,7 +206,7 @@ class TestShape(unittest.TestCase):
         self.assertTrue(distant)
         result = box.fillet(edge, 0.1)
         for e in distant:
-            self.assertTrue(result.edges().contains(e))
+            self.assertIn(e, result.edges())
 
     def test_chamfer(self):
         box = _box()
@@ -384,8 +392,86 @@ class TestBooleanTools(unittest.TestCase):
         self.assertAlmostEqual(tool.shape().volume, 0.875)
         self.assertTrue(tool.intersection_edges())
 
+    def test_intersect_shapes(self):
+        tool = IntersectShapes(_box(), _box(0.5, 0.5, 0.5))
+        self.assertAlmostEqual(tool.shape().volume, 0.125)
+        self.assertTrue(tool.intersection_edges())
+
+    def test_lists(self):
+        a, b, c = _box(), _box(0.5, 0.5, 0.5), _box(-0.5, -0.5, -0.5)
+        self.assertAlmostEqual(a.cut([b, c]).volume, 0.75)
+        self.assertAlmostEqual(a.unite([b, c]).volume, 2.75)
+        self.assertAlmostEqual(UniteShapes([a, b], c).shape().volume, 2.75)
+
+    def test_intersect_list_acts_as_union(self):
+        a, b, c = _box(), _box(0.5, 0.5, 0.5), _box(-0.5, -0.5, -0.5)
+        self.assertAlmostEqual(a.intersect([b, c]).volume, 0.25)
+
+    def test_intersect_disjoint_is_empty(self):
+        result = _box().intersect(_box(5.0, 5.0, 5.0))
+        self.assertEqual(len(result.solids()), 0)
+
+    def test_history_after_cut(self):
+        a, b = _box(), _box(0.5, 0.5, 0.5)
+        tool = CutShapes(a, b)
+        tool.build()
+        self.assertTrue(tool.is_done)
+        modified = [tool.modified_shapes(f) for f in a.faces()]
+        self.assertEqual(sum(1 for m in modified if m), 3)
+        self.assertFalse(any(tool.is_deleted(f) for f in a.faces()))
+
+    def test_history_contained_shape_is_deleted(self):
+        from pyocctlite.primitives import Box
+
+        outer, inner = Box.by_size(4.0, 4.0, 4.0), _box(1.0, 1.0, 1.0)
+        tool = UniteShapes(outer, inner)
+        self.assertTrue(all(tool.is_deleted(f) for f in inner.faces()))
+        self.assertFalse(any(tool.is_deleted(f) for f in outer.faces()))
+
+    def test_empty_list_fails(self):
+        with self.assertRaises(BuildFailed):
+            _box().cut([])
+
+
+class TestShapeToolHistory(unittest.TestCase):
+    def test_fillet_history(self):
+        box = _box()
+        e = box.edges()[0]
+        tool = FilletShape(box)
+        tool.add_edge(e, 0.1)
+        self.assertFalse(tool.is_done)
+        tool.build()
+        self.assertTrue(tool.is_done)
+        self.assertTrue(tool.is_deleted(e))
+        self.assertEqual(len(tool.generated_shapes(e)), 1)
+        self.assertEqual(sum(1 for f in box.faces() if tool.modified_shapes(f)), 4)
+
+    def test_build_reports_failure_without_raising(self):
+        box = _box()
+        tool = FilletShape(box)
+        tool.add_edge(box.edges()[0], 50.0)
+        tool.build()
+        self.assertFalse(tool.is_done)
+
 
 class TestExtrudeShape(unittest.TestCase):
+    def test_first_last_of_sub_shape(self):
+        f = Face.by_wire(_square())
+        e = f.edges()[0]
+        tool = ExtrudeShape(f, Vector.by_xyz(0, 0, 2))
+        self.assertEqual(tool.first_shape(e), e)
+        last = tool.last_shape(e)
+        self.assertIsInstance(last, Edge)
+        self.assertNotEqual(last, e)
+        self.assertAlmostEqual(last.length, e.length)
+        for v in last.vertices():
+            self.assertAlmostEqual(v.point.z, 2.0)
+
+    def test_last_of_foreign_shape_raises(self):
+        tool = ExtrudeShape(Face.by_wire(_square()), Vector.by_xyz(0, 0, 2))
+        with self.assertRaises(RuntimeError):
+            tool.last_shape(_box().edges()[0])
+
     def test_first_last_shape(self):
         f = Face.by_wire(_square())
         tool = ExtrudeShape(f, Vector.by_xyz(0, 0, 2))
@@ -506,6 +592,16 @@ class TestLoftShape(unittest.TestCase):
         self.assertAlmostEqual(tool.shape().volume, 2.0)
 
 
+class TestIsEqual(unittest.TestCase):
+    def test_orientation_distinguishes(self):
+        box = _box()
+        edges = list(box.explore(Edge))
+        pairs = [(a, b) for i, a in enumerate(edges) for b in edges[:i] if a == b]
+        self.assertEqual(len(pairs), 12)
+        self.assertTrue(all(not a.is_equal(b) for a, b in pairs))
+        self.assertTrue(box.is_equal(box))
+
+
 class TestMapShape(unittest.TestCase):
     def test_map(self):
         faces = _box().map(Face)
@@ -530,6 +626,8 @@ class TestMapShape(unittest.TestCase):
         self.assertIsNone(edges.find_index(other))
         self.assertTrue(edges.contains(edges[0]))
         self.assertFalse(edges.contains(other))
+        self.assertIn(edges[0], edges)
+        self.assertNotIn(other, edges)
 
     def test_composite_rejected(self):
         from pyocctlite.primitives import Cylinder

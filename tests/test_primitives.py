@@ -52,16 +52,16 @@ class TestBox(unittest.TestCase):
         b = Box.by_size(1.0, 2.0, 3.0)
         self._assert_on_plane(b.bottom_face, z=0.0)
         self._assert_on_plane(b.top_face, z=3.0)
-        self._assert_on_plane(b.back_face, x=0.0)
-        self._assert_on_plane(b.front_face, x=1.0)
-        self._assert_on_plane(b.left_face, y=0.0)
-        self._assert_on_plane(b.right_face, y=2.0)
+        self._assert_on_plane(b.front_face, y=0.0)
+        self._assert_on_plane(b.back_face, y=2.0)
+        self._assert_on_plane(b.left_face, x=0.0)
+        self._assert_on_plane(b.right_face, x=1.0)
 
     def test_by_size_frame(self):
         frame = Frame.by_origin(Point.by_xyz(10.0, 20.0, 30.0))
         b = Box.by_size(1.0, 2.0, 3.0, frame)
-        self._assert_on_plane(b.back_face, x=10.0)
-        self._assert_on_plane(b.left_face, y=20.0)
+        self._assert_on_plane(b.left_face, x=10.0)
+        self._assert_on_plane(b.front_face, y=20.0)
         self._assert_on_plane(b.bottom_face, z=30.0)
 
     def test_by_size_invalid(self):
@@ -90,11 +90,44 @@ class TestBox(unittest.TestCase):
         result = b.rotate(_Z_AXIS, math.pi / 2.0)
         self._assert_valid(result)
         self.assertAlmostEqual(result.volume, b.volume)
-        self._assert_on_plane(result.back_face, y=0.0)
-        self._assert_on_plane(result.front_face, y=1.0)
-        self._assert_on_plane(result.left_face, x=0.0)
-        self._assert_on_plane(result.right_face, x=-2.0)
+        self._assert_on_plane(result.front_face, x=0.0)
+        self._assert_on_plane(result.back_face, x=-2.0)
+        self._assert_on_plane(result.left_face, y=0.0)
+        self._assert_on_plane(result.right_face, y=1.0)
         self._assert_on_plane(result.top_face, z=3.0)
+
+    def test_translate(self):
+        b = Box.by_size(1.0, 2.0, 3.0)
+        result = b.translate(Vector.by_xyz(0, 0, 10))
+        self._assert_valid(result)
+        self._assert_on_plane(result.bottom_face, z=10.0)
+        self._assert_on_plane(result.top_face, z=13.0)
+        self._assert_on_plane(b.bottom_face, z=0.0)
+
+
+class TestOrientedPrimitives(unittest.TestCase):
+    _FRAME = Frame.by_vectors(Point.by_xyz(1, 2, 3), Vector.by_xyz(0, 1, 0), Vector.by_xyz(1, 0, 0))
+
+    def test_box(self):
+        b = Box.by_size(1.0, 2.0, 3.0, self._FRAME)
+        self.assertAlmostEqual(b.volume, 6.0)
+        self.assertTrue(b.is_valid)
+        for v in b.top_face.vertices():
+            self.assertAlmostEqual(v.point.x, 4.0)
+        for v in b.bottom_face.vertices():
+            self.assertAlmostEqual(v.point.x, 1.0)
+        # local x, y, z run along global y, z, x
+        for v in b.right_face.vertices():
+            self.assertAlmostEqual(v.point.y, 3.0)
+        for v in b.back_face.vertices():
+            self.assertAlmostEqual(v.point.z, 5.0)
+
+    def test_cylinder(self):
+        c = Cylinder.by_size(1.0, 2.0, self._FRAME)
+        self.assertAlmostEqual(c.volume, 2.0 * math.pi, places=6)
+        self.assertTrue(c.is_valid)
+        for v in c.top_face.vertices():
+            self.assertAlmostEqual(v.point.x, 3.0)
 
 
 class TestSphere(unittest.TestCase):
@@ -129,6 +162,13 @@ class TestSphere(unittest.TestCase):
         self._assert_valid(result)
         self.assertNotEqual(result, s)
         self.assertAlmostEqual(result.volume, s.volume)
+
+    def test_translate(self):
+        s = Sphere.by_size(2.0)
+        result = s.translate(Vector.by_xyz(0, 0, 10))
+        self._assert_valid(result)
+        for v in result.vertices():
+            self.assertAlmostEqual(abs(v.point.z - 10.0), 2.0)
 
     def test_mirror(self):
         s = Sphere.by_size(2.0)
@@ -189,6 +229,13 @@ class TestCylinder(unittest.TestCase):
         self.assertAlmostEqual(result.volume, c.volume)
         for v in result.top_face.vertices():
             self.assertAlmostEqual(v.point.z, -2.0)
+
+    def test_translate(self):
+        c = Cylinder.by_size(1.0, 2.0)
+        result = c.translate(Vector.by_xyz(0, 0, 10))
+        self._assert_valid(result)
+        for v in result.top_face.vertices():
+            self.assertAlmostEqual(v.point.z, 12.0)
 
 
 if __name__ == "__main__":

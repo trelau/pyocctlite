@@ -21,6 +21,14 @@ ITransform ITransform::MakeRotation(const IAxis& axis, double angle) {
   return ITransform(trsf);
 }
 
+ITransform ITransform::MakeTranslation(const IVector& vector) {
+
+  gp_Trsf trsf;
+  trsf.SetTranslation(vector);
+
+  return ITransform(trsf);
+}
+
 // Python bindings
 void bind_ITransform(nb::module_& m) {
 
@@ -28,5 +36,7 @@ void bind_ITransform(nb::module_& m) {
       .def_static("MakeMirror", &ITransform::MakeMirror, nb::arg("origin"), nb::arg("normal"),
                   "Make a mirror transformation defined by a point and a normal vector.")
       .def_static("MakeRotation", &ITransform::MakeRotation, nb::arg("axis"), nb::arg("angle"),
-                  "Make a rotation transformation about an axis by an angle in radians.");
+                  "Make a rotation transformation about an axis by an angle in radians.")
+      .def_static("MakeTranslation", &ITransform::MakeTranslation, nb::arg("vector"),
+                  "Make a translation transformation along a vector.");
 }

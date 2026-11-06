@@ -12,6 +12,7 @@ from pyocctlite._occtlite import (
     ExploreIShape,
     ExtrudeIShape,
     FilletIShape,
+    IntersectIShapes,
     IShape,
     IShapeKind,
     LoftIShape,
@@ -42,6 +43,7 @@ MakeShapeITool = (
     | CutIShapes
     | ExtrudeIShape
     | FilletIShape
+    | IntersectIShapes
     | LoftIShape
     | RevolveIShape
     | ThickenIShape
@@ -49,6 +51,7 @@ MakeShapeITool = (
     | UniteIShapes
 )
 ToolT = TypeVar("ToolT", bound=MakeShapeITool)
+BooleanToolT = TypeVar("BooleanToolT", bound=CutIShapes | IntersectIShapes | UniteIShapes)
 
 
 class ShapeKind(Enum):
@@ -207,6 +210,19 @@ class Shape:
         """
         return self.ishape.IsValid()
 
+    def is_equal(self, other: Shape) -> bool:
+        """
+        Check if both shapes share the same underlying shape with the same orientation.
+
+        This is stricter than ``==``, which ignores orientation (e.g. the two uses of an edge shared
+        by two faces of a box are ``==`` but not equal).
+
+        :param Shape other: Other shape.
+        :return: True if the shapes are equal.
+        :rtype: bool
+        """
+        return self.ishape.IsEqual(other.ishape)
+
     def explore(self, find: type[T], ignore: type[Shape] | None = None) -> ExploreShape[T]:
         """
         Iterate over sub-shapes, including repeats of shared sub-shapes (e.g. 24 edges for a box).
@@ -313,7 +329,7 @@ class Shape:
         :return: Copied shape of the same type.
         :rtype: Self
         """
-        return CopyShape(self).shape()
+        return self._by_history(CopyShape(self))
 
     def mirror(self, origin: Point, normal: Vector) -> Self:
         """
@@ -326,7 +342,7 @@ class Shape:
         :raises RuntimeError: If the normal has zero length.
         """
         t = Transform.by_mirror(origin, normal)
-        return TransformShape(self, t).shape()
+        return self._by_history(TransformShape(self, t))
 
     def rotate(self, axis: Axis, angle: float) -> Self:
         """
@@ -339,7 +355,30 @@ class Shape:
         :rtype: Self
         """
         t = Transform.by_rotation(axis, angle)
-        return TransformShape(self, t).shape()
+        return self._by_history(TransformShape(self, t))
+
+    def translate(self, vector: Vector) -> Self:
+        """
+        Create a translated version of this shape.
+
+        :param Vector vector: Translation direction and distance.
+        :return: Translated shape of the same type.
+        :rtype: Self
+        """
+        t = Transform.by_translation(vector)
+        return self._by_history(TransformShape(self, t))
+
+    def _by_history(self, tool: CopyShape[Self] | TransformShape[Self]) -> Self:
+        """
+        Build the result of a kind-preserving tool applied to this shape.
+
+        Composites override this to carry their named parts through the tool's history.
+
+        :param CopyShape[Self] | TransformShape[Self] tool: Tool applied to this shape.
+        :return: New shape.
+        :rtype: Self
+        """
+        return tool.shape()
 
     def extrude(self, vector: Vector) -> Shape:
         """
@@ -368,32 +407,44 @@ class Shape:
         """
         return RevolveShape(self, axis).shape()
 
-    def unite(self, other: Shape) -> Shape:
+    def unite(self, other: Shape | Iterable[Shape]) -> Shape:
         """
-        Unite this shape with another (boolean union).
+        Unite this shape with others (boolean union).
 
         Sub-shapes that the operation does not modify compare equal (``==``) to their counterparts
         in the result.
 
-        :param Shape other: Shape to unite.
+        :param Shape | Iterable[Shape] other: Shape(s) to unite.
         :return: United shape. Typically a ``Compound``, even for one solid.
         :rtype: Shape
-        :raises BuildFailed: If the operation fails.
+        :raises BuildFailed: If the operation fails or no shapes are given.
         """
-        ishape = UniteIShapes(self.ishape, other.ishape).Shape()
-        return Shape.by_ishape(ishape)
+        return UniteShapes(self, other).shape()
 
-    def cut(self, other: Shape) -> Shape:
+    def cut(self, other: Shape | Iterable[Shape]) -> Shape:
         """
-        Cut another shape from this shape (boolean subtraction).
+        Cut other shapes from this shape (boolean subtraction).
 
-        :param Shape other: Shape to subtract.
+        :param Shape | Iterable[Shape] other: Shape(s) to subtract.
         :return: Resulting shape. Typically a ``Compound``, even for one solid.
         :rtype: Shape
-        :raises BuildFailed: If the operation fails.
+        :raises BuildFailed: If the operation fails or no shapes are given.
         """
-        ishape = CutIShapes(self.ishape, other.ishape).Shape()
-        return Shape.by_ishape(ishape)
+        return CutShapes(self, other).shape()
+
+    def intersect(self, other: Shape | Iterable[Shape]) -> Shape:
+        """
+        Keep the part of this shape inside any of the other shapes (boolean common).
+
+        Multiple shapes act as their union, not as successive intersections.
+
+        :param Shape | Iterable[Shape] other: Shape(s) to intersect with.
+        :return: Resulting shape. Typically a ``Compound``, even for one solid. Empty if the shapes
+            do not overlap.
+        :rtype: Shape
+        :raises BuildFailed: If the operation fails or no shapes are given.
+        """
+        return IntersectShapes(self, other).shape()
 
     def fillet(self, edge: Edge | Iterable[Edge], radius: float) -> Shape:
         """
@@ -447,14 +498,7 @@ class Shape:
         :rtype: Shape
         :raises BuildFailed: If the operation fails (e.g. a solid without ``faces``).
         """
-        if faces is None:
-            itool = ThickenIShape(self.ishape, thickness)
-        else:
-            ifaces = [f.ishape for f in faces]
-            itool = ThickenIShape(self.ishape, ifaces, thickness, tol)
-
-        ishape = itool.Shape()
-        return Shape.by_ishape(ishape)
+        return ThickenShape(self, thickness, tol, faces).shape()
 
     def export_step(self, path: str) -> None:
         """
@@ -854,15 +898,14 @@ class Solid(Shape):
         :raises NotImplementedError: If a section is not a wire.
         :raises BuildFailed: If no sections are given or the loft fails.
         """
-        itool = LoftIShape(is_solid=True, is_ruled=is_ruled, tol=tol)
+        tool = LoftShape(is_solid=True, is_ruled=is_ruled, tol=tol)
         for s in shapes:
             if isinstance(s, Wire):
-                itool.AddWire(s.ishape)
+                tool.add_wire(s)
             else:
                 raise NotImplementedError()
 
-        ishape = itool.Shape()
-        return cls(ishape)
+        return cls(tool.shape().ishape)
 
     def __init__(self, s: IShape):
         """
@@ -968,6 +1011,15 @@ class ShapeTool(Generic[ToolT]):
         """
         return self._itool.IsDone()
 
+    def build(self) -> None:
+        """
+        Run the operation now, to check :attr:`is_done` before requesting results.
+
+        Results build on demand, so this is optional. Some problems are raised here rather than
+        leaving :attr:`is_done` false (e.g. a fillet tool with no edges).
+        """
+        self._itool.Build()
+
     def shape(self) -> Shape:
         """
         Get the resulting shape.
@@ -989,55 +1041,98 @@ class ShapeTool(Generic[ToolT]):
         """
         return Shape.by_ishapes(self._itool.GeneratedShapes(s.ishape))
 
+    def modified_shapes(self, s: Shape) -> list[Shape]:
+        """
+        Get what a sub-shape of the source shape became (e.g. the trimmed face after a fillet).
 
-class UniteShapes(ShapeTool[UniteIShapes]):
+        :param Shape s: Sub-shape of the source shape.
+        :return: Modified shapes. Empty if it is unchanged, deleted, or not in the source.
+        :rtype: list[Shape]
+        :raises BuildFailed: If the operation fails.
+        """
+        return Shape.by_ishapes(self._itool.ModifiedShapes(s.ishape))
+
+    def is_deleted(self, s: Shape) -> bool:
+        """
+        Check if a sub-shape of the source shape is absent from the result (e.g. a filleted edge).
+
+        :param Shape s: Sub-shape of the source shape.
+        :return: True if deleted. False if it is not in the source.
+        :rtype: bool
+        :raises BuildFailed: If the operation fails.
+        """
+        return self._itool.IsDeleted(s.ishape)
+
+
+def _ishapes(shapes: Shape | Iterable[Shape]) -> list[IShape]:
+    """
+    Get the underlying shapes of one shape or an iterable of shapes.
+
+    :param Shape | Iterable[Shape] shapes: Shape(s).
+    :return: Underlying topological shapes.
+    :rtype: list[IShape]
+    """
+    return [shapes.ishape] if isinstance(shapes, Shape) else [s.ishape for s in shapes]
+
+
+class BooleanShapes(ShapeTool[BooleanToolT]):
+    """
+    Base class for boolean tools.
+    """
+
+    def intersection_edges(self) -> list[Edge]:
+        """
+        Get the edges where the surfaces of the shapes intersect.
+
+        :return: Intersection edges. Empty if the shapes only touch or one contains the other.
+        :rtype: list[Edge]
+        """
+        return [Edge(e) for e in self._itool.IntersectionEdges()]
+
+
+class UniteShapes(BooleanShapes[UniteIShapes]):
     """
     Tool to unite shapes.
     """
 
-    def __init__(self, target: Shape, tool: Shape):
+    def __init__(self, target: Shape | Iterable[Shape], tool: Shape | Iterable[Shape]):
         """
         Initialize with target and tool shapes.
 
-        :param Shape target: Target shape to unite with.
-        :param Shape tool: Tool shape to unite.
+        :param Shape | Iterable[Shape] target: Target shape(s) to unite with.
+        :param Shape | Iterable[Shape] tool: Tool shape(s) to unite.
         """
-        itool = UniteIShapes(target.ishape, tool.ishape)
-        super().__init__(itool)
-
-    def intersection_edges(self) -> list[Edge]:
-        """
-        Get the edges where the surfaces of the shapes intersect.
-
-        :return: Intersection edges. Empty if the shapes only touch or one contains the other.
-        :rtype: list[Edge]
-        """
-        return [Edge(e) for e in self._itool.IntersectionEdges()]
+        super().__init__(UniteIShapes(_ishapes(target), _ishapes(tool)))
 
 
-class CutShapes(ShapeTool[CutIShapes]):
+class CutShapes(BooleanShapes[CutIShapes]):
     """
     Tool to cut shapes (boolean subtraction).
     """
 
-    def __init__(self, target: Shape, tool: Shape):
+    def __init__(self, target: Shape | Iterable[Shape], tool: Shape | Iterable[Shape]):
         """
         Initialize with target and tool shapes.
 
-        :param Shape target: Target shape to cut from.
-        :param Shape tool: Tool shape to subtract.
+        :param Shape | Iterable[Shape] target: Target shape(s) to cut from.
+        :param Shape | Iterable[Shape] tool: Tool shape(s) to subtract.
         """
-        itool = CutIShapes(target.ishape, tool.ishape)
-        super().__init__(itool)
+        super().__init__(CutIShapes(_ishapes(target), _ishapes(tool)))
 
-    def intersection_edges(self) -> list[Edge]:
-        """
-        Get the edges where the surfaces of the shapes intersect.
 
-        :return: Intersection edges. Empty if the shapes only touch or one contains the other.
-        :rtype: list[Edge]
+class IntersectShapes(BooleanShapes[IntersectIShapes]):
+    """
+    Tool to intersect shapes (boolean common). Multiple targets or tools act as their union.
+    """
+
+    def __init__(self, target: Shape | Iterable[Shape], tool: Shape | Iterable[Shape]):
         """
-        return [Edge(e) for e in self._itool.IntersectionEdges()]
+        Initialize with target and tool shapes.
+
+        :param Shape | Iterable[Shape] target: Target shape(s) to intersect.
+        :param Shape | Iterable[Shape] tool: Tool shape(s) to intersect with.
+        """
+        super().__init__(IntersectIShapes(_ishapes(target), _ishapes(tool)))
 
 
 class CopyShape(ShapeTool[CopyIShape], Generic[T]):
@@ -1151,23 +1246,39 @@ class ExtrudeShape(ShapeTool[ExtrudeIShape], Generic[T]):
         """
         return super().shape()
 
-    def first_shape(self) -> T:
-        """
-        Get the shape at the start of the extrusion. This is the source shape.
+    @overload
+    def first_shape(self) -> T: ...
+    @overload
+    def first_shape(self, s: S) -> S: ...
 
-        :return: First shape of the same type as the source.
-        :rtype: T
+    def first_shape(self, s: Shape | None = None) -> Shape:
         """
-        return cast(T, Shape.by_ishape(self._itool.FirstShape()))
+        Get the shape at the start of the extrusion. This is the source shape or its sub-shape.
 
-    def last_shape(self) -> T:
+        :param Shape | None s: Sub-shape of the source shape. Defaults to the source shape.
+        :return: First shape of the same type as the argument.
+        :rtype: Shape
+        :raises RuntimeError: If the shape is not a sub-shape of the source shape.
         """
-        Get the shape at the end of the extrusion.
+        ishape = self._itool.FirstShape() if s is None else self._itool.FirstShape(s.ishape)
+        return Shape.by_ishape(ishape)
 
-        :return: Last shape of the same type as the source.
-        :rtype: T
+    @overload
+    def last_shape(self) -> T: ...
+    @overload
+    def last_shape(self, s: S) -> S: ...
+
+    def last_shape(self, s: Shape | None = None) -> Shape:
         """
-        return cast(T, Shape.by_ishape(self._itool.LastShape()))
+        Get the shape at the end of the extrusion, for the source shape or its sub-shape.
+
+        :param Shape | None s: Sub-shape of the source shape. Defaults to the source shape.
+        :return: Last shape of the same type as the argument.
+        :rtype: Shape
+        :raises RuntimeError: If the shape is not a sub-shape of the source shape.
+        """
+        ishape = self._itool.LastShape() if s is None else self._itool.LastShape(s.ishape)
+        return Shape.by_ishape(ishape)
 
 
 class RevolveShape(ShapeTool[RevolveIShape], Generic[T]):
@@ -1429,6 +1540,16 @@ class MapShape(Generic[T]):
         :rtype: bool
         """
         return self._itool.Contains(shape.ishape)
+
+    def __contains__(self, shape: T) -> bool:
+        """
+        Check if a shape is in the map, for the ``in`` operator.
+
+        :param T shape: Sub-shape.
+        :return: True if found.
+        :rtype: bool
+        """
+        return self.contains(shape)
 
 
 class ExploreShape(Generic[T]):

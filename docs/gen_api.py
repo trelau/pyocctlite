@@ -8,7 +8,7 @@ PACKAGE = ROOT / "pyocctlite"
 OUTPUT = ROOT / "docs" / "pyocctlite-api.md"
 
 # Dunders that users call through syntax: iteration, len() and indexing
-PUBLIC_DUNDERS = {"__iter__", "__len__", "__getitem__"}
+PUBLIC_DUNDERS = {"__iter__", "__len__", "__getitem__", "__contains__"}
 
 Function = ast.FunctionDef | ast.AsyncFunctionDef
 

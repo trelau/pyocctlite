@@ -4,6 +4,8 @@
 
 #include <gp_Pnt2d.hxx>
 
+#include "IVector2D.hpp"
+
 // Interface class for a 2D point
 class IPoint2D {
 public:
@@ -17,6 +19,9 @@ public:
   double X() const { return point_.X(); }
 
   double Y() const { return point_.Y(); }
+
+  // Make a copy of this point moved along a vector
+  IPoint2D Translated(const IVector2D& vector) const { return IPoint2D(point_.Translated(vector)); }
 
   // Compute the distance to another point
   double Distance(const IPoint2D& other) const { return point_.Distance(other); }

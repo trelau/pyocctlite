@@ -42,18 +42,19 @@ These are guardrails. Use judgment on how to achieve a task. If a change seems t
 - **Python experience first.** The Python API is the product, and the C++ layer exists to serve it. Keep bindings simple and explicit. Don't reproduce OCCT's class hierarchy when Python doesn't need it.
 - **Consistency over cleverness.** The API should be predictable from one example of each pattern. When in doubt, choose what makes the codebase more uniform.
 - **Think big, start small.** Choose first versions that can grow without breaking callers.
-- **Small surface.** Wrap only the OCCT the Python API needs. When in doubt, leave it out.
+- **Small surface.** Wrap only the OCCT the Python API needs, and make what's wrapped reachable from Python. When in doubt, leave it out.
+- **Familiar to CAD users.** Terms, orientations, and argument meanings follow common CAD conventions.
 - **Implementation stays private.** Public names and docstrings don't reference OCCT.
 - **Clear layers.**
   - C++ (`src/` → `_occtlite`, `I`-prefixed) handles OCCT calls and memory safety.
   - Python (`pyocctlite/`) owns everything that makes the API feel Pythonic: validation, defaults, naming, composition, and conventions like 0-based indices (OCCT's are usually 1-based).
   - Users work with Python wrappers; `I` objects stay behind `i<name>`.
 - **Immutable values.** Objects don't change after construction; operations return new objects and never mutate their inputs.
-- **Unitless lengths.** OCCT has no length unit, so callers keep theirs consistent. Angles are radians.
+- **Unitless lengths.** OCCT has no length unit, so callers keep theirs consistent.
 - **Root causes, not guards.** Fix the cause of a problem, or report it and leave the code alone. Don't add checks or workarounds preemptively. A signature broader than its implementation is unfinished intent, not a bug.
 - **Docs for humans and agents.** Say what the name and signature can't in plain technical language. Make it clear but make it concise.
 
-## Conventions
+## Patterns
 
 Start from existing patterns. If two patterns disagree, or the code disagrees with these patterns, raise it rather than silently picking one. If a new pattern is confirmed, consider adding it to this table.
 
@@ -63,10 +64,22 @@ Start from existing patterns. If two patterns disagree, or the code disagrees wi
 | Tool | One OCCT algorithm: construct, configure, query | `FilletIShape` / `ShapeTool`, `UniteShapes` |
 | Kind family | A polymorphic OCCT family: one C++ type with a kind, one Python subclass per kind | `ICurve` / `Curve`, `Line` |
 | Kind data | Parameters specific to one kind | `ICurveData` |
-| Shared OCCT base API | One base API used by many tools, wrapped once | `MakeIShape.hpp` |
+| Shared OCCT base API | One base API used by many tools, wrapped once | `MakeIShape.hpp`, `BooleanIShapes.hpp` |
 | Collection tool | Sequence-like results | `MapIShape` / `MapShape` |
 | Composite | Python-only object with named parts | `Cylinder` |
 | Errors | Domain errors across both layers | `IErrors.hpp` / `errors.py` |
+
+## Conventions
+
+- Coordinates are right-handed and Z-up.
+- Directions and components are ordered x, y, z. An origin comes first (`Frame.by_vectors(origin, xvec, zvec)`).
+- Indices are 0-based. Angles are radians.
+- Constructors are `by_<inputs>` classmethods. `__init__` takes the `I` object or named parts.
+- Operations are named with verbs (`translate`, `scale`, `normalize`) and return new objects.
+- Shape methods delegate to a Python tool of the same operation (`fillet` → `FilletShape`).
+- Stored or derived values are properties. Anything that takes inputs or runs an operation is a method.
+- Operations that accept many shapes also accept one (`Edge | Iterable[Edge]`).
+- Collections support Python protocols and may also have named methods.
 
 ## Workflow
 

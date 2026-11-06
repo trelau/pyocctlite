@@ -4,7 +4,7 @@ import math
 
 from pyocctlite.geometry import Axis, Frame, Point, Vector
 from pyocctlite.primitives import Cylinder
-from pyocctlite.topology import Compound, CutShapes, Edge, Face, RevolveShape, Vertex, Wire
+from pyocctlite.topology import CutShapes, Edge, Face, RevolveShape, Vertex, Wire
 
 # Dimensions for the fitting
 bore_radius = 20.0
@@ -64,7 +64,7 @@ hole = Cylinder.by_size(bolt_hole_radius, flange_thickness + 2.0, Frame.by_origi
 holes = [hole.rotate(axis, i * 2.0 * math.pi / bolt_count) for i in range(bolt_count)]
 
 # Drill the holes and break the edges where they meet the flange faces
-drill = CutShapes(beveled, Compound.by_shapes(holes))
+drill = CutShapes(beveled, holes)
 fitting = drill.shape().chamfer(drill.intersection_edges(), bolt_hole_chamfer)
 
 # Export STEP

@@ -11,6 +11,8 @@ void bind_IPoint2D(nb::module_& m) {
 
       .def("X", &IPoint2D::X, "Point X-location.")
       .def("Y", &IPoint2D::Y, "Point Y-location.")
+      .def("Translated", &IPoint2D::Translated, nb::arg("vector"),
+           "Return a copy of this point moved along a vector.")
       .def("Distance", &IPoint2D::Distance, nb::arg("other"),
            "Compute the distance to another point.")
       .def("IsEqual", &IPoint2D::IsEqual, nb::arg("other"), nb::arg("tol") = 1.0e-7,

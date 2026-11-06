@@ -12,6 +12,8 @@ void bind_IPoint(nb::module_& m) {
       .def("X", &IPoint::X, "Point X-location.")
       .def("Y", &IPoint::Y, "Point Y-location.")
       .def("Z", &IPoint::Z, "Point Z-location.")
+      .def("Translated", &IPoint::Translated, nb::arg("vector"),
+           "Return a copy of this point moved along a vector.")
       .def("Distance", &IPoint::Distance, nb::arg("other"),
            "Compute the distance to another point.")
       .def("IsEqual", &IPoint::IsEqual, nb::arg("other"), nb::arg("tol") = 1.0e-7,

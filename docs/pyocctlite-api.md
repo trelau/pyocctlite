@@ -12,20 +12,32 @@ class Point2D
     Point2D.by_xy(x: float, y: float) -> Point2D
     .x: float
     .y: float
+    .translate(vector: Vector2D) -> Point2D
+    .distance(other: Point2D) -> float
     .is_equal(other: Point2D, tol: float = 1e-07) -> bool
 class Vector2D
     Vector2D.by_xy(x: float, y: float) -> Vector2D
+    Vector2D.by_points(p1: Point2D, p2: Point2D) -> Vector2D
     .x: float
     .y: float
     .magnitude: float
-    .scaled(scale: float) -> Vector2D
+    .scale(scale: float) -> Vector2D
+    .normalize() -> Vector2D
+    .dot(other: Vector2D) -> float
+    .cross(other: Vector2D) -> float
 class Frame2D
     Frame2D.by_origin(origin: Point2D) -> Frame2D
     Frame2D.by_vector(origin: Point2D, xvec: Vector2D) -> Frame2D
+    .origin: Point2D
     .x_direction: Vector2D
     .y_direction: Vector2D
 class Curve2D
     .evaluate(u: float) -> Point2D
+    .derivative(u: float, order: int = 1) -> Vector2D
+    .is_closed: bool
+    .is_periodic: bool
+    .first_parameter: float
+    .last_parameter: float
 class Ellipse2D(Curve2D)
     Ellipse2D.by_radii(rmajor: float, rminor: float, frame: Frame2D | None = None) -> Ellipse2D
 class TrimmedCurve2D(Curve2D)
@@ -36,29 +48,43 @@ class Point
     .x: float
     .y: float
     .z: float
+    .translate(vector: Vector) -> Point
+    .distance(other: Point) -> float
     .is_equal(other: Point, tol: float = 1e-07) -> bool
 class Vector
     Vector.by_xyz(x: float, y: float, z: float) -> Vector
+    Vector.by_points(p1: Point, p2: Point) -> Vector
     .x: float
     .y: float
     .z: float
     .magnitude: float
-    .scaled(scale: float) -> Vector
+    .scale(scale: float) -> Vector
+    .normalize() -> Vector
+    .dot(other: Vector) -> float
+    .cross(other: Vector) -> Vector
 class Axis
     Axis.by_vector(origin: Point, direction: Vector) -> Axis
     .origin: Point
     .direction: Vector
 class Frame
     Frame.by_origin(origin: Point) -> Frame
+    Frame.by_vectors(origin: Point, xvec: Vector, zvec: Vector) -> Frame
     .origin: Point
+    .axis: Axis
     .x_direction: Vector
     .y_direction: Vector
     .z_direction: Vector
 class Transform
     Transform.by_mirror(origin: Point, normal: Vector) -> Transform
     Transform.by_rotation(axis: Axis, angle: float) -> Transform
+    Transform.by_translation(vector: Vector) -> Transform
 class Curve
     .evaluate(u: float) -> Point
+    .derivative(u: float, order: int = 1) -> Vector
+    .is_closed: bool
+    .is_periodic: bool
+    .first_parameter: float
+    .last_parameter: float
 class Line(Curve)
     Line.by_points(p1: Point, p2: Point) -> Line
     .origin: Point
@@ -66,12 +92,24 @@ class Line(Curve)
 class Circle(Curve)
     Circle.by_radius(radius: float, frame: Frame | None = None) -> Circle
     Circle.by_points(p1: Point, p2: Point, p3: Point) -> Circle
+    .frame: Frame
     .radius: float
 class TrimmedCurve(Curve)
     TrimmedCurve.by_circular_arc(p1: Point, p2: Point, p3: Point) -> TrimmedCurve
 class Surface
 class CylindricalSurface(Surface)
     CylindricalSurface.by_radius(radius: float, frame: Frame | None = None) -> CylindricalSurface
+class ProjectPointToCurve
+    ProjectPointToCurve(p: Point, c: Curve, u0: float | None = None, u1: float | None = None)
+    .perform(p: Point) -> None
+    .is_done: bool
+    .num_points: int
+    .point(index: int) -> Point
+    .parameter(index: int) -> float
+    .distance(index: int) -> float
+    .nearest_point() -> Point
+    .nearest_parameter() -> float
+    .nearest_distance() -> float
 ```
 
 # pyocctlite.primitives
@@ -85,23 +123,14 @@ class Box(Solid)
     .front_face: Face
     .left_face: Face
     .right_face: Face
-    .copy() -> Self
-    .mirror(origin: Point, normal: Vector) -> Self
-    .rotate(axis: Axis, angle: float) -> Self
 class Sphere(Solid)
     Sphere.by_size(radius: float, frame: Frame | None = None) -> Sphere
     .face: Face
-    .copy() -> Self
-    .mirror(origin: Point, normal: Vector) -> Self
-    .rotate(axis: Axis, angle: float) -> Self
 class Cylinder(Solid)
     Cylinder.by_size(radius: float, height: float, frame: Frame | None = None) -> Cylinder
     .bottom_face: Face
     .top_face: Face
     .lateral_face: Face
-    .copy() -> Self
-    .mirror(origin: Point, normal: Vector) -> Self
-    .rotate(axis: Axis, angle: float) -> Self
 ```
 
 # pyocctlite.topology
@@ -123,6 +152,7 @@ class Shape
     .area: float
     .volume: float
     .is_valid: bool
+    .is_equal(other: Shape) -> bool
     .explore(find: type[T], ignore: type[Shape] | None = None) -> ExploreShape[T]
     .map(kind: type[T]) -> MapShape[T]
     .vertices() -> MapShape[Vertex]
@@ -136,10 +166,12 @@ class Shape
     .copy() -> Self
     .mirror(origin: Point, normal: Vector) -> Self
     .rotate(axis: Axis, angle: float) -> Self
+    .translate(vector: Vector) -> Self
     .extrude(vector: Vector) -> Shape
     .revolve(axis: Axis) -> Shape
-    .unite(other: Shape) -> Shape
-    .cut(other: Shape) -> Shape
+    .unite(other: Shape | Iterable[Shape]) -> Shape
+    .cut(other: Shape | Iterable[Shape]) -> Shape
+    .intersect(other: Shape | Iterable[Shape]) -> Shape
     .fillet(edge: Edge | Iterable[Edge], radius: float) -> Shape
     .chamfer(edge: Edge | Iterable[Edge], distance: float) -> Shape
     .thicken(thickness: float, tol: float = 0.001, faces: Iterable[Face] | None = None) -> Shape
@@ -178,14 +210,19 @@ class Compound(Shape)
     Compound.by_shapes(shapes: Iterable[Shape]) -> Compound
 class ShapeTool
     .is_done: bool
+    .build() -> None
     .shape() -> Shape
     .generated_shapes(s: Shape) -> list[Shape]
-class UniteShapes(ShapeTool)
-    UniteShapes(target: Shape, tool: Shape)
+    .modified_shapes(s: Shape) -> list[Shape]
+    .is_deleted(s: Shape) -> bool
+class BooleanShapes(ShapeTool)
     .intersection_edges() -> list[Edge]
-class CutShapes(ShapeTool)
-    CutShapes(target: Shape, tool: Shape)
-    .intersection_edges() -> list[Edge]
+class UniteShapes(BooleanShapes)
+    UniteShapes(target: Shape | Iterable[Shape], tool: Shape | Iterable[Shape])
+class CutShapes(BooleanShapes)
+    CutShapes(target: Shape | Iterable[Shape], tool: Shape | Iterable[Shape])
+class IntersectShapes(BooleanShapes)
+    IntersectShapes(target: Shape | Iterable[Shape], tool: Shape | Iterable[Shape])
 class CopyShape(ShapeTool, Generic[T])
     CopyShape(s: T, copy_geom: bool = True)
     .shape() -> T
@@ -203,7 +240,9 @@ class ExtrudeShape(ShapeTool, Generic[T])
     .shape(self: ExtrudeShape[Shell]) -> CompSolid
     .shape() -> Shape
     .first_shape() -> T
+    .first_shape(s: S) -> S
     .last_shape() -> T
+    .last_shape(s: S) -> S
 class RevolveShape(ShapeTool, Generic[T])
     RevolveShape(s: T, axis: Axis)
     .shape(self: RevolveShape[Vertex]) -> Edge
@@ -233,6 +272,7 @@ class MapShape(Generic[T])
     .find_shape(index: int) -> T
     .find_index(shape: T) -> int | None
     .contains(shape: T) -> bool
+    .__contains__(shape: T) -> bool
 class ExploreShape(Generic[T])
     ExploreShape(shape: Shape, find: type[T], ignore: type[Shape] | None = None)
     .__iter__() -> Iterator[T]

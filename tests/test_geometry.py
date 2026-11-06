@@ -16,6 +16,7 @@ from pyocctlite.geometry import (
     Line,
     Point,
     Point2D,
+    ProjectPointToCurve,
     Surface,
     Transform,
     TrimmedCurve,
@@ -50,7 +51,7 @@ class TestVector2D(unittest.TestCase):
         self.assertAlmostEqual(v.magnitude, math.sqrt(5.0))
 
     def test_scaled(self):
-        v = Vector2D.by_xy(1, 2).scaled(2)
+        v = Vector2D.by_xy(1, 2).scale(2)
         self.assertAlmostEqual(v.x, 2.0)
         self.assertAlmostEqual(v.y, 4.0)
 
@@ -145,7 +146,7 @@ class TestVector(unittest.TestCase):
         self.assertAlmostEqual(v.magnitude, math.sqrt(14.0))
 
     def test_scaled(self):
-        v = Vector.by_xyz(1, 2, 3).scaled(-2)
+        v = Vector.by_xyz(1, 2, 3).scale(-2)
         self.assertAlmostEqual(v.x, -2.0)
         self.assertAlmostEqual(v.y, -4.0)
         self.assertAlmostEqual(v.z, -6.0)
@@ -198,6 +199,170 @@ class TestTransform(unittest.TestCase):
         a = Axis.by_vector(Point.by_xyz(0, 0, 0), Vector.by_xyz(0, 0, 1))
         t = Transform.by_rotation(a, math.pi / 2.0)
         self.assertIsInstance(t, Transform)
+
+    def test_by_translation(self):
+        t = Transform.by_translation(Vector.by_xyz(1, 2, 3))
+        self.assertIsInstance(t, Transform)
+
+
+class TestPointVectorMath(unittest.TestCase):
+    def test_translate(self):
+        p = Point.by_xyz(1, 2, 3)
+        self.assertTrue(p.translate(Vector.by_xyz(1, 1, 1)).is_equal(Point.by_xyz(2, 3, 4)))
+        self.assertTrue(p.is_equal(Point.by_xyz(1, 2, 3)))
+
+    def test_translate_2d(self):
+        p = Point2D.by_xy(1, 2)
+        self.assertTrue(p.translate(Vector2D.by_xy(1, 1)).is_equal(Point2D.by_xy(2, 3)))
+
+    def test_by_points(self):
+        v = Vector.by_points(Point.by_xyz(1, 2, 3), Point.by_xyz(2, 4, 6))
+        self.assertAlmostEqual(v.x, 1.0)
+        self.assertAlmostEqual(v.y, 2.0)
+        self.assertAlmostEqual(v.z, 3.0)
+        p = Point.by_xyz(1, 1, 1)
+        self.assertAlmostEqual(Vector.by_points(p, p).magnitude, 0.0)
+
+    def test_by_points_2d(self):
+        v = Vector2D.by_points(Point2D.by_xy(1, 2), Point2D.by_xy(2, 4))
+        self.assertAlmostEqual(v.x, 1.0)
+        self.assertAlmostEqual(v.y, 2.0)
+
+    def test_normalize(self):
+        v = Vector.by_xyz(3, 0, 4)
+        n = v.normalize()
+        self.assertAlmostEqual(n.magnitude, 1.0)
+        self.assertAlmostEqual(n.z, 0.8)
+        self.assertAlmostEqual(v.magnitude, 5.0)
+        with self.assertRaises(RuntimeError):
+            Vector.by_xyz(0, 0, 0).normalize()
+
+    def test_normalize_2d(self):
+        self.assertAlmostEqual(Vector2D.by_xy(3, 4).normalize().y, 0.8)
+        with self.assertRaises(RuntimeError):
+            Vector2D.by_xy(0, 0).normalize()
+
+    def test_dot_cross(self):
+        x, y = Vector.by_xyz(1, 0, 0), Vector.by_xyz(0, 2, 0)
+        self.assertAlmostEqual(x.dot(y), 0.0)
+        self.assertAlmostEqual(x.dot(x), 1.0)
+        z = x.cross(y)
+        self.assertAlmostEqual(z.z, 2.0)
+        self.assertAlmostEqual(y.cross(x).z, -2.0)
+
+    def test_dot_cross_2d(self):
+        x, y = Vector2D.by_xy(1, 0), Vector2D.by_xy(0, 2)
+        self.assertAlmostEqual(x.dot(y), 0.0)
+        self.assertAlmostEqual(x.cross(y), 2.0)
+        self.assertAlmostEqual(y.cross(x), -2.0)
+
+
+class TestFrameByVectors(unittest.TestCase):
+    def test_orientation(self):
+        o = Point.by_xyz(1, 2, 3)
+        f = Frame.by_vectors(o, Vector.by_xyz(0, 1, 0), Vector.by_xyz(1, 0, 0))
+        self.assertTrue(f.origin.is_equal(o))
+        self.assertAlmostEqual(f.z_direction.x, 1.0)
+        self.assertAlmostEqual(f.x_direction.y, 1.0)
+        self.assertAlmostEqual(f.y_direction.z, 1.0)
+
+    def test_x_direction_is_made_perpendicular(self):
+        o = Point.by_xyz(0, 0, 0)
+        f = Frame.by_vectors(o, Vector.by_xyz(3, 0, 3), Vector.by_xyz(0, 0, 2))
+        self.assertAlmostEqual(f.z_direction.z, 1.0)
+        self.assertAlmostEqual(f.x_direction.x, 1.0)
+        self.assertAlmostEqual(f.x_direction.z, 0.0)
+
+    def test_invalid_vectors(self):
+        o = Point.by_xyz(0, 0, 0)
+        z, zero = Vector.by_xyz(0, 0, 1), Vector.by_xyz(0, 0, 0)
+        for xvec, zvec in ((z, z), (z.scale(-2.0), z), (z, zero), (zero, z)):
+            with self.assertRaises(RuntimeError):
+                Frame.by_vectors(o, xvec, zvec)
+
+
+class TestPointDistance(unittest.TestCase):
+    def test_distance(self):
+        self.assertAlmostEqual(Point.by_xyz(0, 0, 0).distance(Point.by_xyz(3, 4, 0)), 5.0)
+        self.assertAlmostEqual(Point2D.by_xy(0, 0).distance(Point2D.by_xy(3, 4)), 5.0)
+
+
+class TestFrameParts(unittest.TestCase):
+    def test_frame_axis(self):
+        axis = Frame.by_origin(Point.by_xyz(1, 2, 3)).axis
+        self.assertTrue(axis.origin.is_equal(Point.by_xyz(1, 2, 3)))
+        self.assertAlmostEqual(axis.direction.z, 1.0)
+
+    def test_frame2d_origin(self):
+        origin = Frame2D.by_origin(Point2D.by_xy(1, 2)).origin
+        self.assertTrue(origin.is_equal(Point2D.by_xy(1, 2)))
+
+    def test_circle_frame(self):
+        c = Circle.by_radius(2.0, Frame.by_origin(Point.by_xyz(1, 2, 3)))
+        self.assertTrue(c.frame.origin.is_equal(Point.by_xyz(1, 2, 3)))
+
+
+class TestCurveQueries(unittest.TestCase):
+    def test_circle(self):
+        c = Circle.by_radius(1.0)
+        self.assertTrue(c.is_closed)
+        self.assertTrue(c.is_periodic)
+        self.assertAlmostEqual(c.first_parameter, 0.0)
+        self.assertAlmostEqual(c.last_parameter, 2.0 * math.pi)
+
+    def test_line_is_open_and_unbounded(self):
+        line = Line.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
+        self.assertFalse(line.is_closed)
+        self.assertFalse(line.is_periodic)
+        self.assertLess(line.first_parameter, -1.0e50)
+        self.assertGreater(line.last_parameter, 1.0e50)
+
+    def test_derivative(self):
+        c = Circle.by_radius(1.0)
+        d1, d2 = c.derivative(0.0), c.derivative(0.0, 2)
+        self.assertAlmostEqual(d1.y, 1.0)
+        self.assertAlmostEqual(d2.x, -1.0)
+        with self.assertRaises(RuntimeError):
+            c.derivative(0.0, 0)
+
+    def test_derivative_2d(self):
+        self.assertAlmostEqual(Ellipse2D.by_radii(2.0, 1.0).derivative(0.0).y, 1.0)
+
+
+class TestProjectPointToCurve(unittest.TestCase):
+    def test_line(self):
+        line = Line.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
+        tool = ProjectPointToCurve(Point.by_xyz(3, 4, 0), line)
+        self.assertTrue(tool.is_done)
+        self.assertEqual(tool.num_points, 1)
+        self.assertTrue(tool.nearest_point().is_equal(Point.by_xyz(3, 0, 0)))
+        self.assertAlmostEqual(tool.nearest_parameter(), 3.0)
+        self.assertAlmostEqual(tool.nearest_distance(), 4.0)
+        tool.perform(Point.by_xyz(7, 1, 0))
+        self.assertAlmostEqual(tool.nearest_parameter(), 7.0)
+
+    def test_indexed_results_are_zero_based(self):
+        tool = ProjectPointToCurve(Point.by_xyz(2, 0, 0), Circle.by_radius(1.0))
+        self.assertEqual(tool.num_points, 2)
+        self.assertTrue(tool.point(0).is_equal(Point.by_xyz(1, 0, 0)))
+        self.assertAlmostEqual(tool.parameter(1), math.pi)
+        self.assertAlmostEqual(tool.distance(1), 3.0)
+        with self.assertRaises(RuntimeError):
+            tool.point(2)
+
+    def test_no_results(self):
+        tool = ProjectPointToCurve(Point.by_xyz(0, 0, 0), Circle.by_radius(1.0))
+        self.assertFalse(tool.is_done)
+        with self.assertRaises(RuntimeError):
+            tool.nearest_point()
+
+    def test_range_excludes_outside_results(self):
+        line = Line.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
+        p = Point.by_xyz(3, 4, 0)
+        self.assertFalse(ProjectPointToCurve(p, line, 10.0, 20.0).is_done)
+        self.assertAlmostEqual(ProjectPointToCurve(p, line, u1=20.0).nearest_parameter(), 3.0)
+        with self.assertRaises(RuntimeError):
+            ProjectPointToCurve(p, line, 20.0, 0.0)
 
 
 class TestCurve(unittest.TestCase):

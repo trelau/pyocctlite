@@ -4,6 +4,8 @@
 
 #include <gp_Pnt.hxx>
 
+#include "IVector.hpp"
+
 // Interface class for a 3D point
 class IPoint {
 public:
@@ -19,6 +21,9 @@ public:
   double Y() const { return point_.Y(); }
 
   double Z() const { return point_.Z(); }
+
+  // Make a copy of this point moved along a vector
+  IPoint Translated(const IVector& vector) const { return IPoint(point_.Translated(vector)); }
 
   // Compute the distance to another point
   double Distance(const IPoint& other) const { return point_.Distance(other); }

@@ -4,7 +4,7 @@ import math
 from typing import Self
 
 from pyocctlite._occtlite import IShape
-from pyocctlite.geometry import Axis, Circle, Frame, Point, Transform, Vector
+from pyocctlite.geometry import Circle, Frame, Point
 from pyocctlite.topology import (
     CopyShape,
     Edge,
@@ -36,12 +36,15 @@ class Box(Solid):
     """
     Represents a box with one corner at the frame origin, extending along its positive axes.
 
+    Copies and transforms keep the named faces. Each is the image of the original face, so its
+    position can differ from the descriptions below (e.g. a mirrored ``back_face`` at minimum y).
+
     :ivar Face bottom_face: Bottom face (minimum z).
     :ivar Face top_face: Top face (maximum z).
-    :ivar Face back_face: Back face (minimum x).
-    :ivar Face front_face: Front face (maximum x).
-    :ivar Face left_face: Left face (minimum y).
-    :ivar Face right_face: Right face (maximum y).
+    :ivar Face back_face: Back face (maximum y).
+    :ivar Face front_face: Front face (minimum y).
+    :ivar Face left_face: Left face (minimum x).
+    :ivar Face right_face: Right face (maximum x).
     """
 
     @classmethod
@@ -66,29 +69,25 @@ class Box(Solid):
 
         # make the corners of the bottom face in the xy-plane of the frame
         o = frame.origin
-        vx = frame.x_direction.scaled(dx)
-        vy = frame.y_direction.scaled(dy)
+        vx = frame.x_direction.scale(dx)
+        vy = frame.y_direction.scale(dy)
         v1, v2, v3, v4 = (
-            Vertex.by_point(
-                Point.by_xyz(
-                    o.x + a * vx.x + b * vy.x, o.y + a * vx.y + b * vy.y, o.z + a * vx.z + b * vy.z
-                )
-            )
+            Vertex.by_point(o.translate(vx.scale(a)).translate(vy.scale(b)))
             for a, b in ((0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0))
         )
 
         # make the edges between those shared corners, so that the wire keeps these same edges
-        left_edge = Edge.by_vertices(v1, v2)
-        front_edge = Edge.by_vertices(v2, v3)
-        right_edge = Edge.by_vertices(v3, v4)
-        back_edge = Edge.by_vertices(v4, v1)
+        front_edge = Edge.by_vertices(v1, v2)
+        right_edge = Edge.by_vertices(v2, v3)
+        back_edge = Edge.by_vertices(v3, v4)
+        left_edge = Edge.by_vertices(v4, v1)
 
         # make a face from those edges
-        w = Wire.by_edges((left_edge, front_edge, right_edge, back_edge))
+        w = Wire.by_edges((front_edge, right_edge, back_edge, left_edge))
         f = Face.by_wire(w)
 
         # get vector of height in z-direction of frame
-        v = frame.z_direction.scaled(dz)
+        v = frame.z_direction.scale(dz)
 
         # extrude that face by height
         tool = ExtrudeShape(f, v)
@@ -205,44 +204,6 @@ class Box(Solid):
         """
         return self._right_face
 
-    def copy(self) -> Self:
-        """
-        Create a copy of this box, including its named faces.
-
-        :return: Copied box.
-        :rtype: Self
-        """
-        return self._by_history(CopyShape(self))
-
-    def mirror(self, origin: Point, normal: Vector) -> Self:
-        """
-        Create a mirrored version of this box, including its named faces.
-
-        Each named face is the image of the original face, so its position can differ from the class
-        description (e.g. ``back_face`` at maximum x).
-
-        :param Point origin: Point on the mirror plane.
-        :param Vector normal: Normal of the mirror plane. Must be non-zero.
-        :return: Mirrored box.
-        :rtype: Self
-        :raises RuntimeError: If the normal has zero length.
-        """
-        t = Transform.by_mirror(origin, normal)
-        return self._by_history(TransformShape(self, t))
-
-    def rotate(self, axis: Axis, angle: float) -> Self:
-        """
-        Create a rotated version of this box, including its named faces.
-
-        :param Axis axis: Axis of rotation.
-        :param float angle: Angle in radians, counterclockwise when looking against the axis
-            direction.
-        :return: Rotated box.
-        :rtype: Self
-        """
-        t = Transform.by_rotation(axis, angle)
-        return self._by_history(TransformShape(self, t))
-
     def _by_history(self, tool: CopyShape[Self] | TransformShape[Self]) -> Self:
         """
         Build a box from a kind-preserving tool by mapping each named face through its history.
@@ -265,6 +226,8 @@ class Box(Solid):
 class Sphere(Solid):
     """
     Represents a sphere centered at the frame origin.
+
+    Copies and transforms keep the named face.
 
     :ivar Face face: Spherical face.
     """
@@ -313,41 +276,6 @@ class Sphere(Solid):
         """
         return self._face
 
-    def copy(self) -> Self:
-        """
-        Create a copy of this sphere, including its named face.
-
-        :return: Copied sphere.
-        :rtype: Self
-        """
-        return self._by_history(CopyShape(self))
-
-    def mirror(self, origin: Point, normal: Vector) -> Self:
-        """
-        Create a mirrored version of this sphere, including its named face.
-
-        :param Point origin: Point on the mirror plane.
-        :param Vector normal: Normal of the mirror plane. Must be non-zero.
-        :return: Mirrored sphere.
-        :rtype: Self
-        :raises RuntimeError: If the normal has zero length.
-        """
-        t = Transform.by_mirror(origin, normal)
-        return self._by_history(TransformShape(self, t))
-
-    def rotate(self, axis: Axis, angle: float) -> Self:
-        """
-        Create a rotated version of this sphere, including its named face.
-
-        :param Axis axis: Axis of rotation.
-        :param float angle: Angle in radians, counterclockwise when looking against the axis
-            direction.
-        :return: Rotated sphere.
-        :rtype: Self
-        """
-        t = Transform.by_rotation(axis, angle)
-        return self._by_history(TransformShape(self, t))
-
     def _by_history(self, tool: CopyShape[Self] | TransformShape[Self]) -> Self:
         """
         Build a sphere from a kind-preserving tool by mapping its named face through its history.
@@ -363,6 +291,8 @@ class Cylinder(Solid):
     """
     Represents a cylinder with its base centered at the frame origin, extending along its
     z-direction.
+
+    Copies and transforms keep the named faces.
 
     :ivar Face bottom_face: Bottom face.
     :ivar Face top_face: Top face.
@@ -396,7 +326,7 @@ class Cylinder(Solid):
         f = Face.by_wire(w)
 
         # get vector of height in z-direction of frame
-        v = frame.z_direction.scaled(height)
+        v = frame.z_direction.scale(height)
 
         # extrude that circle by height
         tool = ExtrudeShape(f, v)
@@ -461,41 +391,6 @@ class Cylinder(Solid):
         :rtype: Face
         """
         return self._lateral_face
-
-    def copy(self) -> Self:
-        """
-        Create a copy of this cylinder, including its named faces.
-
-        :return: Copied cylinder.
-        :rtype: Self
-        """
-        return self._by_history(CopyShape(self))
-
-    def mirror(self, origin: Point, normal: Vector) -> Self:
-        """
-        Create a mirrored version of this cylinder, including its named faces.
-
-        :param Point origin: Point on the mirror plane.
-        :param Vector normal: Normal of the mirror plane. Must be non-zero.
-        :return: Mirrored cylinder.
-        :rtype: Self
-        :raises RuntimeError: If the normal has zero length.
-        """
-        t = Transform.by_mirror(origin, normal)
-        return self._by_history(TransformShape(self, t))
-
-    def rotate(self, axis: Axis, angle: float) -> Self:
-        """
-        Create a rotated version of this cylinder, including its named faces.
-
-        :param Axis axis: Axis of rotation.
-        :param float angle: Angle in radians, counterclockwise when looking against the axis
-            direction.
-        :return: Rotated cylinder.
-        :rtype: Self
-        """
-        t = Transform.by_rotation(axis, angle)
-        return self._by_history(TransformShape(self, t))
 
     def _by_history(self, tool: CopyShape[Self] | TransformShape[Self]) -> Self:
         """

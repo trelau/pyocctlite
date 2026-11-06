@@ -17,6 +17,7 @@ from pyocctlite._occtlite import (
     ITransform,
     IVector,
     IVector2D,
+    ProjectIPointToICurve,
 )
 
 
@@ -79,6 +80,26 @@ class Point2D:
         """
         return self.ipoint.Y()
 
+    def translate(self, vector: Vector2D) -> Point2D:
+        """
+        Create a copy of this point moved along a vector.
+
+        :param Vector2D vector: Translation direction and distance.
+        :return: Moved point.
+        :rtype: Point2D
+        """
+        return Point2D(self.ipoint.Translated(vector.ivector))
+
+    def distance(self, other: Point2D) -> float:
+        """
+        Get the distance to another point.
+
+        :param Point2D other: Other point.
+        :return: Distance.
+        :rtype: float
+        """
+        return self.ipoint.Distance(other.ipoint)
+
     def is_equal(self, other: Point2D, tol: float = 1.0e-7) -> bool:
         """
         Check if this point is equal to another within a tolerance.
@@ -109,6 +130,18 @@ class Vector2D:
         :rtype: Vector2D
         """
         return cls(IVector2D.MakeByXY(x, y))
+
+    @classmethod
+    def by_points(cls, p1: Point2D, p2: Point2D) -> Vector2D:
+        """
+        Create a vector from one point to another. Coincident points produce a zero vector.
+
+        :param Point2D p1: Start point.
+        :param Point2D p2: End point.
+        :return: New vector.
+        :rtype: Vector2D
+        """
+        return cls(IVector2D.MakeByPoints(p1.ipoint, p2.ipoint))
 
     def __init__(self, v: IVector2D):
         """
@@ -160,7 +193,7 @@ class Vector2D:
         """
         return self.ivector.Magnitude()
 
-    def scaled(self, scale: float) -> Vector2D:
+    def scale(self, scale: float) -> Vector2D:
         """
         Create a scaled version of this vector.
 
@@ -169,6 +202,36 @@ class Vector2D:
         :rtype: Vector2D
         """
         return Vector2D(self.ivector.Scaled(scale))
+
+    def normalize(self) -> Vector2D:
+        """
+        Create a unit-length copy of this vector.
+
+        :return: Unit vector.
+        :rtype: Vector2D
+        :raises RuntimeError: If the vector has zero length.
+        """
+        return Vector2D(self.ivector.Normalized())
+
+    def dot(self, other: Vector2D) -> float:
+        """
+        Compute the dot product with another vector.
+
+        :param Vector2D other: Other vector.
+        :return: Dot product.
+        :rtype: float
+        """
+        return self.ivector.Dot(other.ivector)
+
+    def cross(self, other: Vector2D) -> float:
+        """
+        Compute the scalar cross product with another vector.
+
+        :param Vector2D other: Other vector.
+        :return: Signed area of the parallelogram, positive if ``other`` is counterclockwise.
+        :rtype: float
+        """
+        return self.ivector.Cross(other.ivector)
 
 
 class Frame2D:
@@ -225,6 +288,16 @@ class Frame2D:
         :rtype: IFrame2D
         """
         return self._iframe
+
+    @cached_property
+    def origin(self) -> Point2D:
+        """
+        Origin of the frame.
+
+        :return: Origin point.
+        :rtype: Point2D
+        """
+        return Point2D(self.iframe.Origin())
 
     @cached_property
     def x_direction(self) -> Vector2D:
@@ -301,6 +374,58 @@ class Curve2D:
         """
         ipoint = self.icurve.Evaluate(u)
         return Point2D(ipoint)
+
+    def derivative(self, u: float, order: int = 1) -> Vector2D:
+        """
+        Evaluate a derivative of the curve at a parameter.
+
+        :param float u: Curve parameter.
+        :param int order: Order of the derivative. Must be at least 1.
+        :return: Derivative vector.
+        :rtype: Vector2D
+        :raises RuntimeError: If the order is less than 1.
+        """
+        return Vector2D(self.icurve.Derivative(u, order))
+
+    @cached_property
+    def is_closed(self) -> bool:
+        """
+        Check if the curve ends where it starts.
+
+        :return: True if closed.
+        :rtype: bool
+        """
+        return self.icurve.IsClosed()
+
+    @cached_property
+    def is_periodic(self) -> bool:
+        """
+        Check if the curve repeats along its parameter.
+
+        :return: True if periodic.
+        :rtype: bool
+        """
+        return self.icurve.IsPeriodic()
+
+    @cached_property
+    def first_parameter(self) -> float:
+        """
+        Parameter at the start of the curve. Very large and negative for an unbounded curve.
+
+        :return: First parameter.
+        :rtype: float
+        """
+        return self.icurve.FirstParameter()
+
+    @cached_property
+    def last_parameter(self) -> float:
+        """
+        Parameter at the end of the curve. Very large for an unbounded curve.
+
+        :return: Last parameter.
+        :rtype: float
+        """
+        return self.icurve.LastParameter()
 
 
 class Ellipse2D(Curve2D):
@@ -459,6 +584,26 @@ class Point:
         """
         return self.ipoint.Z()
 
+    def translate(self, vector: Vector) -> Point:
+        """
+        Create a copy of this point moved along a vector.
+
+        :param Vector vector: Translation direction and distance.
+        :return: Moved point.
+        :rtype: Point
+        """
+        return Point(self.ipoint.Translated(vector.ivector))
+
+    def distance(self, other: Point) -> float:
+        """
+        Get the distance to another point.
+
+        :param Point other: Other point.
+        :return: Distance.
+        :rtype: float
+        """
+        return self.ipoint.Distance(other.ipoint)
+
     def is_equal(self, other: Point, tol: float = 1.0e-7) -> bool:
         """
         Check if this point is equal to another within a tolerance.
@@ -490,6 +635,18 @@ class Vector:
         :rtype: Vector
         """
         return cls(IVector.MakeByXYZ(x, y, z))
+
+    @classmethod
+    def by_points(cls, p1: Point, p2: Point) -> Vector:
+        """
+        Create a vector from one point to another. Coincident points produce a zero vector.
+
+        :param Point p1: Start point.
+        :param Point p2: End point.
+        :return: New vector.
+        :rtype: Vector
+        """
+        return cls(IVector.MakeByPoints(p1.ipoint, p2.ipoint))
 
     def __init__(self, v: IVector):
         """
@@ -551,7 +708,7 @@ class Vector:
         """
         return self.ivector.Magnitude()
 
-    def scaled(self, scale: float) -> Vector:
+    def scale(self, scale: float) -> Vector:
         """
         Create a scaled version of this vector.
 
@@ -560,6 +717,36 @@ class Vector:
         :rtype: Vector
         """
         return Vector(self.ivector.Scaled(scale))
+
+    def normalize(self) -> Vector:
+        """
+        Create a unit-length copy of this vector.
+
+        :return: Unit vector.
+        :rtype: Vector
+        :raises RuntimeError: If the vector has zero length.
+        """
+        return Vector(self.ivector.Normalized())
+
+    def dot(self, other: Vector) -> float:
+        """
+        Compute the dot product with another vector.
+
+        :param Vector other: Other vector.
+        :return: Dot product.
+        :rtype: float
+        """
+        return self.ivector.Dot(other.ivector)
+
+    def cross(self, other: Vector) -> Vector:
+        """
+        Compute the cross product with another vector.
+
+        :param Vector other: Other vector.
+        :return: Cross product.
+        :rtype: Vector
+        """
+        return Vector(self.ivector.Cross(other.ivector))
 
 
 class Axis:
@@ -643,6 +830,24 @@ class Frame:
         iframe = IFrame.MakeByOrigin(origin.ipoint)
         return cls(iframe)
 
+    @classmethod
+    def by_vectors(cls, origin: Point, xvec: Vector, zvec: Vector) -> Frame:
+        """
+        Create a 3D frame from an origin, x-direction, and z-direction.
+
+        The z-direction is kept. The x-direction is adjusted to be perpendicular to it, and the
+        y-direction completes a right-handed frame.
+
+        :param Point origin: Origin point.
+        :param Vector xvec: x-direction vector. Must be non-zero and not parallel to ``zvec``.
+        :param Vector zvec: z-direction vector. Must be non-zero.
+        :return: New 3D frame.
+        :rtype: Frame
+        :raises RuntimeError: If a vector has zero length or the vectors are parallel.
+        """
+        iframe = IFrame.MakeByVectors(origin.ipoint, xvec.ivector, zvec.ivector)
+        return cls(iframe)
+
     def __init__(self, f: IFrame):
         """
         Initialize from an IFrame.
@@ -672,6 +877,16 @@ class Frame:
         :rtype: Point
         """
         return Point(self.iframe.Origin())
+
+    @cached_property
+    def axis(self) -> Axis:
+        """
+        Axis through the origin along the z-direction.
+
+        :return: Axis.
+        :rtype: Axis
+        """
+        return Axis(self.iframe.Axis())
 
     @cached_property
     def x_direction(self) -> Vector:
@@ -737,6 +952,18 @@ class Transform:
         :rtype: Transform
         """
         itransform = ITransform.MakeRotation(axis.iaxis, angle)
+        return cls(itransform)
+
+    @classmethod
+    def by_translation(cls, vector: Vector) -> Transform:
+        """
+        Create a translation transformation.
+
+        :param Vector vector: Translation direction and distance.
+        :return: New transformation.
+        :rtype: Transform
+        """
+        itransform = ITransform.MakeTranslation(vector.ivector)
         return cls(itransform)
 
     def __init__(self, t: ITransform):
@@ -816,6 +1043,58 @@ class Curve:
         """
         ipoint = self.icurve.Evaluate(u)
         return Point(ipoint)
+
+    def derivative(self, u: float, order: int = 1) -> Vector:
+        """
+        Evaluate a derivative of the curve at a parameter.
+
+        :param float u: Curve parameter.
+        :param int order: Order of the derivative. Must be at least 1.
+        :return: Derivative vector.
+        :rtype: Vector
+        :raises RuntimeError: If the order is less than 1.
+        """
+        return Vector(self.icurve.Derivative(u, order))
+
+    @cached_property
+    def is_closed(self) -> bool:
+        """
+        Check if the curve ends where it starts.
+
+        :return: True if closed.
+        :rtype: bool
+        """
+        return self.icurve.IsClosed()
+
+    @cached_property
+    def is_periodic(self) -> bool:
+        """
+        Check if the curve repeats along its parameter.
+
+        :return: True if periodic.
+        :rtype: bool
+        """
+        return self.icurve.IsPeriodic()
+
+    @cached_property
+    def first_parameter(self) -> float:
+        """
+        Parameter at the start of the curve. Very large and negative for an unbounded curve.
+
+        :return: First parameter.
+        :rtype: float
+        """
+        return self.icurve.FirstParameter()
+
+    @cached_property
+    def last_parameter(self) -> float:
+        """
+        Parameter at the end of the curve. Very large for an unbounded curve.
+
+        :return: Last parameter.
+        :rtype: float
+        """
+        return self.icurve.LastParameter()
 
 
 class Line(Curve):
@@ -924,6 +1203,18 @@ class Circle(Curve):
         super().__init__(c)
         if c.Kind() != ICurveKind.Circle:
             raise TypeError(f"Expected ICurveKind.Circle, got {c.Kind()}.")
+
+    @cached_property
+    def frame(self) -> Frame:
+        """
+        Coordinate system of the circle, with its center at the origin.
+
+        :return: Frame.
+        :rtype: Frame
+        """
+        idata = self.icurve.CircleData()
+        assert idata is not None  # guaranteed by the kind check in __init__
+        return Frame(idata.Frame)
 
     @cached_property
     def radius(self) -> float:
@@ -1048,3 +1339,121 @@ class CylindricalSurface(Surface):
         super().__init__(s)
         if s.Kind() != ISurfaceKind.Cylindrical:
             raise TypeError(f"Expected ISurfaceKind.Cylindrical, got {s.Kind()}.")
+
+
+class ProjectPointToCurve:
+    """
+    Tool to project a point onto a curve, finding where the line to the point is perpendicular to
+    the curve.
+
+    End points of the curve or range are not results unless they meet that condition, so a point
+    can have no results (e.g. the center of a circle). A circle has two results otherwise.
+    """
+
+    def __init__(self, p: Point, c: Curve, u0: float | None = None, u1: float | None = None):
+        """
+        Initialize with a point, a curve, and an optional parameter range.
+
+        :param Point p: Point to project.
+        :param Curve c: Curve.
+        :param float | None u0: Start of the range. Defaults to the start of the curve.
+        :param float | None u1: End of the range. Defaults to the end of the curve.
+        :raises RuntimeError: If the start of the range is after its end.
+        """
+        start = c.first_parameter if u0 is None else u0
+        end = c.last_parameter if u1 is None else u1
+        self._itool = ProjectIPointToICurve(p.ipoint, c.icurve, start, end)
+
+    def perform(self, p: Point) -> None:
+        """
+        Project a new point onto the same curve and range, replacing the results.
+
+        :param Point p: Point to project.
+        """
+        self._itool.Perform(p.ipoint)
+
+    @property
+    def is_done(self) -> bool:
+        """
+        Check if the projection has results.
+
+        :return: True if there is at least one result.
+        :rtype: bool
+        """
+        return self._itool.IsDone()
+
+    @property
+    def num_points(self) -> int:
+        """
+        Number of results.
+
+        :return: Count.
+        :rtype: int
+        """
+        return self._itool.NumPoints()
+
+    def point(self, index: int) -> Point:
+        """
+        Get a projected point. Negative indices are not supported.
+
+        :param int index: 0-based index of the result.
+        :return: Point on the curve.
+        :rtype: Point
+        :raises RuntimeError: If the index is out of range.
+        """
+        # Python is 0-based, OCCT is 1-based
+        return Point(self._itool.Point(index + 1))
+
+    def parameter(self, index: int) -> float:
+        """
+        Get the curve parameter of a projected point. Negative indices are not supported.
+
+        :param int index: 0-based index of the result.
+        :return: Curve parameter.
+        :rtype: float
+        :raises RuntimeError: If the index is out of range.
+        """
+        # Python is 0-based, OCCT is 1-based
+        return self._itool.Parameter(index + 1)
+
+    def distance(self, index: int) -> float:
+        """
+        Get the distance from the point to a projected point. Negative indices are not supported.
+
+        :param int index: 0-based index of the result.
+        :return: Distance.
+        :rtype: float
+        :raises RuntimeError: If the index is out of range.
+        """
+        # Python is 0-based, OCCT is 1-based
+        return self._itool.Distance(index + 1)
+
+    def nearest_point(self) -> Point:
+        """
+        Get the nearest projected point.
+
+        :return: Point on the curve.
+        :rtype: Point
+        :raises RuntimeError: If there are no results.
+        """
+        return Point(self._itool.NearestPoint())
+
+    def nearest_parameter(self) -> float:
+        """
+        Get the curve parameter of the nearest projected point.
+
+        :return: Curve parameter.
+        :rtype: float
+        :raises RuntimeError: If there are no results.
+        """
+        return self._itool.NearestParameter()
+
+    def nearest_distance(self) -> float:
+        """
+        Get the distance to the nearest projected point.
+
+        :return: Distance.
+        :rtype: float
+        :raises RuntimeError: If there are no results.
+        """
+        return self._itool.NearestDistance()
