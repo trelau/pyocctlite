@@ -80,6 +80,13 @@ class Transform
     Transform.by_mirror(origin: Point, normal: Vector) -> Transform
     Transform.by_rotation(axis: Axis, angle: float) -> Transform
     Transform.by_translation(vector: Vector) -> Transform
+class BoundingBox
+    .min_point: Point
+    .max_point: Point
+    .dx: float
+    .dy: float
+    .dz: float
+    .center: Point
 class Curve
     .evaluate(u: float) -> Point
     .derivative(u: float, order: int = 1) -> Vector
@@ -153,6 +160,8 @@ class Shape
     .length: float
     .area: float
     .volume: float
+    .bounding_box: BoundingBox
+    .centroid: Point
     .is_valid: bool
     .is_equal(other: Shape) -> bool
     .explore(find: type[T], ignore: type[Shape] | None = None) -> ExploreShape[T]

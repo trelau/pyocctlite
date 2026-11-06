@@ -6,6 +6,7 @@ import unittest
 from pyocctlite.errors import BuildFailed
 from pyocctlite.geometry import (
     Axis,
+    BoundingBox,
     Circle,
     CylindricalSurface,
     Line,
@@ -14,6 +15,7 @@ from pyocctlite.geometry import (
     TrimmedCurve2D,
     Vector,
 )
+from pyocctlite.primitives import Box, Sphere
 from pyocctlite.topology import (
     ChamferShape,
     Compound,
@@ -38,6 +40,13 @@ from pyocctlite.topology import (
 
 _Y_AXIS = Axis.by_vector(Point.by_xyz(0, 0, 0), Vector.by_xyz(0, 1, 0))
 _Z_AXIS = Axis.by_vector(Point.by_xyz(0, 0, 0), Vector.by_xyz(0, 0, 1))
+
+
+def _triangle() -> Wire:
+    p1, p2, p3 = Point.by_xyz(0, 0, 0), Point.by_xyz(3, 0, 0), Point.by_xyz(0, 3, 0)
+    return Wire.by_edges(
+        [Edge.by_points(p1, p2), Edge.by_points(p2, p3), Edge.by_points(p3, p1)],
+    )
 
 
 def _square(x0: float = 0.0, y0: float = 0.0, z: float = 0.0) -> Wire:
@@ -621,6 +630,106 @@ class TestIsEqual(unittest.TestCase):
         self.assertEqual(len(pairs), 12)
         self.assertTrue(all(not a.is_equal(b) for a, b in pairs))
         self.assertTrue(box.is_equal(box))
+
+
+class TestBoundingBox(unittest.TestCase):
+    def test_box(self):
+        bb = Box.by_size(1, 2, 3).translate(Vector.by_xyz(10, 20, 30)).bounding_box
+        self.assertTrue(bb.min_point.is_equal(Point.by_xyz(10, 20, 30)))
+        self.assertTrue(bb.max_point.is_equal(Point.by_xyz(11, 22, 33)))
+        self.assertAlmostEqual(bb.dx, 1.0)
+        self.assertAlmostEqual(bb.dy, 2.0)
+        self.assertAlmostEqual(bb.dz, 3.0)
+        self.assertTrue(bb.center.is_equal(Point.by_xyz(10.5, 21, 31.5)))
+
+    def test_aligned_with_global_axes(self):
+        bb = Box.by_size(1, 1, 1).rotate(_Z_AXIS, math.pi / 4.0).bounding_box
+        self.assertAlmostEqual(bb.dx, math.sqrt(2.0))
+        self.assertAlmostEqual(bb.dy, math.sqrt(2.0))
+        self.assertAlmostEqual(bb.dz, 1.0)
+
+    def test_curved(self):
+        bb = Sphere.by_size(2.0).bounding_box
+        self.assertTrue(bb.min_point.is_equal(Point.by_xyz(-2, -2, -2)))
+        self.assertTrue(bb.max_point.is_equal(Point.by_xyz(2, 2, 2)))
+
+    def test_arc_uses_edge_range(self):
+        p1, p2, p3 = Point.by_xyz(1, 0, 0), Point.by_xyz(0, 1, 0), Point.by_xyz(-1, 0, 0)
+        bb = Edge.by_circular_arc(p1, p2, p3).bounding_box
+        self.assertTrue(bb.min_point.is_equal(Point.by_xyz(-1, 0, 0)))
+        self.assertTrue(bb.max_point.is_equal(Point.by_xyz(1, 1, 0)))
+
+    def test_sub_shape(self):
+        bb = Box.by_size(1, 2, 3).top_face.bounding_box
+        self.assertAlmostEqual(bb.dz, 0.0)
+        self.assertAlmostEqual(bb.min_point.z, 3.0)
+
+    def test_vertex(self):
+        bb = Vertex.by_point(Point.by_xyz(1, 2, 3)).bounding_box
+        self.assertTrue(bb.min_point.is_equal(Point.by_xyz(1, 2, 3)))
+        self.assertTrue(bb.max_point.is_equal(Point.by_xyz(1, 2, 3)))
+
+    def test_empty(self):
+        with self.assertRaises(RuntimeError):
+            _ = Compound.by_shapes([]).bounding_box
+
+    def test_init_wrong_type(self):
+        with self.assertRaises(TypeError):
+            BoundingBox(Point.by_xyz(0, 0, 0).ipoint)  # type: ignore[arg-type]
+
+
+class TestCentroid(unittest.TestCase):
+    def test_solid(self):
+        c = Box.by_size(1, 2, 3).translate(Vector.by_xyz(10, 20, 30)).centroid
+        self.assertTrue(c.is_equal(Point.by_xyz(10.5, 21, 31.5)))
+
+    def test_hollow_solid_uses_volume(self):
+        box = Box.by_size(2, 2, 2)
+        c = box.thicken(-0.1, faces=box.top_face).centroid
+        outer, inner = 8.0, 1.8 * 1.8 * 1.9
+        self.assertAlmostEqual(c.z, (outer * 1.0 - inner * 1.05) / (outer - inner), places=5)
+
+    def test_negative_volume(self):
+        face = Face.by_wire(_triangle())
+        solid = face.thicken(0.5)
+        self.assertLess(solid.volume, 0.0)
+        self.assertTrue(solid.centroid.is_equal(Point.by_xyz(1, 1, 0.25), tol=1.0e-5))
+
+    def test_face(self):
+        self.assertTrue(Face.by_wire(_triangle()).centroid.is_equal(Point.by_xyz(1, 1, 0)))
+
+    def test_wire_uses_length(self):
+        c = _triangle().centroid
+        expected = (3.0 * 1.5 + 3.0 * math.sqrt(2.0) * 1.5) / (6.0 + 3.0 * math.sqrt(2.0))
+        self.assertAlmostEqual(c.x, expected)
+        self.assertAlmostEqual(c.y, expected)
+
+    def test_arc(self):
+        p1, p2, p3 = Point.by_xyz(1, 0, 0), Point.by_xyz(0, 1, 0), Point.by_xyz(-1, 0, 0)
+        c = Edge.by_circular_arc(p1, p2, p3).centroid
+        self.assertTrue(c.is_equal(Point.by_xyz(0, 2.0 / math.pi, 0), tol=1.0e-5))
+
+    def test_vertex(self):
+        v = Vertex.by_point(Point.by_xyz(1, 2, 3))
+        self.assertTrue(v.centroid.is_equal(Point.by_xyz(1, 2, 3)))
+
+    def test_vertices_use_mean(self):
+        vertices = [Vertex.by_point(Point.by_xyz(x, 0, 0)) for x in (0, 2, 4)]
+        self.assertTrue(Compound.by_shapes(vertices).centroid.is_equal(Point.by_xyz(2, 0, 0)))
+
+    def test_ignores_lower_dimensions(self):
+        face = Face.by_wire(_triangle()).translate(Vector.by_xyz(0, 0, 50))
+        c = Compound.by_shapes([Box.by_size(1, 1, 1), face]).centroid
+        self.assertTrue(c.is_equal(Point.by_xyz(0.5, 0.5, 0.5)))
+
+    def test_empty(self):
+        with self.assertRaises(RuntimeError):
+            _ = Compound.by_shapes([]).centroid
+
+    def test_selects_edges_by_position(self):
+        box = Box.by_size(1, 1, 1)
+        top_edges = [e for e in box.edges() if e.centroid.z > 0.99]
+        self.assertEqual(len(top_edges), 4)
 
 
 class TestMapShape(unittest.TestCase):

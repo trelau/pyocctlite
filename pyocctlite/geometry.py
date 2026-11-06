@@ -4,6 +4,7 @@ from functools import cached_property
 
 from pyocctlite._occtlite import (
     IAxis,
+    IBoundingBox,
     ICurve,
     ICurve2D,
     ICurve2DKind,
@@ -1015,6 +1016,94 @@ class Transform:
         :rtype: ITransform
         """
         return self._itransform
+
+
+class BoundingBox:
+    """
+    Represents a 3D box aligned with the global axes.
+
+    :ivar IBoundingBox ibounding_box: Underlying bounding box.
+    """
+
+    def __init__(self, b: IBoundingBox):
+        """
+        Initialize from an IBoundingBox.
+
+        :param IBoundingBox b: Underlying bounding box.
+        """
+        if not isinstance(b, IBoundingBox):
+            raise TypeError(f"Expected IBoundingBox, got {type(b).__name__}.")
+        self._ibounding_box = b
+
+    @property
+    def ibounding_box(self) -> IBoundingBox:
+        """
+        Underlying bounding box.
+
+        :return: IBoundingBox object.
+        :rtype: IBoundingBox
+        """
+        return self._ibounding_box
+
+    @cached_property
+    def min_point(self) -> Point:
+        """
+        Corner with the smallest coordinates.
+
+        :return: Minimum corner.
+        :rtype: Point
+        """
+        return Point(self.ibounding_box.MinPoint())
+
+    @cached_property
+    def max_point(self) -> Point:
+        """
+        Corner with the largest coordinates.
+
+        :return: Maximum corner.
+        :rtype: Point
+        """
+        return Point(self.ibounding_box.MaxPoint())
+
+    @cached_property
+    def dx(self) -> float:
+        """
+        Size along the global x-direction.
+
+        :return: Size in x.
+        :rtype: float
+        """
+        return self.max_point.x - self.min_point.x
+
+    @cached_property
+    def dy(self) -> float:
+        """
+        Size along the global y-direction.
+
+        :return: Size in y.
+        :rtype: float
+        """
+        return self.max_point.y - self.min_point.y
+
+    @cached_property
+    def dz(self) -> float:
+        """
+        Size along the global z-direction.
+
+        :return: Size in z.
+        :rtype: float
+        """
+        return self.max_point.z - self.min_point.z
+
+    @cached_property
+    def center(self) -> Point:
+        """
+        Center of the box.
+
+        :return: Center point.
+        :rtype: Point
+        """
+        return self.min_point.translate(Vector.by_points(self.min_point, self.max_point).scale(0.5))
 
 
 class Curve:

@@ -1,5 +1,6 @@
 #include "IShape.hpp"
 
+#include <BRepBndLib.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakeVertex.hxx>
@@ -19,6 +20,7 @@
 #include <NCollection_IndexedMap.hxx>
 #include <STEPControl_Writer.hxx>
 #include <TopExp.hxx>
+#include <TopExp_Explorer.hxx>
 #include <TopTools_ShapeMapHasher.hxx>
 #include <TopoDS_Shape.hxx>
 
@@ -224,6 +226,48 @@ double IShape::Volume() const {
   return props.Mass();
 }
 
+IBoundingBox IShape::BoundingBox() const {
+
+  // Use the exact geometry only, ignoring any stored mesh and shape tolerances
+  Bnd_Box box;
+  BRepBndLib::AddOptimal(shape_, box, false, false);
+
+  if (box.IsVoid()) {
+    throw std::runtime_error("Shape is empty.");
+  }
+
+  return IBoundingBox(box);
+}
+
+IPoint IShape::Centroid() const {
+
+  GProp_GProps props;
+  if (TopExp_Explorer(shape_, TopAbs_SOLID).More()) {
+    BRepGProp::VolumeProperties(shape_, props, true, true, false);
+    return IPoint(props.CentreOfMass());
+  }
+  if (TopExp_Explorer(shape_, TopAbs_FACE).More()) {
+    BRepGProp::SurfaceProperties(shape_, props, true, false);
+    return IPoint(props.CentreOfMass());
+  }
+  if (TopExp_Explorer(shape_, TopAbs_EDGE).More()) {
+    BRepGProp::LinearProperties(shape_, props, true, false);
+    return IPoint(props.CentreOfMass());
+  }
+
+  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> vertices;
+  TopExp::MapShapes(shape_, TopAbs_VERTEX, vertices);
+  if (vertices.IsEmpty()) {
+    throw std::runtime_error("Shape is empty.");
+  }
+
+  gp_XYZ sum(0.0, 0.0, 0.0);
+  for (int i = 1; i <= vertices.Extent(); ++i) {
+    sum += BRep_Tool::Pnt(TopoDS::Vertex(vertices.FindKey(i))).XYZ();
+  }
+  return IPoint(gp_Pnt(sum / vertices.Extent()));
+}
+
 bool IShape::IsValid() const { return BRepCheck_Analyzer(shape_).IsValid(); }
 
 std::optional<ICurve> IShape::Curve() const {
@@ -299,6 +343,10 @@ void bind_IShape(nb::module_& m) {
       .def("Length", &IShape::Length, "Calculate the length of all edges of this shape.")
       .def("Area", &IShape::Area, "Calculate the area of all faces of this shape.")
       .def("Volume", &IShape::Volume, "Calculate the volume of all solids of this shape.")
+      .def("BoundingBox", &IShape::BoundingBox,
+           "Calculate the axis-aligned bounding box of this shape.")
+      .def("Centroid", &IShape::Centroid,
+           "Calculate the centroid of the highest dimension present in this shape.")
       .def("IsValid", &IShape::IsValid, "Check if this shape and its sub-shapes are valid.")
       .def("Curve", &IShape::Curve, "Get the curve if this shape is an edge.")
       .def("Point", &IShape::Point, "Get the point if this shape is a vertex.");

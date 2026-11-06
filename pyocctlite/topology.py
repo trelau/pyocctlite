@@ -24,6 +24,7 @@ from pyocctlite._occtlite import (
 )
 from pyocctlite.geometry import (
     Axis,
+    BoundingBox,
     Curve,
     Curve2D,
     Point,
@@ -199,6 +200,34 @@ class Shape:
         :rtype: float
         """
         return self.ishape.Volume()
+
+    @cached_property
+    def bounding_box(self) -> BoundingBox:
+        """
+        Smallest box aligned with the global axes that contains this shape.
+
+        The box can extend about 1e-7 beyond curves that have no exact bounds (e.g. splines).
+
+        :return: Bounding box.
+        :rtype: BoundingBox
+        :raises RuntimeError: If the shape is empty (e.g. intersecting shapes that do not overlap).
+        """
+        return BoundingBox(self.ishape.BoundingBox())
+
+    @cached_property
+    def centroid(self) -> Point:
+        """
+        Geometric center of the highest dimension present in this shape.
+
+        This is the centroid of the volume if the shape has solids, otherwise of the area if it has
+        faces, otherwise of the length if it has edges, otherwise the mean of its vertices. Lower
+        dimensions are ignored (e.g. a compound of a solid and a separate face uses only the solid).
+
+        :return: Centroid.
+        :rtype: Point
+        :raises RuntimeError: If the shape is empty (e.g. intersecting shapes that do not overlap).
+        """
+        return Point(self.ishape.Centroid())
 
     @cached_property
     def is_valid(self) -> bool:

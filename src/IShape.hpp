@@ -15,6 +15,7 @@
 #include <TopoDS_Vertex.hxx>
 #include <TopoDS_Wire.hxx>
 
+#include "IBoundingBox.hpp"
 #include "ICurve.hpp"
 #include "ICurve2D.hpp"
 #include "IFrame.hpp"
@@ -139,6 +140,12 @@ public:
 
   // Calculate the volume of the shape
   double Volume() const;
+
+  // Calculate the axis-aligned bounding box of the shape
+  IBoundingBox BoundingBox() const;
+
+  // Calculate the centroid of the highest dimension present in the shape
+  IPoint Centroid() const;
 
   // Check if this shape and its sub-shapes are valid
   bool IsValid() const;

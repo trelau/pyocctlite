@@ -6,6 +6,7 @@
 #include "IVector2D.hpp"
 
 #include "IAxis.hpp"
+#include "IBoundingBox.hpp"
 #include "ICurve.hpp"
 #include "ICurveData.hpp"
 #include "IFrame.hpp"
@@ -39,6 +40,7 @@ NB_MODULE(_occtlite, m) {
   bind_IPoint(m);
   bind_IVector(m);
   bind_IAxis(m);
+  bind_IBoundingBox(m);
   bind_IFrame(m);
   bind_ITransform(m);
   bind_ICurve(m);
