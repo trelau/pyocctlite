@@ -12,6 +12,7 @@ from pyocctlite.primitives import Box, Cylinder
 from pyocctlite.rendering import (
     Callout,
     Camera,
+    Section,
     Shading,
     Styled,
     View,
@@ -715,6 +716,188 @@ class TestCallout(RenderingTest):
             return max(rows) - min(rows)
 
         self.assertGreater(height(two), height(one))
+
+
+class TestSection(RenderingTest):
+    ORIGIN = Point.by_xyz(0.0, 0.0, 0.0)
+    TO_FRONT = Vector.by_xyz(0.0, -1.0, 0.0)
+    TO_RIGHT = Vector.by_xyz(1.0, 0.0, 0.0)
+    PURE_RED = (255, 0, 0)
+    HATCH_SPACING = 8
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.box = _box_at(-1.0, -1.0, -1.0, 2.0, 2.0, 2.0)
+        self.front_half = Section.by_plane(self.ORIGIN, self.TO_FRONT, RED)
+
+    def render_section(self, shapes, section, view=View.FRONT, callouts=(), shading=Shading.LIGHT):
+        path = self.directory / "section.png"
+        render_image(shapes, str(path), view, 800, 800, callouts, shading, section=section)
+        return Image(path)
+
+    def fill(self, image: Image, x: int, y: int) -> Pixel:
+        """
+        Get the color between hatch lines, from a run of pixels long enough to pass between them.
+        """
+        return max((image.pixel(x + i, y) for i in range(self.HATCH_SPACING)), key=sum)
+
+    def test_cut_area_has_the_color(self):
+        for shading in Shading:
+            image = self.render_section(self.box, self.front_half, shading=shading)
+            self.assertEqual(self.fill(image, 400, 400), self.PURE_RED)
+            self.assertEqual(self.fill(image, 300, 300), self.PURE_RED)
+
+    def test_cut_area_is_hatched(self):
+        image = self.render_section(self.box, self.front_half)
+        darkest = min((image.pixel(400 + i, 400) for i in range(self.HATCH_SPACING)), key=sum)
+        self.assertLess(max(darkest), 120)
+
+        # lines are diagonal, so they move along a row from one row to the next
+        self.assertEqual(image.pixel(400, 400), image.pixel(399, 401))
+        self.assertNotEqual(
+            [image.pixel(400 + i, 400) for i in range(self.HATCH_SPACING)],
+            [image.pixel(400 + i, 402) for i in range(self.HATCH_SPACING)],
+        )
+
+    def test_default_color_is_a_tint_of_the_shape(self):
+        section = Section.by_plane(self.ORIGIN, self.TO_FRONT)
+        self.assertIsNone(section.color)
+
+        r, g, b = self.fill(self.render_section(self.box, section), 400, 400)
+        self.assertGreater(min(r, g, b), 215)
+        self.assertNotEqual((r, g, b), WHITE)
+
+        r, g, b = self.fill(self.render_section(Styled(self.box, RED), section), 400, 400)
+        self.assertEqual(r, 255)
+        self.assertGreater(g, 150)
+        self.assertLess(g, 200)
+
+    def test_each_shape_has_its_own_tint(self):
+        left = _box_at(-2.0, -1.0, -1.0, 2.0, 2.0, 2.0)
+        right = _box_at(0.0, -1.0, -1.0, 2.0, 2.0, 2.0)
+        section = Section.by_plane(self.ORIGIN, self.TO_FRONT)
+        image = self.render_section([left, Styled(right, RED)], section)
+
+        # the default color of shapes is slightly blue
+        r, _, b = self.fill(image, 300, 400)
+        self.assertLess(r, b)
+        r, g, _ = self.fill(image, 500, 400)
+        self.assertGreater(r, g + 50)
+
+    def test_color_applies_to_every_shape(self):
+        left = _box_at(-2.0, -1.0, -1.0, 2.0, 2.0, 2.0)
+        right = _box_at(0.0, -1.0, -1.0, 2.0, 2.0, 2.0)
+        image = self.render_section([left, Styled(right, (0.0, 0.0, 1.0))], self.front_half)
+        self.assertEqual(self.fill(image, 300, 400), self.PURE_RED)
+        self.assertEqual(self.fill(image, 500, 400), self.PURE_RED)
+
+    def test_cut_is_only_visible_from_the_removed_side(self):
+        image = self.render_section(self.box, self.front_half, View.BACK)
+        self.assertFalse(image.has_reddish_pixel())
+        self.assertNotEqual(image.pixel(400, 400), WHITE)
+
+    def test_cavity_is_not_cut_area(self):
+        cavity = _box_at(-0.5, -0.5, -0.5, 1.0, 1.0, 1.0)
+        image = self.render_section(self.box.cut(cavity), self.front_half)
+        self.assertEqual(self.fill(image, 250, 400), self.PURE_RED)
+
+        # looking into the cavity shows its far wall, in front of the outside of the part
+        r, g, b = self.fill(image, 400, 400)
+        self.assertNotEqual((r, g, b), self.PURE_RED)
+        self.assertNotEqual((r, g, b), WHITE)
+
+    def test_mirrored_solid_has_the_cut_in_the_same_place(self):
+        mirrored = self.box.mirror(self.ORIGIN, self.TO_RIGHT)
+        image = self.render_section(mirrored, self.front_half)
+        self.assertEqual(self.fill(image, 400, 400), self.PURE_RED)
+
+    def test_plane_clear_of_the_part_changes_nothing(self):
+        for shape in (self.box, self.box.mirror(self.ORIGIN, self.TO_RIGHT)):
+            beyond = Section.by_plane(Point.by_xyz(0.0, -5.0, 0.0), self.TO_FRONT, RED)
+            image = self.render_section(shape, beyond, View.ISO)
+            self.assertEqual(image.rows, self.render(shape).rows)
+
+    def test_removing_everything_leaves_a_blank_image(self):
+        behind = Section.by_plane(Point.by_xyz(0.0, 5.0, 0.0), self.TO_FRONT, RED)
+        self.assertEqual(self.render_section(self.box, behind).part_pixels(), [])
+
+    def test_part_stays_in_place(self):
+        whole = self.render(self.box, View.FRONT)
+        section = Section.by_plane(self.ORIGIN, self.TO_RIGHT, RED)
+        image = self.render_section(self.box, section)
+        self.assertEqual(image.pixel(300, 400), whole.pixel(300, 400))
+        self.assertEqual(image.pixel(500, 400), WHITE)
+
+    def test_edges_behind_the_cut_are_hidden(self):
+        # the plate's edges are on the far side of the part, and would show if the cut were not in
+        # front of them
+        plate = _box_at(-0.25, 1.0, -0.25, 0.5, 0.25, 0.5)
+        part = self.box.unite(plate)
+        image = self.render_section(part, self.front_half)
+        for x in range(300, 500):
+            self.assertEqual(image.pixel(x, 400), image.pixel(x + self.HATCH_SPACING, 400))
+
+    def test_open_shape_is_only_clipped(self):
+        # the back face is seen from behind, which would be a cut on a solid
+        plane = Section.by_plane(Point.by_xyz(0.0, 1.0, 0.0), Vector.by_xyz(1.0, -1.0, 0.0), RED)
+        image = self.render_section(Box.by_size(2.0, 2.0, 2.0).back_face, plane)
+        self.assertFalse(image.has_reddish_pixel())
+        self.assertNotEqual(image.pixel(300, 400), WHITE)
+        self.assertEqual(image.pixel(500, 400), WHITE)
+
+    def test_transparent_solid_is_only_clipped(self):
+        styled = Styled(self.box, transparency=0.5)
+        image = self.render_section(styled, self.front_half)
+        self.assertFalse(image.has_reddish_pixel())
+        self.assertNotEqual(image.pixel(400, 400), WHITE)
+
+    def test_free_edge_is_clipped(self):
+        edge = Edge.by_points(Point.by_xyz(-1.0, 0.0, 0.0), Point.by_xyz(1.0, 0.0, 0.0))
+        section = Section.by_plane(self.ORIGIN, self.TO_RIGHT, RED)
+        image = self.render_section(edge, section)
+        self.assertNotEqual(image.pixel(300, 400), WHITE)
+        self.assertEqual(image.pixel(500, 400), WHITE)
+
+    def test_callout_on_the_cut_points_at_it(self):
+        plain = self.render_section(self.box, self.front_half)
+        callout = Callout(self.ORIGIN, "here")
+        image = self.render_section(self.box, self.front_half, callouts=callout)
+        self.assertNotEqual(image.pixel(400, 400), plain.pixel(400, 400))
+        self.assertLess(max(image.pixel(400, 400)), 120)
+
+    def test_callout_on_a_removed_target_has_no_line(self):
+        plain = self.render_section(self.box, self.front_half)
+        callout = Callout(Point.by_xyz(0.0, -1.0, 0.0), "gone")
+        image = self.render_section(self.box, self.front_half, callouts=callout)
+        self.assertEqual(image.pixel(400, 400), plain.pixel(400, 400))
+
+    def test_render_views_cuts_every_view(self):
+        path = self.directory / "sheet.png"
+        render_views(self.box, str(path), section=self.front_half)
+        image = Image(path)
+        tile_width = image.width // 2
+        tile_height = image.height // 2
+
+        # the cut faces FRONT, and TOP shows only the half that is kept
+        self.assertEqual(self.fill(image, tile_width // 2, tile_height * 3 // 2), self.PURE_RED)
+        self.assertEqual(image.pixel(tile_width // 2, tile_height // 2 + 60), WHITE)
+        self.assertNotEqual(image.pixel(tile_width // 2, tile_height // 2 - 60), WHITE)
+
+    def test_input_is_unchanged(self):
+        self.render_section(self.box, self.front_half)
+        self.assertAlmostEqual(self.box.volume, 8.0)
+
+    def test_properties(self):
+        section = Section.by_plane(self.ORIGIN, self.TO_FRONT, RED)
+        self.assertEqual(section.origin, self.ORIGIN)
+        self.assertEqual(section.normal, self.TO_FRONT)
+        self.assertEqual(section.color, RED)
+
+    def test_invalid_values_raise(self):
+        with self.assertRaises(ValueError):
+            Section.by_plane(self.ORIGIN, Vector.by_xyz(0.0, 0.0, 0.0))
+        with self.assertRaises(ValueError):
+            Section.by_plane(self.ORIGIN, self.TO_FRONT, (2.0, 0.0, 0.0))
 
 
 class TestFailures(RenderingTest):

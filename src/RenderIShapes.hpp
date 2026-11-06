@@ -37,6 +37,12 @@ public:
   // Add a text box with a line pointing to the visible part of the shape
   void AddCallout(const IShape& shape, const std::string& text);
 
+  // Remove everything on the side of a plane that its normal points to, including callout targets.
+  // From that side, where a solid's material is cut, the image shows hatching over a color. The
+  // colors are for each added shape in order, cycling, as r, g, b values from 0 to 1. The normal
+  // must not be zero.
+  void SetSection(const IPoint& origin, const IVector& normal, const std::vector<double>& colors);
+
   // Render an orthographic view looking back along the direction, labeled with the text. The view
   // is centered on the point and spans the length across the image's smaller side, each defaulting
   // to fit all shapes. Depth shading also darkens faces that are farther from the viewer. Without
@@ -56,10 +62,12 @@ private:
     gp_Vec normal;
   };
 
-  // Triangle with the index of its face in the shape
+  // Triangle with the index of its face in the shape. On a solid, outward is a normal pointing out
+  // of the material, and elsewhere it is zero.
   struct MeshTriangle {
     std::array<MeshNode, 3> nodes;
     int face;
+    gp_Vec outward;
   };
 
   // Everything drawn for one added shape
@@ -75,6 +83,7 @@ private:
     std::vector<std::vector<gp_Pnt>> edges;
     std::vector<int> edgeIndices;
     std::vector<gp_Pnt> vertices;
+    std::vector<std::array<gp_Pnt, 2>> outline;
     int faceCount = 0;
     int edgeCount = 0;
 
@@ -90,14 +99,24 @@ private:
     std::string text;
   };
 
+  // A plane with a unit normal pointing to the removed side, and the color of each shape's cut area
+  struct Section {
+    gp_Pnt origin;
+    gp_Vec normal;
+    std::vector<RasterColor> colors;
+  };
+
   // Find the scene bounds
   void FindBounds();
 
   // Mesh every shape with one deflection, unless they already are
   void MeshItems(double deflection);
 
-  // Mesh a copy of one shape, so that the shape itself does not store a mesh
-  static void MeshItem(Item& item, double deflection);
+  // Mesh a copy of one shape, so that the shape itself does not store a mesh, and apply any section
+  void MeshItem(Item& item, double deflection) const;
+
+  // Remove what the section removes from a meshed shape, keeping the outline of the cut
+  void ClipItem(Item& item) const;
 
   int width_;
   int height_;
@@ -105,6 +124,7 @@ private:
   double meshDeflection_ = 0.0;
   std::vector<Item> items_;
   std::vector<Callout> callouts_;
+  std::optional<Section> section_;
   std::vector<int> visiblePixels_;
   gp_Pnt center_;
   double radius_ = 0.0;

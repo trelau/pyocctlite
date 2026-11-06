@@ -62,6 +62,7 @@ constexpr double kFaceEdgeWidth = 1.5;
 constexpr double kFreeEdgeWidth = 3.5;
 constexpr double kVertexWidth = 9.0;
 constexpr double kNumberedEdgeWidth = 2.5;
+constexpr double kCutOutlineWidth = 2.5;
 
 constexpr RasterColor kFaceEdgeColor{0.1, 0.1, 0.12};
 
@@ -104,6 +105,9 @@ constexpr int kMinVisibleFaceDistance = 2;
 
 // Most steps along one segment of a line when looking for its visible part
 constexpr double kMaxWalkedPixels = 20000.0;
+
+// Below this cosine between a section's normal and the view, the viewer is not on the removed side
+constexpr double kMinCutFacing = 1.0e-6;
 
 RasterColor Mix(const RasterColor& color, const RasterColor& other, const double amount) {
   return {color.r + (other.r - color.r) * amount, color.g + (other.g - color.g) * amount,
@@ -415,6 +419,18 @@ void RenderIShapes::AddCallout(const IShape& shape, const std::string& text) {
   meshDeflection_ = 0.0;
 }
 
+void RenderIShapes::SetSection(const IPoint& origin, const IVector& normal,
+                               const std::vector<double>& colors) {
+
+  std::vector<RasterColor> cutColors;
+  for (std::size_t i = 0; i + 2 < colors.size(); i += 3) {
+    cutColors.push_back({colors[i], colors[i + 1], colors[i + 2]});
+  }
+  section_ = Section{static_cast<gp_Pnt>(origin), static_cast<gp_Vec>(normal).Normalized(),
+                     std::move(cutColors)};
+  meshDeflection_ = 0.0;
+}
+
 void RenderIShapes::FindBounds() {
 
   // Use the exact geometry only, so the size does not depend on any stored mesh
@@ -453,15 +469,21 @@ void RenderIShapes::MeshItems(const double deflection) {
   meshDeflection_ = deflection;
 }
 
-void RenderIShapes::MeshItem(Item& item, const double deflection) {
+void RenderIShapes::MeshItem(Item& item, const double deflection) const {
 
   item.triangles.clear();
   item.edges.clear();
   item.edgeIndices.clear();
   item.vertices.clear();
+  item.outline.clear();
 
   const TopoDS_Shape copy = BRepBuilderAPI_Copy(item.shape, true, false).Shape();
   BRepMesh_IncrementalMesh mesher(copy, deflection, false, kAngularDeflection);
+
+  ShapeMap solidFaces;
+  for (TopExp_Explorer solids(copy, TopAbs_SOLID); solids.More(); solids.Next()) {
+    TopExp::MapShapes(solids.Current(), TopAbs_FACE, solidFaces);
+  }
 
   ShapeMap faces;
   TopExp::MapShapes(copy, TopAbs_FACE, faces);
@@ -481,12 +503,25 @@ void RenderIShapes::MeshItem(Item& item, const double deflection) {
       return MeshNode{mesh->Node(index).Transformed(trsf),
                       gp_Vec(mesh->Normal(index).Transformed(trsf))};
     };
+
+    // Triangles wind by the surface's own direction, which a reversed face or a mirroring undoes
+    const bool isOnSolid = solidFaces.Contains(face);
+    const bool isFlipped = (face.Orientation() == TopAbs_REVERSED) != trsf.IsNegative();
     for (int t = 1; t <= mesh->NbTriangles(); ++t) {
       int n1 = 0;
       int n2 = 0;
       int n3 = 0;
       mesh->Triangle(t).Get(n1, n2, n3);
-      item.triangles.push_back({{node(n1), node(n2), node(n3)}, i - 1});
+      const std::array<MeshNode, 3> nodes = {node(n1), node(n2), node(n3)};
+      gp_Vec outward(0.0, 0.0, 0.0);
+      if (isOnSolid) {
+        outward =
+            gp_Vec(nodes[0].point, nodes[1].point).Crossed(gp_Vec(nodes[0].point, nodes[2].point));
+        if (isFlipped) {
+          outward.Reverse();
+        }
+      }
+      item.triangles.push_back({nodes, i - 1, outward});
     }
   }
 
@@ -514,6 +549,97 @@ void RenderIShapes::MeshItem(Item& item, const double deflection) {
        explorer.Next()) {
     item.vertices.push_back(BRep_Tool::Pnt(TopoDS::Vertex(explorer.Current())));
   }
+
+  if (section_) {
+    ClipItem(item);
+  }
+}
+
+void RenderIShapes::ClipItem(Item& item) const {
+
+  const auto distance = [&](const gp_Pnt& point) {
+    return gp_Vec(section_->origin, point).Dot(section_->normal);
+  };
+  const auto between = [](const gp_Pnt& a, const gp_Pnt& b, const double t) {
+    return gp_Pnt(a.XYZ() + (b.XYZ() - a.XYZ()) * t);
+  };
+
+  std::vector<MeshTriangle> triangles;
+  for (const MeshTriangle& triangle : item.triangles) {
+    const std::array<MeshNode, 3>& nodes = triangle.nodes;
+    const std::array<double, 3> distances = {distance(nodes[0].point), distance(nodes[1].point),
+                                             distance(nodes[2].point)};
+    const auto isRemoved = [](const double value) { return value > 0.0; };
+    const auto removed = std::count_if(distances.begin(), distances.end(), isRemoved);
+    if (removed == 3) {
+      continue;
+    }
+    if (removed == 0) {
+      triangles.push_back(triangle);
+      continue;
+    }
+
+    // Walk around the triangle, keeping its part on this side and noting where the plane crosses it
+    std::vector<MeshNode> polygon;
+    std::vector<gp_Pnt> crossings;
+    for (std::size_t i = 0; i < 3; ++i) {
+      const std::size_t next = (i + 1) % 3;
+      if (!isRemoved(distances[i])) {
+        polygon.push_back(nodes[i]);
+      }
+      if (isRemoved(distances[i]) != isRemoved(distances[next])) {
+        // Normals stay unscaled, so that the shading is the same as on the whole triangle
+        const double t = distances[i] / (distances[i] - distances[next]);
+        const gp_Pnt point = between(nodes[i].point, nodes[next].point, t);
+        const gp_Vec normal = nodes[i].normal + (nodes[next].normal - nodes[i].normal) * t;
+        polygon.push_back({point, normal});
+        crossings.push_back(point);
+      }
+    }
+    for (std::size_t i = 1; i + 1 < polygon.size(); ++i) {
+      triangles.push_back(
+          {{polygon[0], polygon[i], polygon[i + 1]}, triangle.face, triangle.outward});
+    }
+    item.outline.push_back({crossings[0], crossings[1]});
+  }
+  item.triangles = std::move(triangles);
+
+  // An edge can leave a kept part on each side of a removed one, so it can become several lines
+  std::vector<std::vector<gp_Pnt>> edges;
+  std::vector<int> edgeIndices;
+  for (std::size_t e = 0; e < item.edges.size(); ++e) {
+    const std::vector<gp_Pnt>& line = item.edges[e];
+    std::vector<gp_Pnt> part;
+    const auto finish = [&]() {
+      if (part.size() > 1) {
+        edges.push_back(part);
+        edgeIndices.push_back(item.edgeIndices[e]);
+      }
+      part.clear();
+    };
+    for (std::size_t i = 0; i < line.size(); ++i) {
+      const double current = distance(line[i]);
+      if (i > 0) {
+        const double previous = distance(line[i - 1]);
+        if ((previous > 0.0) != (current > 0.0)) {
+          part.push_back(between(line[i - 1], line[i], previous / (previous - current)));
+          if (current > 0.0) {
+            finish();
+          }
+        }
+      }
+      if (current <= 0.0) {
+        part.push_back(line[i]);
+      }
+    }
+    finish();
+  }
+  item.edges = std::move(edges);
+  item.edgeIndices = std::move(edgeIndices);
+
+  const auto isVertexRemoved = [&](const gp_Pnt& point) { return distance(point) > 0.0; };
+  item.vertices.erase(std::remove_if(item.vertices.begin(), item.vertices.end(), isVertexRemoved),
+                      item.vertices.end());
 }
 
 nb::bytes RenderIShapes::Render(const IVector& direction, const IVector& up,
@@ -578,9 +704,13 @@ nb::bytes RenderIShapes::Render(const IVector& direction, const IVector& up,
     return Mix(kFaceEdgeColor, {1.0, 1.0, 1.0}, item.transparency * 0.7);
   };
 
+  // Only from the removed side can a section show the inside of a solid
+  const double cutFacing = section_ ? toViewer.Dot(section_->normal) : 0.0;
+  const bool isCutVisible = cutFacing > kMinCutFacing && !section_->colors.empty();
+
   // Draw the edges and vertices of one item
   const auto drawLines = [&](const Item& item, const double shapeBias) {
-    const bool isFree = item.triangles.empty();
+    const bool isFree = item.faceCount == 0;
     const RasterColor plainColor = isFree ? item.color : faceEdgeColor(item);
     const double plainWidth = isFree ? kFreeEdgeWidth : kFaceEdgeWidth;
     const double lineWidth = item.hasNumberedEdges ? kNumberedEdgeWidth : plainWidth;
@@ -601,6 +731,10 @@ nb::bytes RenderIShapes::Render(const IVector& direction, const IVector& up,
       const RasterVertex v = camera.Project(vertex, bias, 1.0);
       image.DrawLine(v, v, item.color, kVertexWidth);
     }
+    for (const std::array<gp_Pnt, 2>& segment : item.outline) {
+      image.DrawLine(camera.Project(segment[0], bias, 1.0), camera.Project(segment[1], bias, 1.0),
+                     plainColor, isCutVisible ? kCutOutlineWidth : kFaceEdgeWidth);
+    }
   };
 
   // Faces first, so that the edges of an earlier item are hidden by the faces of a later one
@@ -617,14 +751,31 @@ nb::bytes RenderIShapes::Render(const IVector& direction, const IVector& up,
           camera.Project(nodes[2].point, bias, camera.Shade(nodes[2].point, nodes[2].normal))};
       const RasterColor& color = item.FaceColor(triangle.face);
       if (isOpaque) {
-        const int id = item.hasNumberedFaces ? triangle.face : kRasterNone;
-        image.FillTriangle(vertices[0], vertices[1], vertices[2], color, 1.0, id);
+        // Seeing the far side of a solid's surface first means looking through the cut into
+        // material
+        const bool isCut = isCutVisible && triangle.outward.Dot(toViewer) < 0.0;
+        const int faceId = item.hasNumberedFaces ? triangle.face : kRasterNone;
+        image.FillTriangle(vertices[0], vertices[1], vertices[2], color, 1.0,
+                           isCut ? kRasterCut - static_cast<int>(i) : faceId);
       } else {
         const double depth = (vertices[0].depth + vertices[1].depth + vertices[2].depth) / 3.0;
         translucent.push_back({depth, vertices, color, 1.0 - item.transparency});
       }
     }
   }
+
+  // The cut lies on the plane, in front of whatever edges and translucent faces are behind it
+  if (isCutVisible) {
+    const gp_Vec& normal = section_->normal;
+    const double perDistance = 1.0 / (cutFacing * radius_);
+    const double depthPerX = -right.Dot(normal) * perDistance / scale;
+    const double depthPerY = viewUp.Dot(normal) * perDistance / scale;
+    const double depthAtCenter = gp_Vec(viewCenter, section_->origin).Dot(normal) * perDistance;
+    image.FillCut(section_->colors, kFaceEdgeColor,
+                  depthAtCenter - camera.centerX * depthPerX - camera.centerY * depthPerY,
+                  depthPerX, depthPerY);
+  }
+
   for (std::size_t i = 0; i < items_.size(); ++i) {
     if (items_[i].transparency <= 0.0) {
       drawLines(items_[i], itemBias(i));
@@ -805,6 +956,12 @@ void bind_RenderIShapes(nb::module_& m) {
 
       .def("AddCallout", &RenderIShapes::AddCallout, nb::arg("shape"), nb::arg("text"),
            "Add a text box with a line pointing to the visible part of the shape.")
+
+      .def("SetSection", &RenderIShapes::SetSection, nb::arg("origin"), nb::arg("normal"),
+           nb::arg("colors"),
+           "Remove everything on the side of a plane that its normal points to, showing hatching "
+           "over a color where a solid's material is cut, with a color for each added shape from "
+           "r, g, b values.")
 
       .def("Render", &RenderIShapes::Render, nb::arg("direction"), nb::arg("up"), nb::arg("label"),
            nb::arg("center").none(), nb::arg("span").none(), nb::arg("isDepthShaded"),

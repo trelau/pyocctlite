@@ -15,6 +15,11 @@ constexpr int kLineSightSamples = 2;
 // Square pixels allowed beyond a line's radius
 constexpr double kLineRadiusTolerance = 1.0e-6;
 
+// Hatching of a cut area, as the horizontal distance between lines and their horizontal width in
+// final pixels. It stays the same at any zoom, so that thin walls and small parts still show it.
+constexpr double kHatchSpacing = 8.0;
+constexpr double kHatchWidth = 1.5;
+
 // Size in letter grid units, where a capital letter is 4 wide and 6 high
 constexpr double kLetterGridWidth = 4.0;
 constexpr double kLetterGridHeight = 6.0;
@@ -316,6 +321,31 @@ void RasterImage::FillTriangle(const RasterVertex& a, const RasterVertex& b, con
     }
   };
   ForEachTrianglePixel(sa, sb, sc, sampledWidth_, sampledHeight_, fill);
+}
+
+void RasterImage::FillCut(const std::vector<RasterColor>& colors, const RasterColor& hatchColor,
+                          const double depth0, const double depthPerX, const double depthPerY) {
+
+  for (int y = 0; y < sampledHeight_; ++y) {
+    for (int x = 0; x < sampledWidth_; ++x) {
+      const std::size_t index = static_cast<std::size_t>(y) * sampledWidth_ + x;
+      if (ids_[index] > kRasterCut) {
+        continue;
+      }
+
+      const double px = (x + 0.5) / kSamples;
+      const double py = (y + 0.5) / kSamples;
+      const bool isHatch = std::fmod(px + py, kHatchSpacing) < kHatchWidth;
+      const std::size_t item = static_cast<std::size_t>(kRasterCut - ids_[index]);
+      const RasterColor& color = isHatch ? hatchColor : colors[item % colors.size()];
+      depths_[index] = static_cast<float>(depth0 + px * depthPerX + py * depthPerY);
+      ids_[index] = kRasterNone;
+      std::uint8_t* pixel = &pixels_[index * 3];
+      pixel[0] = ToByte(color.r);
+      pixel[1] = ToByte(color.g);
+      pixel[2] = ToByte(color.b);
+    }
+  }
 }
 
 void RasterImage::DrawLine(const RasterVertex& a, const RasterVertex& b, const RasterColor& color,

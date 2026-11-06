@@ -84,7 +84,7 @@ aseg = TrimmedCurve2D.by_points(ep1, ep2)
 # Map 2D curves to the cylindrical surfaces to create 3D edges
 e1s1 = Edge.by_curve2d(arc1, cs1)
 e2s1 = Edge.by_curve2d(aseg, cs1)
-e1s2 = Edge.by_curve2d(arc1, cs2)
+e1s2 = Edge.by_curve2d(arc2, cs2)
 e2s2 = Edge.by_curve2d(aseg, cs2)
 
 # Create wires and loft them to form the solid threads

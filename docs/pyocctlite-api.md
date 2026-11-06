@@ -174,10 +174,15 @@ class Callout
     Callout(target: Shape | Point, text: str)
     .target: Shape | Point
     .text: str
-render_image(shapes: Shape | Styled | Iterable[Shape | Styled], path: str, view: View | Camera = View.ISO, width: int = 1200, height: int = 900, callouts: Callout | Iterable[Callout] = (), shading: Shading = Shading.LIGHT, labels: bool = True) -> None
+class Section
+    Section.by_plane(origin: Point, normal: Vector, color: tuple[float, float, float] | None = None) -> Section
+    .origin: Point
+    .normal: Vector
+    .color: tuple[float, float, float] | None
+render_image(shapes: Shape | Styled | Iterable[Shape | Styled], path: str, view: View | Camera = View.ISO, width: int = 1200, height: int = 900, callouts: Callout | Iterable[Callout] = (), shading: Shading = Shading.LIGHT, labels: bool = True, section: Section | None = None) -> None
 render_faces(shape: Shape, path: str, view: View | Camera = View.ISO, width: int = 1200, height: int = 900, shading: Shading = Shading.LIGHT, labels: bool = True) -> dict[int, int]
 render_edges(shape: Shape, path: str, view: View | Camera = View.ISO, width: int = 1200, height: int = 900, shading: Shading = Shading.LIGHT, labels: bool = True) -> dict[int, int]
-render_views(shapes: Shape | Styled | Iterable[Shape | Styled], path: str, width: int = 1500, height: int = 1124, shading: Shading = Shading.LIGHT, labels: bool = True) -> None
+render_views(shapes: Shape | Styled | Iterable[Shape | Styled], path: str, width: int = 1500, height: int = 1124, shading: Shading = Shading.LIGHT, labels: bool = True, section: Section | None = None) -> None
 ```
 
 # pyocctlite.topology

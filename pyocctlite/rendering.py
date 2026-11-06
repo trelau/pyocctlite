@@ -5,7 +5,8 @@ Start with :func:`render_views`, which shows most of a part in one image. Use
 :func:`render_image` for one other view, or with a :class:`Camera` to look from any direction or
 closer at a feature. Use :class:`Styled` to highlight a sub-shape or see through a part, and
 :class:`Callout` to label something on an image. Use :func:`render_faces` or
-:func:`render_edges` to tell which face or edge is which. Use :class:`Shading` to show depth.
+:func:`render_edges` to tell which face or edge is which. Use :class:`Shading` to show depth, and
+:class:`Section` to see inside a part.
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from pyocctlite.topology import Shape, Vertex
 __all__ = [
     "Callout",
     "Camera",
+    "Section",
     "Shading",
     "Styled",
     "View",
@@ -33,6 +35,9 @@ __all__ = [
 ]
 
 _DEFAULT_COLOR = (0.72, 0.75, 0.8)
+
+# How far the default color of a section's cut is from a shape's color toward white
+_CUT_TINT = 0.7
 
 # Faces stay pale behind numbered edges, so that the edge colors stand out
 _EDGE_BACKDROP_COLOR = (0.9, 0.9, 0.92)
@@ -86,6 +91,17 @@ class Shading(Enum):
     DEPTH = "depth"
 
 
+def _check_color(color: tuple[float, float, float]) -> None:
+    """
+    Check that a color has three components from 0 to 1.
+
+    :param tuple[float, float, float] color: Red, green and blue.
+    :raises ValueError: If a color component is not from 0 to 1.
+    """
+    if not (len(color) == 3 and all(0.0 <= c <= 1.0 for c in color)):
+        raise ValueError(f"Expected 3 color components from 0 to 1, got {color}.")
+
+
 class Styled:
     """
     A shape with its appearance in an image.
@@ -116,8 +132,7 @@ class Styled:
         """
         if color is None:
             color = _DEFAULT_COLOR
-        if not (len(color) == 3 and all(0.0 <= c <= 1.0 for c in color)):
-            raise ValueError(f"Expected 3 color components from 0 to 1, got {color}.")
+        _check_color(color)
         if not 0.0 <= transparency <= 1.0:
             raise ValueError(f"Expected transparency from 0 to 1, got {transparency}.")
         self._shape = shape
@@ -374,6 +389,96 @@ class Callout:
         return self._text
 
 
+class Section:
+    """
+    A plane that cuts away part of an image to show the inside of a part, without changing shapes.
+
+    Everything on the side that the normal points to is removed, including callout targets. Where a
+    solid's material is cut, the image shows diagonal hatching over a flat color, with an outlined
+    boundary. Hatching keeps the same spacing at any zoom. Other shapes, and transparent solids, are
+    only clipped. The cut is only visible when looking from the removed side. The image is framed as
+    if nothing was removed, so that a part stays in the same place with and without a section.
+
+    :ivar Point origin: Point on the plane.
+    :ivar Vector normal: Normal of the plane, pointing to the side that is removed.
+    :ivar tuple[float, float, float] | None color: Red, green and blue of the cut from 0 to 1, or
+        None for a pale tint of each shape's color.
+    """
+
+    @classmethod
+    def by_plane(
+        cls,
+        origin: Point,
+        normal: Vector,
+        color: tuple[float, float, float] | None = None,
+    ) -> Section:
+        """
+        Create a section from a plane.
+
+        :param Point origin: Point on the plane.
+        :param Vector normal: Normal of the plane, pointing to the side that is removed.
+        :param tuple[float, float, float] | None color: Red, green and blue of the cut from 0 to 1.
+            Defaults to a pale tint of each shape's color.
+        :return: New section.
+        :rtype: Section
+        :raises ValueError: If the normal has no length or a color component is not from 0 to 1.
+        """
+        return cls(origin, normal, color)
+
+    def __init__(
+        self,
+        origin: Point,
+        normal: Vector,
+        color: tuple[float, float, float] | None = None,
+    ):
+        """
+        Initialize from named parts.
+
+        :param Point origin: Point on the plane.
+        :param Vector normal: Normal of the plane, pointing to the side that is removed.
+        :param tuple[float, float, float] | None color: Red, green and blue of the cut from 0 to 1.
+            Defaults to a pale tint of each shape's color.
+        :raises ValueError: If the normal has no length or a color component is not from 0 to 1.
+        """
+        if normal.magnitude == 0.0:
+            raise ValueError("Expected a normal with a length.")
+        if color is not None:
+            _check_color(color)
+        self._origin = origin
+        self._normal = normal
+        self._color = color
+
+    @property
+    def origin(self) -> Point:
+        """
+        Point on the plane.
+
+        :return: Origin.
+        :rtype: Point
+        """
+        return self._origin
+
+    @property
+    def normal(self) -> Vector:
+        """
+        Normal of the plane, pointing to the side that is removed.
+
+        :return: Normal.
+        :rtype: Vector
+        """
+        return self._normal
+
+    @property
+    def color(self) -> tuple[float, float, float] | None:
+        """
+        Color of the cut.
+
+        :return: Red, green and blue from 0 to 1, or None for a pale tint of each shape's color.
+        :rtype: tuple[float, float, float] | None
+        """
+        return self._color
+
+
 def _check_size(width: int, height: int) -> None:
     """
     Check that an image size is positive.
@@ -386,22 +491,31 @@ def _check_size(width: int, height: int) -> None:
         raise ValueError(f"Expected a positive image size, got {width} by {height}.")
 
 
-def _make_tool(shapes: Shape | Styled | Iterable[Shape | Styled], w: int, h: int) -> RenderIShapes:
+def _make_tool(
+    shapes: Shape | Styled | Iterable[Shape | Styled], w: int, h: int, section: Section | None
+) -> RenderIShapes:
     """
     Make the render tool for the given shapes.
 
     :param Shape | Styled | Iterable[Shape | Styled] shapes: Shape(s) to draw, in drawing order.
     :param int w: Width in pixels.
     :param int h: Height in pixels.
+    :param Section | None section: Plane to cut the image with, if any.
     :return: Tool with the shapes added.
     :rtype: RenderIShapes
     """
     items = [shapes] if isinstance(shapes, Shape | Styled) else shapes
     tool = RenderIShapes(w, h)
+    cut_colors: list[float] = []
     for item in items:
         styled = item if isinstance(item, Styled) else Styled(item)
         r, g, b = styled.color
         tool.AddShape(styled.shape.ishape, r, g, b, styled.transparency)
+        if section is not None:
+            tint = [c + (1.0 - c) * _CUT_TINT for c in styled.color]
+            cut_colors.extend(tint if section.color is None else section.color)
+    if section is not None:
+        tool.SetSection(section.origin.ipoint, section.normal.ivector, cut_colors)
     return tool
 
 
@@ -463,6 +577,7 @@ def render_image(
     callouts: Callout | Iterable[Callout] = (),
     shading: Shading = Shading.LIGHT,
     labels: bool = True,
+    section: Section | None = None,
 ) -> None:
     """
     Write one orthographic view of the shapes to a PNG file.
@@ -480,13 +595,14 @@ def render_image(
     :param Shading shading: How faces are shaded.
     :param bool labels: Whether to draw the view name, the axes and any numbers. Turn it off to see
         the shapes alone. Callouts are drawn either way.
+    :param Section | None section: Plane to cut the image with, to show the inside of a part.
     :raises ValueError: If the image size is not positive.
     :raises BuildFailed: If there is nothing to render, a shape is unbounded, or a face fails
         to mesh.
     :raises OSError: If the file cannot be written.
     """
     _check_size(width, height)
-    tool = _make_tool(shapes, width, height)
+    tool = _make_tool(shapes, width, height, section)
     for callout in [callouts] if isinstance(callouts, Callout) else callouts:
         target = callout.target
         shape = Vertex.by_point(target) if isinstance(target, Point) else target
@@ -586,6 +702,7 @@ def render_views(
     height: int = 1124,
     shading: Shading = Shading.LIGHT,
     labels: bool = True,
+    section: Section | None = None,
 ) -> None:
     """
     Write a sheet of four views of the shapes to a PNG file.
@@ -601,6 +718,8 @@ def render_views(
     :param Shading shading: How faces are shaded.
     :param bool labels: Whether to draw the view name, the axes and any numbers. Turn it off to see
         the shapes alone. Callouts are drawn either way.
+    :param Section | None section: Plane to cut every view with. The cut only shows in views from
+        the removed side.
     :raises ValueError: If the sheet is too small to hold four views.
     :raises BuildFailed: If there is nothing to render, a shape is unbounded, or a face fails
         to mesh.
@@ -610,7 +729,7 @@ def render_views(
     tile_height = height // 2
     _check_size(tile_width, tile_height)
 
-    tool = _make_tool(shapes, tile_width, tile_height)
+    tool = _make_tool(shapes, tile_width, tile_height, section)
     stride = tile_width * 3
 
     def rows(left: View, right: View) -> list[bytes]:

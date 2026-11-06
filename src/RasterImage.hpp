@@ -34,6 +34,10 @@ constexpr int kRasterNone = -1;
 constexpr int kRasterHidden = 0;
 constexpr int kRasterVisible = 1;
 
+// Id for a triangle whose samples become the cut area of a section where they end up on top, using
+// the first cut color. Each lower id uses the next color.
+constexpr int kRasterCut = -2;
+
 // Find the pole of each region in a grid of pixel values, skipping pixels without a region
 std::map<int, RasterPole> FindRasterPoles(const std::vector<int>& grid, int width, int height);
 
@@ -50,6 +54,12 @@ public:
   // Only an opaque triangle writes depth and the id. A translucent one must be drawn back to front.
   void FillTriangle(const RasterVertex& a, const RasterVertex& b, const RasterVertex& c,
                     const RasterColor& color, double opacity, int id = kRasterNone);
+
+  // Give the samples of cut triangles that are on top their color with diagonal hatching over it,
+  // and move them to the plane whose depth at a final pixel position is
+  // depth0 + x * depthPerX + y * depthPerY
+  void FillCut(const std::vector<RasterColor>& colors, const RasterColor& hatchColor, double depth0,
+               double depthPerX, double depthPerY);
 
   // Draw a depth-tested line of the given width in final pixels
   void DrawLine(const RasterVertex& a, const RasterVertex& b, const RasterColor& color,
