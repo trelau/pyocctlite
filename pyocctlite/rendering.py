@@ -1,12 +1,5 @@
 """
-Render shapes to PNG images, with no GPU, display or extra packages needed.
-
-Start with :func:`render_views`, which shows most of a part in one image. Use
-:func:`render_image` for one other view, or with a :class:`Camera` to look from any direction or
-closer at a feature. Use :class:`Styled` to highlight a sub-shape or see through a part, and
-:class:`Callout` to label something on an image. Use :func:`render_faces` or
-:func:`render_edges` to tell which face or edge is which. Use :class:`Shading` to show depth, and
-:class:`Section` to see inside a part.
+Render shapes to PNG images, with no GPU, display or extra packages.
 """
 
 from __future__ import annotations
@@ -65,9 +58,8 @@ _PARALLEL_TOLERANCE = 1.0e-7
 
 class View(Enum):
     """
-    Standard views for a Z-up model. FRONT looks from -y, RIGHT from +x and TOP from +z with +y up.
-    ISO looks from (+x, -y, +z), showing the front, right and top. Each value is the direction
-    toward the viewer and the up direction, as (x, y, z) components.
+    Standard views for a Z-up model, each holding the direction toward the viewer and the up
+    direction.
     """
 
     ISO = ((1.0, -1.0, 1.0), (0.0, 0.0, 1.0))
@@ -81,10 +73,8 @@ class View(Enum):
 
 class Shading(Enum):
     """
-    How faces are shaded. LIGHT shades a face by the way it faces the light, so parallel faces look
-    the same however far apart they are. DEPTH also darkens faces that are farther from the viewer,
-    which shows which of them is nearer. It only shows relative depth, from the nearest face to the
-    farthest one in each view.
+    How faces are shaded: LIGHT by the way a face faces the light, and DEPTH also darkening faces
+    that are farther from the viewer.
     """
 
     LIGHT = "light"
@@ -106,9 +96,6 @@ class Styled:
     """
     A shape with its appearance in an image.
 
-    Faces take the color and are outlined by dark edges. Edges and vertices that are not part of a
-    face take the color and are drawn thicker, which makes them suitable as highlights.
-
     :ivar Shape shape: Shape to draw.
     :ivar tuple[float, float, float] color: Red, green and blue from 0 to 1.
     :ivar float transparency: From 0 for opaque to 1 for invisible faces.
@@ -126,8 +113,7 @@ class Styled:
         :param Shape shape: Shape to draw.
         :param tuple[float, float, float] | None color: Red, green and blue from 0 to 1. Defaults to
             a neutral gray.
-        :param float transparency: From 0 for opaque to 1 for invisible faces. Edges of the faces
-            stay visible but become lighter.
+        :param float transparency: From 0 for opaque to 1 for invisible faces.
         :raises ValueError: If a color component or the transparency is not from 0 to 1.
         """
         if color is None:
@@ -172,12 +158,7 @@ class Styled:
 
 class Camera:
     """
-    A custom orthographic view, for when the standard views do not show what is needed.
-
-    Views have no perspective, so distance has no effect and a position only sets the direction of
-    the view. Everything along the line of sight stays in the image, so use ``span`` and ``target``
-    to look closer, and a transparent :class:`Styled` or another direction to see past something in
-    front.
+    A custom orthographic view.
 
     :ivar Vector direction: Direction from the view's center toward the viewer.
     :ivar Vector up: Direction that appears up in the image.
@@ -347,15 +328,8 @@ class Callout:
     """
     A text box beside the part with a line pointing at a target.
 
-    The line ends on the middle of the target's visible part, so it does not need to be aimed. If
-    the target is hidden in the view, the line is dashed and the text adds "(hidden)". If it is
-    outside the image, there is no line and the text adds "(out of view)". Boxes are placed
-    automatically in columns at the sides of the image.
-
-    :ivar Shape | Point target: What to point at, which is not drawn itself. It does not need to be
-        part of the image's shapes.
-    :ivar str text: Text in printable ASCII, where other characters are drawn as "?". A newline
-        starts a new line.
+    :ivar Shape | Point target: What to point at.
+    :ivar str text: Text in printable ASCII, where a newline starts a new line.
     """
 
     def __init__(self, target: Shape | Point, text: str):
@@ -363,7 +337,7 @@ class Callout:
         Initialize from a target and text.
 
         :param Shape | Point target: What to point at.
-        :param str text: Text in printable ASCII. A newline starts a new line.
+        :param str text: Text in printable ASCII, where a newline starts a new line.
         """
         self._target = target
         self._text = text
@@ -392,12 +366,6 @@ class Callout:
 class Section:
     """
     A plane that cuts away part of an image to show the inside of a part, without changing shapes.
-
-    Everything on the side that the normal points to is removed, including callout targets. Where a
-    solid's material is cut, the image shows diagonal hatching over a flat color, with an outlined
-    boundary. Hatching keeps the same spacing at any zoom. Other shapes, and transparent solids, are
-    only clipped. The cut is only visible when looking from the removed side. The image is framed as
-    if nothing was removed, so that a part stays in the same place with and without a section.
 
     :ivar Point origin: Point on the plane.
     :ivar Vector normal: Normal of the plane, pointing to the side that is removed.
@@ -582,10 +550,6 @@ def render_image(
     """
     Write one orthographic view of the shapes to a PNG file.
 
-    The image shows the view name and the X, Y and Z axes as colored red, green and blue. A shape
-    that coincides with an earlier one draws over it. Only visible edges are drawn, so hidden
-    features need another view or a transparent :class:`Styled`.
-
     :param Shape | Styled | Iterable[Shape | Styled] shapes: Shape(s) to draw, in drawing order.
     :param str path: PNG file path.
     :param View | Camera view: View to render.
@@ -593,8 +557,7 @@ def render_image(
     :param int height: Image height in pixels.
     :param Callout | Iterable[Callout] callouts: Text boxes pointing at targets.
     :param Shading shading: How faces are shaded.
-    :param bool labels: Whether to draw the view name, the axes and any numbers. Turn it off to see
-        the shapes alone. Callouts are drawn either way.
+    :param bool labels: Whether to draw the view name, the axes and any numbers.
     :param Section | None section: Plane to cut the image with, to show the inside of a part.
     :raises ValueError: If the image size is not positive.
     :raises BuildFailed: If there is nothing to render, a shape is unbounded, or a face fails
@@ -622,21 +585,13 @@ def render_faces(
     """
     Write a view with each face colored and numbered to a PNG file, and return what is visible.
 
-    A number is the face's index in ``shape.faces()``. It only applies to this shape, since an
-    operation returns a new shape with its own order, where trimmed faces are new faces. Keep a face
-    itself rather than its number to refer to it later. A number is drawn on the face if it fits,
-    and otherwise in a text box at the side of the image with a line pointing at the face. Colors
-    only help to tell faces apart and repeat on parts with many faces, so rely on the numbers and
-    the returned pixels. A face that is entirely hidden has no number, so look from another view.
-
     :param Shape shape: Shape to draw.
     :param str path: PNG file path.
     :param View | Camera view: View to render.
     :param int width: Image width in pixels.
     :param int height: Image height in pixels.
     :param Shading shading: How faces are shaded.
-    :param bool labels: Whether to draw the view name, the axes and any numbers. Turn it off to see
-        the shapes alone. Callouts are drawn either way.
+    :param bool labels: Whether to draw the view name, the axes and any numbers.
     :return: Number of visible pixels for each visible face, by index in ``shape.faces()``.
     :rtype: dict[int, int]
     :raises ValueError: If the image size is not positive.
@@ -663,23 +618,13 @@ def render_edges(
     """
     Write a view with each edge colored and numbered to a PNG file, and return what is visible.
 
-    A number is the edge's index in ``shape.edges()``. It only applies to this shape, since an
-    operation returns a new shape with its own order. Keep an edge itself rather than its number to
-    refer to it later. A number is in a text box at the side of the image with a line pointing at
-    the middle of the edge's longest visible part. An edge that is entirely hidden
-    or seen end-on has no number, so look from another view. Seam edges of closed surfaces are real
-    edges and are numbered too. Colors only help to tell edges apart and repeat, so rely on the
-    numbers and the returned lengths. Text boxes overlap if there are too many for the image, so use
-    a larger image or a :class:`Camera` that looks closer.
-
     :param Shape shape: Shape to draw.
     :param str path: PNG file path.
     :param View | Camera view: View to render.
     :param int width: Image width in pixels.
     :param int height: Image height in pixels.
     :param Shading shading: How faces are shaded.
-    :param bool labels: Whether to draw the view name, the axes and any numbers. Turn it off to see
-        the shapes alone. Callouts are drawn either way.
+    :param bool labels: Whether to draw the view name, the axes and any numbers.
     :return: Visible length in pixels for each visible edge, by index in ``shape.edges()``.
     :rtype: dict[int, int]
     :raises ValueError: If the image size is not positive.
@@ -707,19 +652,13 @@ def render_views(
     """
     Write a sheet of four views of the shapes to a PNG file.
 
-    TOP is above FRONT and RIGHT is beside FRONT, as in a third-angle drawing, with ISO in the free
-    corner. All views use the same scale, so sizes can be compared between them. See
-    :func:`render_image` for what each view shows.
-
     :param Shape | Styled | Iterable[Shape | Styled] shapes: Shape(s) to draw, in drawing order.
     :param str path: PNG file path.
-    :param int width: Sheet width in pixels. An odd width is rounded down.
-    :param int height: Sheet height in pixels. An odd height is rounded down.
+    :param int width: Sheet width in pixels.
+    :param int height: Sheet height in pixels.
     :param Shading shading: How faces are shaded.
-    :param bool labels: Whether to draw the view name, the axes and any numbers. Turn it off to see
-        the shapes alone. Callouts are drawn either way.
-    :param Section | None section: Plane to cut every view with. The cut only shows in views from
-        the removed side.
+    :param bool labels: Whether to draw the view name, the axes and any numbers.
+    :param Section | None section: Plane to cut every view with.
     :raises ValueError: If the sheet is too small to hold four views.
     :raises BuildFailed: If there is nothing to render, a shape is unbounded, or a face fails
         to mesh.

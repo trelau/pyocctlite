@@ -232,10 +232,6 @@ IBoundingBox IShape::BoundingBox() const {
   Bnd_Box box;
   BRepBndLib::AddOptimal(shape_, box, false, false);
 
-  if (box.IsVoid()) {
-    throw std::runtime_error("Shape is empty.");
-  }
-
   return IBoundingBox(box);
 }
 
@@ -257,9 +253,6 @@ IPoint IShape::Centroid() const {
 
   NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> vertices;
   TopExp::MapShapes(shape_, TopAbs_VERTEX, vertices);
-  if (vertices.IsEmpty()) {
-    throw std::runtime_error("Shape is empty.");
-  }
 
   gp_XYZ sum(0.0, 0.0, 0.0);
   for (int i = 1; i <= vertices.Extent(); ++i) {

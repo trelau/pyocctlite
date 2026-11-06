@@ -763,9 +763,10 @@ class TestBoundingBox(unittest.TestCase):
         self.assertTrue(bb.min_point.is_equal(Point.by_xyz(1, 2, 3)))
         self.assertTrue(bb.max_point.is_equal(Point.by_xyz(1, 2, 3)))
 
-    def test_empty(self):
+    def test_empty_raises_when_read(self):
+        box = Compound.by_shapes([]).bounding_box
         with self.assertRaises(RuntimeError):
-            _ = Compound.by_shapes([]).bounding_box
+            _ = box.min_point
 
     def test_init_wrong_type(self):
         with self.assertRaises(TypeError):
@@ -816,9 +817,8 @@ class TestCentroid(unittest.TestCase):
         c = Compound.by_shapes([Box.by_size(1, 1, 1), face]).centroid
         self.assertTrue(c.is_equal(Point.by_xyz(0.5, 0.5, 0.5)))
 
-    def test_empty(self):
-        with self.assertRaises(RuntimeError):
-            _ = Compound.by_shapes([]).centroid
+    def test_empty_is_nan(self):
+        self.assertTrue(math.isnan(Compound.by_shapes([]).centroid.x))
 
     def test_selects_edges_by_position(self):
         box = Box.by_size(1, 1, 1)

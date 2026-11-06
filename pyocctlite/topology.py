@@ -197,7 +197,7 @@ class Shape:
     @cached_property
     def volume(self) -> float:
         """
-        Total volume of all solids. Can be negative (e.g. after ``face.thicken(1.0)``).
+        Total volume of all solids.
 
         :return: Total volume.
         :rtype: float
@@ -209,11 +209,8 @@ class Shape:
         """
         Smallest box aligned with the global axes that contains this shape.
 
-        The box can extend about 1e-7 beyond curves that have no exact bounds (e.g. splines).
-
         :return: Bounding box.
         :rtype: BoundingBox
-        :raises RuntimeError: If the shape is empty (e.g. intersecting shapes that do not overlap).
         """
         return BoundingBox(self.ishape.BoundingBox())
 
@@ -222,13 +219,8 @@ class Shape:
         """
         Geometric center of the highest dimension present in this shape.
 
-        This is the centroid of the volume if the shape has solids, otherwise of the area if it has
-        faces, otherwise of the length if it has edges, otherwise the mean of its vertices. Lower
-        dimensions are ignored (e.g. a compound of a solid and a separate face uses only the solid).
-
         :return: Centroid.
         :rtype: Point
-        :raises RuntimeError: If the shape is empty (e.g. intersecting shapes that do not overlap).
         """
         return Point(self.ishape.Centroid())
 
@@ -246,9 +238,6 @@ class Shape:
         """
         Check if both shapes share the same underlying shape with the same orientation.
 
-        This is stricter than ``==``, which ignores orientation (e.g. the two uses of an edge shared
-        by two faces of a box are ``==`` but not equal).
-
         :param Shape other: Other shape.
         :return: True if the shapes are equal.
         :rtype: bool
@@ -258,8 +247,6 @@ class Shape:
     def explore(self, find: type[T], ignore: type[Shape] | None = None) -> ExploreShape[T]:
         """
         Iterate over sub-shapes, including repeats of shared sub-shapes (e.g. 24 edges for a box).
-
-        Use :meth:`map` for unique sub-shapes.
 
         :param type[T] find: Class of shapes to find (e.g. ``Edge``).
         :param type[Shape] | None ignore: Class of shapes to skip, along with their sub-shapes.
@@ -273,8 +260,6 @@ class Shape:
         """
         Map the unique sub-shapes (e.g. 12 edges for a box).
 
-        Use :meth:`explore` to include repeats of shared sub-shapes.
-
         :param type[T] kind: Class of shapes to map (e.g. ``Edge``).
         :return: Map tool.
         :rtype: MapShape[T]
@@ -284,7 +269,7 @@ class Shape:
 
     def vertices(self) -> MapShape[Vertex]:
         """
-        Get all vertices. A closed edge has one vertex.
+        Get all vertices.
 
         :return: Map of vertices.
         :rtype: MapShape[Vertex]
@@ -402,9 +387,8 @@ class Shape:
 
     def _by_history(self, tool: CopyShape[Self] | TransformShape[Self]) -> Self:
         """
-        Build the result of a kind-preserving tool applied to this shape.
-
-        Composites override this to carry their named parts through the tool's history.
+        Build the result of a kind-preserving tool applied to this shape, which composites override
+        to carry their named parts.
 
         :param CopyShape[Self] | TransformShape[Self] tool: Tool applied to this shape.
         :return: New shape.
@@ -414,7 +398,7 @@ class Shape:
 
     def extrude(self, vector: Vector) -> Shape:
         """
-        Extrude this shape along a vector. The result is one dimension higher (e.g. face to solid).
+        Extrude this shape along a vector into one dimension higher (e.g. face to solid).
 
         :param Vector vector: Extrusion direction and distance.
         :return: Extruded shape.
@@ -425,11 +409,7 @@ class Shape:
 
     def revolve(self, axis: Axis) -> Shape:
         """
-        Revolve this shape a full turn about an axis. The result is one dimension higher (e.g. face
-        to solid).
-
-        The shape may touch the axis but must not cross it. Crashes the interpreter if the shape is
-        an edge lying along the axis.
+        Revolve this shape a full turn about an axis into one dimension higher (e.g. face to solid).
 
         :param Axis axis: Axis of revolution.
         :return: Revolved shape.
@@ -445,7 +425,7 @@ class Shape:
 
         :param Shape | Iterable[Shape] other: Shape(s) to unite.
         :param float tol: Distance below which geometry counts as touching.
-        :return: United shape. Typically a ``Compound``, even for one solid.
+        :return: United shape.
         :rtype: Shape
         :raises BuildFailed: If the operation fails or no shapes are given.
         """
@@ -457,7 +437,7 @@ class Shape:
 
         :param Shape | Iterable[Shape] other: Shape(s) to subtract.
         :param float tol: Distance below which geometry counts as touching.
-        :return: Resulting shape. Typically a ``Compound``, even for one solid.
+        :return: Resulting shape.
         :rtype: Shape
         :raises BuildFailed: If the operation fails or no shapes are given.
         """
@@ -467,12 +447,9 @@ class Shape:
         """
         Keep the part of this shape inside any of the other shapes (boolean common).
 
-        Multiple shapes act as their union, not as successive intersections.
-
         :param Shape | Iterable[Shape] other: Shape(s) to intersect with.
         :param float tol: Distance below which geometry counts as touching.
-        :return: Resulting shape. Typically a ``Compound``, even for one solid. Empty if the shapes
-            do not overlap.
+        :return: Resulting shape.
         :rtype: Shape
         :raises BuildFailed: If the operation fails or no shapes are given.
         """
@@ -482,12 +459,9 @@ class Shape:
         """
         Fillet edges of this shape with a constant radius.
 
-        Edges that share no vertex with a filleted edge compare equal (``==``) to their counterparts
-        in the result.
-
         :param Edge | Iterable[Edge] edge: Edge(s) to fillet. Must belong to this shape.
         :param float radius: Fillet radius. Must be positive.
-        :return: Filleted shape. Typically a ``Compound``, even for one solid.
+        :return: Filleted shape.
         :rtype: Shape
         :raises BuildFailed: If the radius is not positive or is too large.
         :raises RuntimeError: If no edges are given or they do not belong to this shape.
@@ -503,7 +477,7 @@ class Shape:
 
         :param Edge | Iterable[Edge] edge: Edge(s) to chamfer. Must belong to this shape.
         :param float distance: Distance from the edge along each adjacent face. Must be positive.
-        :return: Chamfered shape. Typically a ``Compound``, even for one solid.
+        :return: Chamfered shape.
         :rtype: Shape
         :raises BuildFailed: If the distance is not positive or is too large.
         :raises RuntimeError: If no edges are given or they do not belong to this shape.
@@ -519,12 +493,7 @@ class Shape:
         """
         Create a hollow solid with uniform wall thickness.
 
-        If ``faces`` is given, the solid is opened at those faces. Otherwise, the shape must be a
-        face or open shell. A thickness that is too large may produce an empty or non-hollow shape
-        without raising. Empty ``faces`` is not the same as None: it offsets the shape without
-        hollowing it (e.g. a solid becomes a smaller solid and a face stays a single face).
-
-        :param float thickness: Wall thickness. Negative builds inward; positive builds outward.
+        :param float thickness: Wall thickness, negative for inward and positive for outward.
         :param Face | Iterable[Face] | None faces: Face(s) to remove.
         :param float tol: Tolerance. Used only with ``faces``.
         :return: Hollow solid.
@@ -598,8 +567,6 @@ class Vertex(Shape):
         """
         Revolve this vertex a full turn about an axis into a closed circular edge.
 
-        A vertex on the axis produces a zero-length edge without raising.
-
         :param Axis axis: Axis of revolution.
         :return: Revolved edge.
         :rtype: Edge
@@ -616,8 +583,6 @@ class Edge(Shape):
     def by_curve(cls, c: Curve) -> Edge:
         """
         Create an edge from a 3D curve.
-
-        A ``Line`` is unbounded and produces a very long edge. Use :meth:`by_points` for a segment.
 
         :param Curve c: 3D curve.
         :return: New edge.
@@ -738,8 +703,6 @@ class Edge(Shape):
         """
         Revolve this edge a full turn about an axis into a face.
 
-        The edge may end on the axis. Crashes the interpreter if it lies along the axis.
-
         :param Axis axis: Axis of revolution.
         :return: Revolved face.
         :rtype: Face
@@ -770,8 +733,6 @@ class Wire(Shape):
     def by_edges(cls, edges: Iterable[Edge]) -> Wire:
         """
         Create a wire from connected edges in any order.
-
-        Crashes the interpreter if ``edges`` is empty.
 
         :param Iterable[Edge] edges: Edges. Must not be empty.
         :return: New wire.
@@ -810,21 +771,9 @@ class Wire(Shape):
         """
         Offset this planar wire within its plane.
 
-        Without a spine, a closed wire grows for a positive distance and shrinks for a negative
-        one, whichever way it runs, and an open wire becomes a closed wire around it for either
-        sign. Convex corners that grow become arcs. Shrinking past the middle gives no wires.
-
-        With a spine, the spine's boundary is offset too and comes first in the result. The sign
-        for a closed wire then depends on which way it runs. An open wire inside the spine needs a
-        negative distance, since a positive one returns only the grown boundary.
-
-        Offsetting splines can leave edges of about 1e-5, which a later boolean silently fails to
-        cut unless its ``tol`` is raised.
-
         :param float distance: Offset distance.
-        :param Face | None spine: Planar face the wire lies on. Crashes the interpreter if omitted
-            for a straight wire, which does not define a plane by itself.
-        :return: Offset wire or wires. Use :meth:`wires` to read them.
+        :param Face | None spine: Planar face the wire lies on.
+        :return: Offset wire or wires.
         :rtype: Shape
         :raises BuildFailed: If the offset fails.
         """
@@ -845,9 +794,6 @@ class Wire(Shape):
         """
         Revolve this wire a full turn about an axis into a shell.
 
-        An edge of the wire on the axis produces no face. A wire entirely on the axis produces an
-        empty shell without raising.
-
         :param Axis axis: Axis of revolution.
         :return: Revolved shell.
         :rtype: Shell
@@ -865,9 +811,6 @@ class Face(Shape):
     def by_wire(cls, w: Wire) -> Face:
         """
         Create a planar face from a wire.
-
-        Crashes the interpreter if the wire is closed but not planar. An open wire is accepted, but
-        the area of the resulting face is not valid.
 
         :param Wire w: Closed, planar wire.
         :return: New face.
@@ -901,8 +844,6 @@ class Face(Shape):
     def revolve(self, axis: Axis) -> Solid:
         """
         Revolve this face a full turn about an axis into a solid.
-
-        The face may have an edge on the axis (e.g. a rectangle revolves into a full cylinder).
 
         :param Axis axis: Axis of revolution.
         :return: Revolved solid.
@@ -960,8 +901,6 @@ class Solid(Shape):
     ) -> Solid:
         """
         Create a solid by lofting through sections in order.
-
-        Only wire sections are implemented. Crashes the interpreter if given a single wire.
 
         :param Iterable[Vertex | Edge | Wire] shapes: Sections.
         :param bool is_ruled: True for ruled surfaces between sections, False for smooth surfaces.
@@ -1086,9 +1025,6 @@ class ShapeTool(Generic[ToolT]):
     def build(self) -> None:
         """
         Run the operation now, to check :attr:`is_done` before requesting results.
-
-        Results build on demand, so this is optional. Some problems are raised here rather than
-        leaving :attr:`is_done` false (e.g. a fillet tool with no edges).
         """
         self._itool.Build()
 
@@ -1107,7 +1043,7 @@ class ShapeTool(Generic[ToolT]):
         Get shapes generated from a sub-shape of the source shape (e.g. the face from an edge).
 
         :param Shape s: Sub-shape of the source shape.
-        :return: Generated shapes. Empty if there are none.
+        :return: Generated shapes.
         :rtype: list[Shape]
         :raises BuildFailed: If the operation fails.
         """
@@ -1118,7 +1054,7 @@ class ShapeTool(Generic[ToolT]):
         Get what a sub-shape of the source shape became (e.g. the trimmed face after a fillet).
 
         :param Shape s: Sub-shape of the source shape.
-        :return: Modified shapes. Empty if it is unchanged, deleted, or not in the source.
+        :return: Modified shapes.
         :rtype: list[Shape]
         :raises BuildFailed: If the operation fails.
         """
@@ -1129,7 +1065,7 @@ class ShapeTool(Generic[ToolT]):
         Check if a sub-shape of the source shape is absent from the result (e.g. a filleted edge).
 
         :param Shape s: Sub-shape of the source shape.
-        :return: True if deleted. False if it is not in the source.
+        :return: True if deleted.
         :rtype: bool
         :raises BuildFailed: If the operation fails.
         """
@@ -1156,7 +1092,7 @@ class BooleanShapes(ShapeTool[BooleanToolT]):
         """
         Get the edges where the surfaces of the shapes intersect.
 
-        :return: Intersection edges. Empty if the shapes only touch or one contains the other.
+        :return: Intersection edges.
         :rtype: list[Edge]
         """
         return [Edge(e) for e in self._itool.IntersectionEdges()]
@@ -1178,8 +1114,7 @@ class UniteShapes(BooleanShapes[UniteIShapes]):
 
         :param Shape | Iterable[Shape] target: Target shape(s) to unite with.
         :param Shape | Iterable[Shape] tool: Tool shape(s) to unite.
-        :param float tol: Distance below which geometry counts as touching. Raise it when an
-            input has edges too short for the default to resolve.
+        :param float tol: Distance below which geometry counts as touching.
         """
         super().__init__(UniteIShapes(_ishapes(target), _ishapes(tool), tol))
 
@@ -1200,15 +1135,14 @@ class CutShapes(BooleanShapes[CutIShapes]):
 
         :param Shape | Iterable[Shape] target: Target shape(s) to cut from.
         :param Shape | Iterable[Shape] tool: Tool shape(s) to subtract.
-        :param float tol: Distance below which geometry counts as touching. Raise it when an
-            input has edges too short for the default to resolve.
+        :param float tol: Distance below which geometry counts as touching.
         """
         super().__init__(CutIShapes(_ishapes(target), _ishapes(tool), tol))
 
 
 class IntersectShapes(BooleanShapes[IntersectIShapes]):
     """
-    Tool to intersect shapes (boolean common). Multiple targets or tools act as their union.
+    Tool to intersect shapes (boolean common), where multiple targets or tools act as their union.
     """
 
     def __init__(
@@ -1222,15 +1156,14 @@ class IntersectShapes(BooleanShapes[IntersectIShapes]):
 
         :param Shape | Iterable[Shape] target: Target shape(s) to intersect.
         :param Shape | Iterable[Shape] tool: Tool shape(s) to intersect with.
-        :param float tol: Distance below which geometry counts as touching. Raise it when an
-            input has edges too short for the default to resolve.
+        :param float tol: Distance below which geometry counts as touching.
         """
         super().__init__(IntersectIShapes(_ishapes(target), _ishapes(tool), tol))
 
 
 class CopyShape(ShapeTool[CopyIShape], Generic[T]):
     """
-    Tool to copy a shape. The result has the same type as the source.
+    Tool to copy a shape, keeping its type.
     """
 
     def __init__(self, s: T, copy_geom: bool = True):
@@ -1266,7 +1199,7 @@ class CopyShape(ShapeTool[CopyIShape], Generic[T]):
 
 class TransformShape(ShapeTool[TransformIShape], Generic[T]):
     """
-    Tool to transform a shape. The result has the same type as the source.
+    Tool to transform a shape, keeping its type.
     """
 
     def __init__(self, s: T, t: Transform, copy_geom: bool = False):
@@ -1303,7 +1236,7 @@ class TransformShape(ShapeTool[TransformIShape], Generic[T]):
 
 class ExtrudeShape(ShapeTool[ExtrudeIShape], Generic[T]):
     """
-    Tool to extrude a shape. The result is one dimension higher (e.g. face to solid).
+    Tool to extrude a shape into one dimension higher (e.g. face to solid).
     """
 
     def __init__(self, s: T, v: Vector):
@@ -1346,7 +1279,7 @@ class ExtrudeShape(ShapeTool[ExtrudeIShape], Generic[T]):
 
     def first_shape(self, s: Shape | None = None) -> Shape:
         """
-        Get the shape at the start of the extrusion. This is the source shape or its sub-shape.
+        Get the shape at the start of the extrusion.
 
         :param Shape | None s: Sub-shape of the source shape. Defaults to the source shape.
         :return: First shape of the same type as the argument.
@@ -1376,10 +1309,7 @@ class ExtrudeShape(ShapeTool[ExtrudeIShape], Generic[T]):
 
 class RevolveShape(ShapeTool[RevolveIShape], Generic[T]):
     """
-    Tool to revolve a shape a full turn. The result is one dimension higher (e.g. face to solid).
-
-    Use :meth:`generated_shapes` to find what a sub-shape of the source became (e.g. the circular
-    edge from a vertex, or the face from an edge).
+    Tool to revolve a shape a full turn into one dimension higher (e.g. face to solid).
     """
 
     def __init__(self, s: T, axis: Axis):
@@ -1410,8 +1340,6 @@ class RevolveShape(ShapeTool[RevolveIShape], Generic[T]):
         """
         Get the resulting shape, one dimension higher than the source.
 
-        Crashes the interpreter if the source is an edge lying along the axis.
-
         :return: Revolved shape.
         :rtype: Shape
         :raises BuildFailed: If the source crosses the axis.
@@ -1422,8 +1350,6 @@ class RevolveShape(ShapeTool[RevolveIShape], Generic[T]):
 class FilletShape(ShapeTool[FilletIShape]):
     """
     Tool to fillet edges of a shape, with a constant radius per edge.
-
-    Use :meth:`generated_shapes` to find the fillet face made from an edge.
     """
 
     def __init__(self, s: Shape):
@@ -1439,8 +1365,6 @@ class FilletShape(ShapeTool[FilletIShape]):
         """
         Add an edge to fillet.
 
-        Problems with the edge or radius are raised when the result is requested.
-
         :param Edge e: Edge. Must belong to the source shape.
         :param float radius: Fillet radius. Must be positive.
         """
@@ -1450,8 +1374,6 @@ class FilletShape(ShapeTool[FilletIShape]):
 class ChamferShape(ShapeTool[ChamferIShape]):
     """
     Tool to chamfer edges of a shape, with the same distance on both faces adjacent to each edge.
-
-    Use :meth:`generated_shapes` to find the chamfer face made from an edge.
     """
 
     def __init__(self, s: Shape):
@@ -1466,8 +1388,6 @@ class ChamferShape(ShapeTool[ChamferIShape]):
     def add_edge(self, e: Edge, distance: float) -> None:
         """
         Add an edge to chamfer.
-
-        Problems with the edge or distance are raised when the result is requested.
 
         :param Edge e: Edge. Must belong to the source shape.
         :param float distance: Distance from the edge along each adjacent face. Must be positive.
@@ -1491,7 +1411,7 @@ class ThickenShape(ShapeTool[ThickenIShape]):
         Initialize with shape and thickness.
 
         :param Shape s: Source shape.
-        :param float thickness: Wall thickness. Negative builds inward; positive builds outward.
+        :param float thickness: Wall thickness, negative for inward and positive for outward.
         :param Face | Iterable[Face] | None faces: Face(s) to remove.
         :param float tol: Tolerance. Used only with ``faces``.
         """
@@ -1505,8 +1425,6 @@ class ThickenShape(ShapeTool[ThickenIShape]):
 class OffsetWire(ShapeTool[OffsetIWire]):
     """
     Tool to offset a planar wire within its plane.
-
-    See :meth:`Wire.offset` for how the sign of the distance and a spine affect the result.
     """
 
     def __init__(self, w: Wire, distance: float, spine: Face | None = None):
@@ -1515,8 +1433,7 @@ class OffsetWire(ShapeTool[OffsetIWire]):
 
         :param Wire w: Source wire.
         :param float distance: Offset distance.
-        :param Face | None spine: Planar face the wire lies on. Crashes the interpreter if omitted
-            for a straight wire, which does not define a plane by itself.
+        :param Face | None spine: Planar face the wire lies on.
         """
         if spine is None:
             itool = OffsetIWire(w.ishape, distance)
@@ -1528,8 +1445,6 @@ class OffsetWire(ShapeTool[OffsetIWire]):
 class LoftShape(ShapeTool[LoftIShape]):
     """
     Tool to loft through section wires in the order they are added.
-
-    Crashes the interpreter if built from a single wire.
     """
 
     def __init__(self, is_solid: bool = False, is_ruled: bool = False, tol: float = 1.0e-6):
@@ -1591,7 +1506,7 @@ class MapShape(Generic[T]):
         """
         Get shape by 0-based index.
 
-        :param int index: 0-based index. Negative values count from the end.
+        :param int index: 0-based index, or negative to count from the end.
         :return: Sub-shape.
         :rtype: T
         :raises IndexError: If the index is out of range.
@@ -1627,7 +1542,7 @@ class MapShape(Generic[T]):
 
     def find_shape(self, index: int) -> T:
         """
-        Find shape by 0-based index. Negative values are not supported.
+        Find shape by 0-based index.
 
         :param int index: 0-based index.
         :return: Sub-shape.

@@ -136,7 +136,7 @@ class Vector2D:
     @classmethod
     def by_points(cls, p1: Point2D, p2: Point2D) -> Vector2D:
         """
-        Create a vector from one point to another. Coincident points produce a zero vector.
+        Create a vector from one point to another.
 
         :param Point2D p1: Start point.
         :param Point2D p2: End point.
@@ -239,9 +239,6 @@ class Vector2D:
         """
         Check if this vector has the same magnitude and direction as another within tolerances.
 
-        Direction is ignored if either magnitude is within ``tol``, so two tiny vectors can be equal
-        while pointing in different directions.
-
         :param Vector2D other: Other vector.
         :param float tol: Magnitude tolerance.
         :param float angular_tol: Direction tolerance in radians.
@@ -274,8 +271,6 @@ class Frame2D:
     def by_vector(cls, origin: Point2D, xvec: Vector2D) -> Frame2D:
         """
         Create a 2D frame from an origin and x-direction.
-
-        The y-direction is the x-direction rotated 90 degrees counterclockwise.
 
         :param Point2D origin: Origin point.
         :param Vector2D xvec: x-direction vector. Must be non-zero.
@@ -427,7 +422,7 @@ class Curve2D:
     @cached_property
     def first_parameter(self) -> float:
         """
-        Parameter at the start of the curve. Very large and negative for an unbounded curve.
+        Parameter at the start of the curve.
 
         :return: First parameter.
         :rtype: float
@@ -437,7 +432,7 @@ class Curve2D:
     @cached_property
     def last_parameter(self) -> float:
         """
-        Parameter at the end of the curve. Very large for an unbounded curve.
+        Parameter at the end of the curve.
 
         :return: Last parameter.
         :rtype: float
@@ -447,9 +442,8 @@ class Curve2D:
 
 class Ellipse2D(Curve2D):
     """
-    Represents a 2D ellipse with its major axis along the x-direction of the frame.
-
-    The curve parameter is the angle in radians from the major axis.
+    Represents a 2D ellipse with its major axis along the x-direction of the frame, parameterized by
+    the angle in radians from that axis.
     """
 
     @classmethod
@@ -483,10 +477,7 @@ class Ellipse2D(Curve2D):
 
 class TrimmedCurve2D(Curve2D):
     """
-    Represents a trimmed 2D curve.
-
-    The curve parameter is that of the underlying curve. Evaluating outside the trimmed range
-    does not raise.
+    Represents a trimmed 2D curve, using the parameter of the underlying curve.
     """
 
     @classmethod
@@ -507,9 +498,7 @@ class TrimmedCurve2D(Curve2D):
     @classmethod
     def by_points(cls, p1: Point2D, p2: Point2D) -> TrimmedCurve2D:
         """
-        Create a line segment between points.
-
-        The curve parameter is the distance from the start point.
+        Create a line segment between points, parameterized by the distance from the start point.
 
         :param Point2D p1: Start point.
         :param Point2D p2: End point.
@@ -656,7 +645,7 @@ class Vector:
     @classmethod
     def by_points(cls, p1: Point, p2: Point) -> Vector:
         """
-        Create a vector from one point to another. Coincident points produce a zero vector.
+        Create a vector from one point to another.
 
         :param Point p1: Start point.
         :param Point p2: End point.
@@ -769,9 +758,6 @@ class Vector:
         """
         Check if this vector has the same magnitude and direction as another within tolerances.
 
-        Direction is ignored if either magnitude is within ``tol``, so two tiny vectors can be equal
-        while pointing in different directions.
-
         :param Vector other: Other vector.
         :param float tol: Magnitude tolerance.
         :param float angular_tol: Direction tolerance in radians.
@@ -865,10 +851,8 @@ class Frame:
     @classmethod
     def by_vectors(cls, origin: Point, xvec: Vector, zvec: Vector) -> Frame:
         """
-        Create a 3D frame from an origin, x-direction, and z-direction.
-
-        The z-direction is kept. The x-direction is adjusted to be perpendicular to it, and the
-        y-direction completes a right-handed frame.
+        Create a right-handed 3D frame from an origin, x-direction, and z-direction, keeping the
+        z-direction.
 
         :param Point origin: Origin point.
         :param Vector xvec: x-direction vector. Must be non-zero and not parallel to ``zvec``.
@@ -1201,7 +1185,7 @@ class Curve:
     @cached_property
     def first_parameter(self) -> float:
         """
-        Parameter at the start of the curve. Very large and negative for an unbounded curve.
+        Parameter at the start of the curve.
 
         :return: First parameter.
         :rtype: float
@@ -1211,7 +1195,7 @@ class Curve:
     @cached_property
     def last_parameter(self) -> float:
         """
-        Parameter at the end of the curve. Very large for an unbounded curve.
+        Parameter at the end of the curve.
 
         :return: Last parameter.
         :rtype: float
@@ -1221,9 +1205,8 @@ class Curve:
 
 class Line(Curve):
     """
-    Represents an unbounded 3D line.
-
-    The curve parameter is the distance from the origin along the direction.
+    Represents an unbounded 3D line, parameterized by the distance from the origin along the
+    direction.
     """
 
     @classmethod
@@ -1277,17 +1260,13 @@ class Line(Curve):
 
 class Circle(Curve):
     """
-    Represents a 3D circle.
-
-    The curve parameter is the angle in radians from the x-direction of the frame.
+    Represents a 3D circle, parameterized by the angle in radians from the x-direction of the frame.
     """
 
     @classmethod
     def by_radius(cls, radius: float, frame: Frame | None = None) -> Circle:
         """
-        Create a circle from radius and frame.
-
-        The circle is centered at the frame origin, in its xy-plane.
+        Create a circle centered at the frame origin, in its xy-plane.
 
         :param float radius: Circle radius. Must not be negative.
         :param Frame | None frame: Coordinate system. Defaults to the global origin.
@@ -1353,10 +1332,7 @@ class Circle(Curve):
 
 class TrimmedCurve(Curve):
     """
-    Represents a trimmed 3D curve.
-
-    The curve parameter is that of the underlying curve. Evaluating outside the trimmed range
-    does not raise.
+    Represents a trimmed 3D curve, using the parameter of the underlying curve.
     """
 
     @classmethod
@@ -1460,10 +1436,8 @@ class Surface:
 
 class CylindricalSurface(Surface):
     """
-    Represents a cylindrical surface.
-
-    The surface parameters are u, the angle in radians about the z-direction from the
-    x-direction of the frame, and v, the distance along the z-direction.
+    Represents a cylindrical surface, parameterized by u, the angle in radians about the z-direction
+    from the x-direction of the frame, and v, the distance along the z-direction.
     """
 
     @classmethod
@@ -1498,9 +1472,6 @@ class ProjectPointToCurve:
     """
     Tool to project a point onto a curve, finding where the line to the point is perpendicular to
     the curve.
-
-    End points of the curve or range are not results unless they meet that condition, so a point
-    can have no results (e.g. the center of a circle). A circle has two results otherwise.
     """
 
     def __init__(self, p: Point, c: Curve, u0: float | None = None, u1: float | None = None):
@@ -1547,7 +1518,7 @@ class ProjectPointToCurve:
 
     def point(self, index: int) -> Point:
         """
-        Get a projected point. Negative indices are not supported.
+        Get a projected point.
 
         :param int index: 0-based index of the result.
         :return: Point on the curve.
@@ -1559,7 +1530,7 @@ class ProjectPointToCurve:
 
     def parameter(self, index: int) -> float:
         """
-        Get the curve parameter of a projected point. Negative indices are not supported.
+        Get the curve parameter of a projected point.
 
         :param int index: 0-based index of the result.
         :return: Curve parameter.
@@ -1571,7 +1542,7 @@ class ProjectPointToCurve:
 
     def distance(self, index: int) -> float:
         """
-        Get the distance from the point to a projected point. Negative indices are not supported.
+        Get the distance from the point to a projected point.
 
         :param int index: 0-based index of the result.
         :return: Distance.

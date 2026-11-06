@@ -36,9 +36,6 @@ class Box(Solid):
     """
     Represents a box with one corner at the frame origin, extending along its positive axes.
 
-    Copies and transforms keep the named faces. Each is the image of the original face, so its
-    position can differ from the descriptions below (e.g. a mirrored ``back_face`` at minimum y).
-
     :ivar Face bottom_face: Bottom face (minimum z).
     :ivar Face top_face: Top face (maximum z).
     :ivar Face back_face: Back face (maximum y).
@@ -227,8 +224,6 @@ class Sphere(Solid):
     """
     Represents a sphere centered at the frame origin.
 
-    Copies and transforms keep the named face.
-
     :ivar Face face: Spherical face.
     """
 
@@ -291,8 +286,6 @@ class Cylinder(Solid):
     """
     Represents a cylinder with its base centered at the frame origin, extending along its
     z-direction.
-
-    Copies and transforms keep the named faces.
 
     :ivar Face bottom_face: Bottom face.
     :ivar Face top_face: Top face.
