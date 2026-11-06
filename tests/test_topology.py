@@ -26,6 +26,7 @@ from pyocctlite.topology import (
     IntersectShapes,
     LoftShape,
     RevolveShape,
+    Shape,
     ShapeKind,
     Shell,
     Solid,
@@ -235,6 +236,21 @@ class TestShape(unittest.TestCase):
         box, top = _box_and_top()
         result = box.thicken(-0.1, faces=[top])
         self.assertAlmostEqual(result.volume, 1.0 - 0.8 * 0.8 * 0.9, places=5)
+
+    def test_thicken_one_face(self):
+        box, top = _box_and_top()
+        result = box.thicken(-0.1, faces=top)
+        self.assertAlmostEqual(result.volume, 1.0 - 0.8 * 0.8 * 0.9, places=5)
+
+    def test_thicken_faces_before_tol(self):
+        box, top = _box_and_top()
+        result = box.thicken(-0.1, [top], 1.0e-3)
+        self.assertAlmostEqual(result.volume, 1.0 - 0.8 * 0.8 * 0.9, places=5)
+
+    def test_thicken_empty_faces_does_not_hollow(self):
+        result = _box().thicken(-0.1, [])
+        self.assertAlmostEqual(result.volume, 0.8 * 0.8 * 0.8, places=5)
+        self.assertEqual(len(result.faces()), 6)
 
     def test_export_step_fails(self):
         with self.assertRaises(RuntimeError):
@@ -583,6 +599,11 @@ class TestThickenShape(unittest.TestCase):
         tool = ThickenShape(box, -0.1, faces=[top])
         self.assertAlmostEqual(tool.shape().volume, 1.0 - 0.8 * 0.8 * 0.9, places=5)
 
+    def test_one_face(self):
+        box, top = _box_and_top()
+        tool = ThickenShape(box, -0.1, faces=top)
+        self.assertAlmostEqual(tool.shape().volume, 1.0 - 0.8 * 0.8 * 0.9, places=5)
+
 
 class TestLoftShape(unittest.TestCase):
     def test_add_wire(self):
@@ -635,6 +656,10 @@ class TestMapShape(unittest.TestCase):
         with self.assertRaises(TypeError):
             _box().map(Cylinder)
 
+    def test_base_class_rejected(self):
+        with self.assertRaises(TypeError):
+            _box().map(Shape)
+
 
 class TestExploreShape(unittest.TestCase):
     def test_explore(self):
@@ -645,6 +670,12 @@ class TestExploreShape(unittest.TestCase):
     def test_ignore(self):
         self.assertEqual(len(list(_box().explore(Vertex, ignore=Edge))), 0)
         self.assertEqual(len(list(_box().explore(Edge, ignore=Face))), 0)
+
+    def test_base_class_rejected(self):
+        with self.assertRaises(TypeError):
+            _box().explore(Shape)
+        with self.assertRaises(TypeError):
+            _box().explore(Edge, ignore=Shape)
 
 
 if __name__ == "__main__":

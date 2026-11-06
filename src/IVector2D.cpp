@@ -25,5 +25,8 @@ void bind_IVector2D(nb::module_& m) {
       .def("Normalized", &IVector2D::Normalized, "Return a unit-length copy of this vector.")
       .def("Dot", &IVector2D::Dot, nb::arg("other"), "Compute the dot product with another vector.")
       .def("Cross", &IVector2D::Cross, nb::arg("other"),
-           "Compute the scalar cross product with another vector.");
+           "Compute the scalar cross product with another vector.")
+      .def("IsEqual", &IVector2D::IsEqual, nb::arg("other"), nb::arg("tol") = 1.0e-7,
+           nb::arg("angular_tol") = 1.0e-12,
+           "Check if the magnitudes and directions match within tolerances.");
 }

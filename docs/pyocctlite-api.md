@@ -25,6 +25,7 @@ class Vector2D
     .normalize() -> Vector2D
     .dot(other: Vector2D) -> float
     .cross(other: Vector2D) -> float
+    .is_equal(other: Vector2D, tol: float = 1e-07, angular_tol: float = 1e-12) -> bool
 class Frame2D
     Frame2D.by_origin(origin: Point2D) -> Frame2D
     Frame2D.by_vector(origin: Point2D, xvec: Vector2D) -> Frame2D
@@ -62,6 +63,7 @@ class Vector
     .normalize() -> Vector
     .dot(other: Vector) -> float
     .cross(other: Vector) -> Vector
+    .is_equal(other: Vector, tol: float = 1e-07, angular_tol: float = 1e-12) -> bool
 class Axis
     Axis.by_vector(origin: Point, direction: Vector) -> Axis
     .origin: Point
@@ -107,9 +109,9 @@ class ProjectPointToCurve
     .point(index: int) -> Point
     .parameter(index: int) -> float
     .distance(index: int) -> float
-    .nearest_point() -> Point
-    .nearest_parameter() -> float
-    .nearest_distance() -> float
+    .nearest_point: Point
+    .nearest_parameter: float
+    .nearest_distance: float
 ```
 
 # pyocctlite.primitives
@@ -174,7 +176,7 @@ class Shape
     .intersect(other: Shape | Iterable[Shape]) -> Shape
     .fillet(edge: Edge | Iterable[Edge], radius: float) -> Shape
     .chamfer(edge: Edge | Iterable[Edge], distance: float) -> Shape
-    .thicken(thickness: float, tol: float = 0.001, faces: Iterable[Face] | None = None) -> Shape
+    .thicken(thickness: float, faces: Face | Iterable[Face] | None = None, tol: float = 0.001) -> Shape
     .export_step(path: str) -> None
 class Vertex(Shape)
     Vertex.by_point(p: Point) -> Vertex
@@ -258,7 +260,7 @@ class ChamferShape(ShapeTool)
     ChamferShape(s: Shape)
     .add_edge(e: Edge, distance: float) -> None
 class ThickenShape(ShapeTool)
-    ThickenShape(s: Shape, thickness: float, tol: float = 0.001, faces: Iterable[Face] | None = None)
+    ThickenShape(s: Shape, thickness: float, faces: Face | Iterable[Face] | None = None, tol: float = 0.001)
 class LoftShape(ShapeTool)
     LoftShape(is_solid: bool = False, is_ruled: bool = False, tol: float = 1e-06)
     .add_wire(w: Wire) -> None

@@ -233,7 +233,7 @@ class Shape:
         :param type[Shape] | None ignore: Class of shapes to skip, along with their sub-shapes.
         :return: Explore tool.
         :rtype: ExploreShape[T]
-        :raises TypeError: If a class is not a core shape class (e.g. ``Box``).
+        :raises TypeError: If a class is not a core shape class (e.g. ``Shape`` or ``Box``).
         """
         return ExploreShape(self, find, ignore)
 
@@ -246,7 +246,7 @@ class Shape:
         :param type[T] kind: Class of shapes to map (e.g. ``Edge``).
         :return: Map tool.
         :rtype: MapShape[T]
-        :raises TypeError: If a class is not a core shape class (e.g. ``Box``).
+        :raises TypeError: If a class is not a core shape class (e.g. ``Shape`` or ``Box``).
         """
         return MapShape(self, kind)
 
@@ -482,23 +482,24 @@ class Shape:
         return tool.shape()
 
     def thicken(
-        self, thickness: float, tol: float = 1.0e-3, faces: Iterable[Face] | None = None
+        self, thickness: float, faces: Face | Iterable[Face] | None = None, tol: float = 1.0e-3
     ) -> Shape:
         """
         Create a hollow solid with uniform wall thickness.
 
         If ``faces`` is given, the solid is opened at those faces. Otherwise, the shape must be a
         face or open shell. A thickness that is too large may produce an empty or non-hollow shape
-        without raising.
+        without raising. Empty ``faces`` is not the same as None: it offsets the shape without
+        hollowing it (e.g. a solid becomes a smaller solid and a face stays a single face).
 
         :param float thickness: Wall thickness. Negative builds inward; positive builds outward.
+        :param Face | Iterable[Face] | None faces: Face(s) to remove.
         :param float tol: Tolerance. Used only with ``faces``.
-        :param Iterable[Face] | None faces: Faces to remove.
         :return: Hollow solid.
         :rtype: Shape
         :raises BuildFailed: If the operation fails (e.g. a solid without ``faces``).
         """
-        return ThickenShape(self, thickness, tol, faces).shape()
+        return ThickenShape(self, thickness, faces, tol).shape()
 
     def export_step(self, path: str) -> None:
         """
@@ -970,10 +971,9 @@ def _kind_of(cls: type[Shape]) -> ShapeKind:
     :param type[Shape] cls: Core shape class (e.g. ``Edge``).
     :return: Shape kind.
     :rtype: ShapeKind
-    :raises TypeError: If the class is not a core shape class (e.g. a composite).
+    :raises TypeError: If the class is not a core shape class (e.g. the base class or a composite).
     """
     kinds = {
-        Shape: ShapeKind.SHAPE,
         Vertex: ShapeKind.VERTEX,
         Edge: ShapeKind.EDGE,
         Wire: ShapeKind.WIRE,
@@ -1388,21 +1388,24 @@ class ThickenShape(ShapeTool[ThickenIShape]):
     """
 
     def __init__(
-        self, s: Shape, thickness: float, tol: float = 1.0e-3, faces: Iterable[Face] | None = None
+        self,
+        s: Shape,
+        thickness: float,
+        faces: Face | Iterable[Face] | None = None,
+        tol: float = 1.0e-3,
     ):
         """
         Initialize with shape and thickness.
 
         :param Shape s: Source shape.
         :param float thickness: Wall thickness. Negative builds inward; positive builds outward.
+        :param Face | Iterable[Face] | None faces: Face(s) to remove.
         :param float tol: Tolerance. Used only with ``faces``.
-        :param Iterable[Face] | None faces: Faces to remove.
         """
         if faces is None:
             itool = ThickenIShape(s.ishape, thickness)
         else:
-            ifaces = [f.ishape for f in faces]
-            itool = ThickenIShape(s.ishape, ifaces, thickness, tol)
+            itool = ThickenIShape(s.ishape, _ishapes(faces), thickness, tol)
         super().__init__(itool)
 
 
@@ -1444,7 +1447,7 @@ class MapShape(Generic[T]):
 
         :param Shape shape: Source shape.
         :param type[T] kind: Class of sub-shapes to map (e.g. ``Edge``).
-        :raises TypeError: If a class is not a core shape class (e.g. ``Box``).
+        :raises TypeError: If a class is not a core shape class (e.g. ``Shape`` or ``Box``).
         """
         self._itool = MapIShape(shape.ishape, _kind_of(kind).value)
 
@@ -1564,7 +1567,7 @@ class ExploreShape(Generic[T]):
         :param Shape shape: Source shape.
         :param type[T] find: Class of shapes to find (e.g. ``Edge``).
         :param type[Shape] | None ignore: Class of shapes to skip, along with their sub-shapes.
-        :raises TypeError: If a class is not a core shape class (e.g. ``Box``).
+        :raises TypeError: If a class is not a core shape class (e.g. ``Shape`` or ``Box``).
         """
         self._shape = shape
         self._find = _kind_of(find)

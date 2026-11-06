@@ -26,5 +26,8 @@ void bind_IVector(nb::module_& m) {
       .def("Normalized", &IVector::Normalized, "Return a unit-length copy of this vector.")
       .def("Dot", &IVector::Dot, nb::arg("other"), "Compute the dot product with another vector.")
       .def("Cross", &IVector::Cross, nb::arg("other"),
-           "Return the cross product with another vector.");
+           "Return the cross product with another vector.")
+      .def("IsEqual", &IVector::IsEqual, nb::arg("other"), nb::arg("tol") = 1.0e-7,
+           nb::arg("angular_tol") = 1.0e-12,
+           "Check if the magnitudes and directions match within tolerances.");
 }

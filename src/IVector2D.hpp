@@ -42,6 +42,11 @@ public:
   // Compute the scalar cross product with another vector
   double Cross(const IVector2D& other) const { return vec_.Crossed(other); }
 
+  // Check if the magnitudes and directions match within tolerances
+  bool IsEqual(const IVector2D& other, double tol = 1.0e-7, double angular_tol = 1.0e-12) const {
+    return vec_.IsEqual(other, tol, angular_tol);
+  }
+
   // Conversion operator to gp_Vec2d
   operator gp_Vec2d() const { return vec_; }
 

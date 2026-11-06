@@ -233,6 +233,21 @@ class Vector2D:
         """
         return self.ivector.Cross(other.ivector)
 
+    def is_equal(self, other: Vector2D, tol: float = 1.0e-7, angular_tol: float = 1.0e-12) -> bool:
+        """
+        Check if this vector has the same magnitude and direction as another within tolerances.
+
+        Direction is ignored if either magnitude is within ``tol``, so two tiny vectors can be equal
+        while pointing in different directions.
+
+        :param Vector2D other: Other vector.
+        :param float tol: Magnitude tolerance.
+        :param float angular_tol: Direction tolerance in radians.
+        :return: True if the vectors are within the tolerances.
+        :rtype: bool
+        """
+        return self.ivector.IsEqual(other.ivector, tol, angular_tol)
+
 
 class Frame2D:
     """
@@ -747,6 +762,21 @@ class Vector:
         :rtype: Vector
         """
         return Vector(self.ivector.Cross(other.ivector))
+
+    def is_equal(self, other: Vector, tol: float = 1.0e-7, angular_tol: float = 1.0e-12) -> bool:
+        """
+        Check if this vector has the same magnitude and direction as another within tolerances.
+
+        Direction is ignored if either magnitude is within ``tol``, so two tiny vectors can be equal
+        while pointing in different directions.
+
+        :param Vector other: Other vector.
+        :param float tol: Magnitude tolerance.
+        :param float angular_tol: Direction tolerance in radians.
+        :return: True if the vectors are within the tolerances.
+        :rtype: bool
+        """
+        return self.ivector.IsEqual(other.ivector, tol, angular_tol)
 
 
 class Axis:
@@ -1319,10 +1349,11 @@ class CylindricalSurface(Surface):
         """
         Create a cylindrical surface from radius and frame.
 
-        :param float radius: Cylinder radius.
+        :param float radius: Cylinder radius. Must not be negative.
         :param Frame | None frame: Coordinate system. Defaults to the global origin.
         :return: New cylindrical surface.
         :rtype: CylindricalSurface
+        :raises RuntimeError: If the radius is negative.
         """
         if frame is None:
             frame = Frame.by_origin(Point.by_xyz(0.0, 0.0, 0.0))
@@ -1428,9 +1459,10 @@ class ProjectPointToCurve:
         # Python is 0-based, OCCT is 1-based
         return self._itool.Distance(index + 1)
 
+    @property
     def nearest_point(self) -> Point:
         """
-        Get the nearest projected point.
+        Nearest projected point.
 
         :return: Point on the curve.
         :rtype: Point
@@ -1438,9 +1470,10 @@ class ProjectPointToCurve:
         """
         return Point(self._itool.NearestPoint())
 
+    @property
     def nearest_parameter(self) -> float:
         """
-        Get the curve parameter of the nearest projected point.
+        Curve parameter of the nearest projected point.
 
         :return: Curve parameter.
         :rtype: float
@@ -1448,9 +1481,10 @@ class ProjectPointToCurve:
         """
         return self._itool.NearestParameter()
 
+    @property
     def nearest_distance(self) -> float:
         """
-        Get the distance to the nearest projected point.
+        Distance to the nearest projected point.
 
         :return: Distance.
         :rtype: float

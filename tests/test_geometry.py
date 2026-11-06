@@ -50,6 +50,19 @@ class TestVector2D(unittest.TestCase):
         self.assertAlmostEqual(v.y, 2.0)
         self.assertAlmostEqual(v.magnitude, math.sqrt(5.0))
 
+    def test_is_equal(self):
+        v = Vector2D.by_xy(1, 0)
+        self.assertTrue(v.is_equal(Vector2D.by_xy(1, 0)))
+        self.assertFalse(v.is_equal(Vector2D.by_xy(1.1, 0)))
+        self.assertTrue(v.is_equal(Vector2D.by_xy(1.1, 0), tol=0.2))
+        self.assertFalse(v.is_equal(Vector2D.by_xy(1, 0.1), tol=0.2))
+        self.assertTrue(v.is_equal(Vector2D.by_xy(1, 0.1), tol=0.2, angular_tol=0.2))
+        self.assertFalse(v.is_equal(Vector2D.by_xy(-1, 0)))
+
+    def test_is_equal_ignores_direction_within_tol(self):
+        v = Vector2D.by_xy(1.0e-8, 0)
+        self.assertTrue(v.is_equal(Vector2D.by_xy(0, 1.0e-8)))
+
     def test_scaled(self):
         v = Vector2D.by_xy(1, 2).scale(2)
         self.assertAlmostEqual(v.x, 2.0)
@@ -144,6 +157,25 @@ class TestVector(unittest.TestCase):
         self.assertAlmostEqual(v.y, 2.0)
         self.assertAlmostEqual(v.z, 3.0)
         self.assertAlmostEqual(v.magnitude, math.sqrt(14.0))
+
+    def test_is_equal(self):
+        v = Vector.by_xyz(1, 0, 0)
+        self.assertTrue(v.is_equal(Vector.by_xyz(1, 0, 0)))
+        self.assertFalse(v.is_equal(Vector.by_xyz(1.1, 0, 0)))
+        self.assertTrue(v.is_equal(Vector.by_xyz(1.1, 0, 0), tol=0.2))
+        self.assertFalse(v.is_equal(Vector.by_xyz(1, 0.1, 0), tol=0.2))
+        self.assertTrue(v.is_equal(Vector.by_xyz(1, 0.1, 0), tol=0.2, angular_tol=0.2))
+        self.assertFalse(v.is_equal(Vector.by_xyz(-1, 0, 0)))
+
+    def test_is_equal_default_angular_tol_is_strict(self):
+        v = Vector.by_xyz(1, 0, 0)
+        w = Vector.by_xyz(1, 1.0e-9, 0)
+        self.assertFalse(v.is_equal(w))
+        self.assertTrue(v.is_equal(w, angular_tol=1.0e-7))
+
+    def test_is_equal_ignores_direction_within_tol(self):
+        v = Vector.by_xyz(1.0e-8, 0, 0)
+        self.assertTrue(v.is_equal(Vector.by_xyz(0, 1.0e-8, 0)))
 
     def test_scaled(self):
         v = Vector.by_xyz(1, 2, 3).scale(-2)
@@ -335,11 +367,11 @@ class TestProjectPointToCurve(unittest.TestCase):
         tool = ProjectPointToCurve(Point.by_xyz(3, 4, 0), line)
         self.assertTrue(tool.is_done)
         self.assertEqual(tool.num_points, 1)
-        self.assertTrue(tool.nearest_point().is_equal(Point.by_xyz(3, 0, 0)))
-        self.assertAlmostEqual(tool.nearest_parameter(), 3.0)
-        self.assertAlmostEqual(tool.nearest_distance(), 4.0)
+        self.assertTrue(tool.nearest_point.is_equal(Point.by_xyz(3, 0, 0)))
+        self.assertAlmostEqual(tool.nearest_parameter, 3.0)
+        self.assertAlmostEqual(tool.nearest_distance, 4.0)
         tool.perform(Point.by_xyz(7, 1, 0))
-        self.assertAlmostEqual(tool.nearest_parameter(), 7.0)
+        self.assertAlmostEqual(tool.nearest_parameter, 7.0)
 
     def test_indexed_results_are_zero_based(self):
         tool = ProjectPointToCurve(Point.by_xyz(2, 0, 0), Circle.by_radius(1.0))
@@ -354,13 +386,13 @@ class TestProjectPointToCurve(unittest.TestCase):
         tool = ProjectPointToCurve(Point.by_xyz(0, 0, 0), Circle.by_radius(1.0))
         self.assertFalse(tool.is_done)
         with self.assertRaises(RuntimeError):
-            tool.nearest_point()
+            _ = tool.nearest_point
 
     def test_range_excludes_outside_results(self):
         line = Line.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
         p = Point.by_xyz(3, 4, 0)
         self.assertFalse(ProjectPointToCurve(p, line, 10.0, 20.0).is_done)
-        self.assertAlmostEqual(ProjectPointToCurve(p, line, u1=20.0).nearest_parameter(), 3.0)
+        self.assertAlmostEqual(ProjectPointToCurve(p, line, u1=20.0).nearest_parameter, 3.0)
         with self.assertRaises(RuntimeError):
             ProjectPointToCurve(p, line, 20.0, 0.0)
 
@@ -431,6 +463,10 @@ class TestCylindricalSurface(unittest.TestCase):
 
     def test_by_radius_default_frame(self):
         self.assertIsInstance(CylindricalSurface.by_radius(1), CylindricalSurface)
+
+    def test_by_radius_negative(self):
+        with self.assertRaises(RuntimeError):
+            CylindricalSurface.by_radius(-1)
 
 
 if __name__ == "__main__":

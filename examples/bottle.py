@@ -61,7 +61,7 @@ bottle = filleted.unite(neck)
 bottle = bottle.fillet(neck.bottom_face.edges(), 1.5 * thickness / 50.0)
 
 # Create a hollow shell by thickening the solid and removing the top face
-bottle = bottle.thicken(-thickness / 50.0, 1.0e-3, [neck.top_face])
+bottle = bottle.thicken(-thickness / 50.0, neck.top_face)
 
 # Create thread surfaces (inner and outer radii)
 cs1 = CylindricalSurface.by_radius(neck_radius * 0.99, frame)

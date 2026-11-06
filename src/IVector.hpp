@@ -44,6 +44,11 @@ public:
   // Make the cross product with another vector
   IVector Cross(const IVector& other) const { return IVector(vec_.Crossed(other)); }
 
+  // Check if the magnitudes and directions match within tolerances
+  bool IsEqual(const IVector& other, double tol = 1.0e-7, double angular_tol = 1.0e-12) const {
+    return vec_.IsEqual(other, tol, angular_tol);
+  }
+
   // Conversion operator to gp_Vec
   operator gp_Vec() const { return vec_; }
 

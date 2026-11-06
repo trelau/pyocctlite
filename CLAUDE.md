@@ -49,6 +49,7 @@ These are guardrails. Use judgment on how to achieve a task. If a change seems t
   - C++ (`src/` → `_occtlite`, `I`-prefixed) handles OCCT calls and memory safety.
   - Python (`pyocctlite/`) owns everything that makes the API feel Pythonic: validation, defaults, naming, composition, and conventions like 0-based indices (OCCT's are usually 1-based).
   - Users work with Python wrappers; `I` objects stay behind `i<name>`.
+- **Python features are backed by what's below.** Each Python argument or mode is a direct call or a true composition of lower-layer calls. What isn't implemented yet raises, and an argument that doesn't apply is documented as having no effect.
 - **Immutable values.** Objects don't change after construction; operations return new objects and never mutate their inputs.
 - **Unitless lengths.** OCCT has no length unit, so callers keep theirs consistent.
 - **Root causes, not guards.** Fix the cause of a problem, or report it and leave the code alone. Don't add checks or workarounds preemptively. A signature broader than its implementation is unfinished intent, not a bug.
