@@ -7,6 +7,7 @@
 
 #include "IFrame.hpp"
 #include "IPoint.hpp"
+#include "ISurfaceData.hpp"
 #include "IVector.hpp"
 
 // Enumeration for surface kinds
@@ -39,6 +40,9 @@ public:
     ValidateKind(ISurfaceKind::Cylindrical);
     return Handle(Geom_CylindricalSurface)::DownCast(surface_);
   }
+
+  // Get cylindrical data if this surface is cylindrical
+  std::optional<ICylindricalData> CylindricalData() const;
 
   // Validate that the surface is of the expected kind
   void ValidateKind(const ISurfaceKind expected) const;

@@ -1,3 +1,7 @@
+"""
+Points, vectors, frames, curves and surfaces.
+"""
+
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -21,6 +25,30 @@ from pyocctlite._occtlite import (
     IVector2D,
     ProjectIPointToICurve,
 )
+
+__all__ = [
+    "Axis",
+    "BSplineCurve",
+    "BoundingBox",
+    "Circle",
+    "Curve",
+    "Curve2D",
+    "CylindricalSurface",
+    "Ellipse2D",
+    "Frame",
+    "Frame2D",
+    "Line",
+    "Line2D",
+    "Point",
+    "Point2D",
+    "ProjectPointToCurve",
+    "Surface",
+    "Transform",
+    "TrimmedCurve",
+    "TrimmedCurve2D",
+    "Vector",
+    "Vector2D",
+]
 
 
 class Point2D:
@@ -205,6 +233,35 @@ class Vector2D:
         """
         return Vector2D(self.ivector.Scaled(scale))
 
+    def add(self, other: Vector2D) -> Vector2D:
+        """
+        Create the sum of this vector and another.
+
+        :param Vector2D other: Other vector.
+        :return: Sum.
+        :rtype: Vector2D
+        """
+        return Vector2D(self.ivector.Added(other.ivector))
+
+    def subtract(self, other: Vector2D) -> Vector2D:
+        """
+        Create the difference of this vector and another.
+
+        :param Vector2D other: Vector to subtract.
+        :return: Difference.
+        :rtype: Vector2D
+        """
+        return Vector2D(self.ivector.Subtracted(other.ivector))
+
+    def reverse(self) -> Vector2D:
+        """
+        Create a copy of this vector pointing the opposite way.
+
+        :return: Reversed vector.
+        :rtype: Vector2D
+        """
+        return Vector2D(self.ivector.Reversed())
+
     def normalize(self) -> Vector2D:
         """
         Create a unit-length copy of this vector.
@@ -349,6 +406,8 @@ class Curve2D:
         :rtype: Curve2D
         """
         match icurve.Kind():
+            case ICurve2DKind.Line:
+                return Line2D(icurve)
             case ICurve2DKind.Ellipse:
                 return Ellipse2D(icurve)
             case ICurve2DKind.Trimmed:
@@ -440,6 +499,61 @@ class Curve2D:
         return self.icurve.LastParameter()
 
 
+class Line2D(Curve2D):
+    """
+    Represents an unbounded 2D line, parameterized by the distance from the origin along the
+    direction.
+    """
+
+    @classmethod
+    def by_points(cls, p1: Point2D, p2: Point2D) -> Line2D:
+        """
+        Create a line through two points, with its origin at the first point.
+
+        :param Point2D p1: First point.
+        :param Point2D p2: Second point.
+        :return: New 2D line.
+        :rtype: Line2D
+        :raises RuntimeError: If the points coincide.
+        """
+        icurve = ICurve2D.MakeLine(p1.ipoint, p2.ipoint)
+        return cls(icurve)
+
+    def __init__(self, c: ICurve2D):
+        """
+        Initialize from an ICurve2D.
+
+        :param ICurve2D c: Underlying 2D curve.
+        """
+        super().__init__(c)
+        if c.Kind() != ICurve2DKind.Line:
+            raise TypeError(f"Expected ICurve2DKind.Line, got {c.Kind()}.")
+
+    @cached_property
+    def origin(self) -> Point2D:
+        """
+        Origin of the line.
+
+        :return: Origin point.
+        :rtype: Point2D
+        """
+        idata = self.icurve.LineData()
+        assert idata is not None  # guaranteed by the kind check in __init__
+        return Point2D(idata.Origin)
+
+    @cached_property
+    def direction(self) -> Vector2D:
+        """
+        Unit direction of the line.
+
+        :return: Unit direction vector.
+        :rtype: Vector2D
+        """
+        idata = self.icurve.LineData()
+        assert idata is not None  # guaranteed by the kind check in __init__
+        return Vector2D(idata.Direction)
+
+
 class Ellipse2D(Curve2D):
     """
     Represents a 2D ellipse with its major axis along the x-direction of the frame, parameterized by
@@ -473,6 +587,42 @@ class Ellipse2D(Curve2D):
         super().__init__(c)
         if c.Kind() != ICurve2DKind.Ellipse:
             raise TypeError(f"Expected ICurve2DKind.Ellipse, got {c.Kind()}.")
+
+    @cached_property
+    def frame(self) -> Frame2D:
+        """
+        Coordinate system of the ellipse, with its center at the origin.
+
+        :return: Frame.
+        :rtype: Frame2D
+        """
+        idata = self.icurve.EllipseData()
+        assert idata is not None  # guaranteed by the kind check in __init__
+        return Frame2D(idata.Frame)
+
+    @cached_property
+    def rmajor(self) -> float:
+        """
+        Major radius of the ellipse.
+
+        :return: Major radius.
+        :rtype: float
+        """
+        idata = self.icurve.EllipseData()
+        assert idata is not None  # guaranteed by the kind check in __init__
+        return idata.MajorRadius
+
+    @cached_property
+    def rminor(self) -> float:
+        """
+        Minor radius of the ellipse.
+
+        :return: Minor radius.
+        :rtype: float
+        """
+        idata = self.icurve.EllipseData()
+        assert idata is not None  # guaranteed by the kind check in __init__
+        return idata.MinorRadius
 
 
 class TrimmedCurve2D(Curve2D):
@@ -723,6 +873,35 @@ class Vector:
         :rtype: Vector
         """
         return Vector(self.ivector.Scaled(scale))
+
+    def add(self, other: Vector) -> Vector:
+        """
+        Create the sum of this vector and another.
+
+        :param Vector other: Other vector.
+        :return: Sum.
+        :rtype: Vector
+        """
+        return Vector(self.ivector.Added(other.ivector))
+
+    def subtract(self, other: Vector) -> Vector:
+        """
+        Create the difference of this vector and another.
+
+        :param Vector other: Vector to subtract.
+        :return: Difference.
+        :rtype: Vector
+        """
+        return Vector(self.ivector.Subtracted(other.ivector))
+
+    def reverse(self) -> Vector:
+        """
+        Create a copy of this vector pointing the opposite way.
+
+        :return: Reversed vector.
+        :rtype: Vector
+        """
+        return Vector(self.ivector.Reversed())
 
     def normalize(self) -> Vector:
         """
@@ -1376,6 +1555,7 @@ class BSplineCurve(Curve):
         :return: New B-spline curve.
         :rtype: BSplineCurve
         :raises BuildFailed: If the interpolation fails.
+        :raises RuntimeError: If there are fewer than two points.
         """
         icurve = ICurve.MakeBSplineByInterpolation([p.ipoint for p in points], tol)
         return cls(icurve)
@@ -1466,6 +1646,30 @@ class CylindricalSurface(Surface):
         super().__init__(s)
         if s.Kind() != ISurfaceKind.Cylindrical:
             raise TypeError(f"Expected ISurfaceKind.Cylindrical, got {s.Kind()}.")
+
+    @cached_property
+    def frame(self) -> Frame:
+        """
+        Coordinate system of the surface, with its axis along the z-direction.
+
+        :return: Frame.
+        :rtype: Frame
+        """
+        idata = self.isurface.CylindricalData()
+        assert idata is not None  # guaranteed by the kind check in __init__
+        return Frame(idata.Frame)
+
+    @cached_property
+    def radius(self) -> float:
+        """
+        Radius of the surface.
+
+        :return: Radius.
+        :rtype: float
+        """
+        idata = self.isurface.CylindricalData()
+        assert idata is not None  # guaranteed by the kind check in __init__
+        return idata.Radius
 
 
 class ProjectPointToCurve:

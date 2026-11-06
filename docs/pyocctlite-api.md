@@ -22,6 +22,9 @@ class Vector2D
     .y: float
     .magnitude: float
     .scale(scale: float) -> Vector2D
+    .add(other: Vector2D) -> Vector2D
+    .subtract(other: Vector2D) -> Vector2D
+    .reverse() -> Vector2D
     .normalize() -> Vector2D
     .dot(other: Vector2D) -> float
     .cross(other: Vector2D) -> float
@@ -39,8 +42,15 @@ class Curve2D
     .is_periodic: bool
     .first_parameter: float
     .last_parameter: float
+class Line2D(Curve2D)
+    Line2D.by_points(p1: Point2D, p2: Point2D) -> Line2D
+    .origin: Point2D
+    .direction: Vector2D
 class Ellipse2D(Curve2D)
     Ellipse2D.by_radii(rmajor: float, rminor: float, frame: Frame2D | None = None) -> Ellipse2D
+    .frame: Frame2D
+    .rmajor: float
+    .rminor: float
 class TrimmedCurve2D(Curve2D)
     TrimmedCurve2D.by_curve(curve: Curve2D, u0: float, u1: float) -> TrimmedCurve2D
     TrimmedCurve2D.by_points(p1: Point2D, p2: Point2D) -> TrimmedCurve2D
@@ -60,6 +70,9 @@ class Vector
     .z: float
     .magnitude: float
     .scale(scale: float) -> Vector
+    .add(other: Vector) -> Vector
+    .subtract(other: Vector) -> Vector
+    .reverse() -> Vector
     .normalize() -> Vector
     .dot(other: Vector) -> float
     .cross(other: Vector) -> Vector
@@ -110,6 +123,8 @@ class BSplineCurve(Curve)
 class Surface
 class CylindricalSurface(Surface)
     CylindricalSurface.by_radius(radius: float, frame: Frame | None = None) -> CylindricalSurface
+    .frame: Frame
+    .radius: float
 class ProjectPointToCurve
     ProjectPointToCurve(p: Point, c: Curve, u0: float | None = None, u1: float | None = None)
     .perform(p: Point) -> None
@@ -228,8 +243,8 @@ class Shape
     .unite(other: Shape | Iterable[Shape], tol: float = 0.0) -> Shape
     .cut(other: Shape | Iterable[Shape], tol: float = 0.0) -> Shape
     .intersect(other: Shape | Iterable[Shape], tol: float = 0.0) -> Shape
-    .fillet(edge: Edge | Iterable[Edge], radius: float) -> Shape
-    .chamfer(edge: Edge | Iterable[Edge], distance: float) -> Shape
+    .fillet(edges: Edge | Iterable[Edge], radius: float) -> Shape
+    .chamfer(edges: Edge | Iterable[Edge], distance: float) -> Shape
     .thicken(thickness: float, faces: Face | Iterable[Face] | None = None, tol: float = 0.001) -> Shape
     .export_step(path: str) -> None
 class Vertex(Shape)
@@ -322,17 +337,18 @@ class OffsetWire(ShapeTool)
 class LoftShape(ShapeTool)
     LoftShape(is_solid: bool = False, is_ruled: bool = False, tol: float = 1e-06)
     .add_wire(w: Wire) -> None
-class MapShape(Generic[T])
+class MapShape(Sequence[T])
     MapShape(shape: Shape, kind: type[T])
     .__len__() -> int
     .__iter__() -> Iterator[T]
     .__getitem__(index: int) -> T
+    .__getitem__(index: slice) -> list[T]
     .size: int
     .extent: int
     .find_shape(index: int) -> T
     .find_index(shape: T) -> int | None
     .contains(shape: T) -> bool
-    .__contains__(shape: T) -> bool
+    .__contains__(shape: object) -> bool
 class ExploreShape(Generic[T])
     ExploreShape(shape: Shape, find: type[T], ignore: type[Shape] | None = None)
     .__iter__() -> Iterator[T]

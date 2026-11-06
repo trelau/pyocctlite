@@ -12,6 +12,7 @@
 #include "IFrame.hpp"
 #include "IPoint.hpp"
 #include "ISurface.hpp"
+#include "ISurfaceData.hpp"
 #include "ITransform.hpp"
 #include "IVector.hpp"
 #include "ProjectIPointToICurve.hpp"
@@ -48,6 +49,7 @@ NB_MODULE(_occtlite, m) {
   bind_ICurve(m);
   bind_ICurveData(m);
   bind_ISurface(m);
+  bind_ISurfaceData(m);
   bind_ProjectIPointToICurve(m);
 
   bind_IShape(m);

@@ -24,6 +24,10 @@ class TestKindMismatch(unittest.TestCase):
     def test_is_type_error(self):
         self.assertTrue(issubclass(KindMismatch, TypeError))
 
+    def test_name(self):
+        self.assertEqual(KindMismatch.__name__, "KindMismatch")
+        self.assertEqual(KindMismatch.__module__, "pyocctlite.errors")
+
     def test_raised(self):
         w = Wire.by_edge(Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0)))
         with self.assertRaises(KindMismatch):
@@ -33,6 +37,10 @@ class TestKindMismatch(unittest.TestCase):
 class TestBuildFailed(unittest.TestCase):
     def test_is_runtime_error(self):
         self.assertTrue(issubclass(BuildFailed, RuntimeError))
+
+    def test_name(self):
+        self.assertEqual(BuildFailed.__name__, "BuildFailed")
+        self.assertEqual(BuildFailed.__module__, "pyocctlite.errors")
 
     def test_raised(self):
         box = _box()

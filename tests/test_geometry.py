@@ -3,7 +3,6 @@ from __future__ import annotations
 import math
 import unittest
 
-from pyocctlite._occtlite import ICurve2D
 from pyocctlite.geometry import (
     Axis,
     BSplineCurve,
@@ -15,6 +14,7 @@ from pyocctlite.geometry import (
     Frame,
     Frame2D,
     Line,
+    Line2D,
     Point,
     Point2D,
     ProjectPointToCurve,
@@ -69,6 +69,25 @@ class TestVector2D(unittest.TestCase):
         self.assertAlmostEqual(v.x, 2.0)
         self.assertAlmostEqual(v.y, 4.0)
 
+    def test_add(self):
+        v = Vector2D.by_xy(1, 2).add(Vector2D.by_xy(3, -5))
+        self.assertTrue(v.is_equal(Vector2D.by_xy(4, -3)))
+
+    def test_subtract(self):
+        v = Vector2D.by_xy(1, 2).subtract(Vector2D.by_xy(3, -5))
+        self.assertTrue(v.is_equal(Vector2D.by_xy(-2, 7)))
+
+    def test_reverse(self):
+        v = Vector2D.by_xy(1, -2).reverse()
+        self.assertTrue(v.is_equal(Vector2D.by_xy(-1, 2)))
+
+    def test_operations_keep_inputs(self):
+        v = Vector2D.by_xy(1, 2)
+        v.add(Vector2D.by_xy(3, 4))
+        v.subtract(Vector2D.by_xy(3, 4))
+        v.reverse()
+        self.assertTrue(v.is_equal(Vector2D.by_xy(1, 2)))
+
 
 class TestFrame2D(unittest.TestCase):
     def test_by_origin(self):
@@ -92,15 +111,36 @@ class TestCurve2D(unittest.TestCase):
         t = TrimmedCurve2D.by_curve(e, 0, 1)
         self.assertIsInstance(Curve2D.by_icurve2d(e.icurve), Ellipse2D)
         self.assertIsInstance(Curve2D.by_icurve2d(t.icurve), TrimmedCurve2D)
+        line = Line2D.by_points(Point2D.by_xy(0, 0), Point2D.by_xy(1, 0))
+        self.assertIsInstance(Curve2D.by_icurve2d(line.icurve), Line2D)
 
-    def test_by_icurve2d_unsupported(self):
-        # 2D lines have no Python class yet
-        icurve = ICurve2D.MakeLine(Point2D.by_xy(0, 0).ipoint, Point2D.by_xy(1, 0).ipoint)
-        with self.assertRaises(NotImplementedError):
-            Curve2D.by_icurve2d(icurve)
+
+class TestLine2D(unittest.TestCase):
+    def test_by_points(self):
+        line = Line2D.by_points(Point2D.by_xy(1, 2), Point2D.by_xy(1, 5))
+        self.assertTrue(line.origin.is_equal(Point2D.by_xy(1, 2)))
+        self.assertTrue(line.direction.is_equal(Vector2D.by_xy(0, 1)))
+        self.assertTrue(line.evaluate(2.0).is_equal(Point2D.by_xy(1, 4)))
+
+    def test_by_points_coincident(self):
+        p = Point2D.by_xy(1, 2)
+        with self.assertRaises(RuntimeError):
+            Line2D.by_points(p, p)
+
+    def test_init_wrong_kind(self):
+        with self.assertRaises(TypeError):
+            Line2D(Ellipse2D.by_radii(2, 1).icurve)
 
 
 class TestEllipse2D(unittest.TestCase):
+    def test_kind_data(self):
+        frame = Frame2D.by_vector(Point2D.by_xy(1, 2), Vector2D.by_xy(0, 1))
+        e = Ellipse2D.by_radii(2, 1, frame)
+        self.assertAlmostEqual(e.rmajor, 2.0)
+        self.assertAlmostEqual(e.rminor, 1.0)
+        self.assertTrue(e.frame.origin.is_equal(Point2D.by_xy(1, 2)))
+        self.assertTrue(e.frame.x_direction.is_equal(Vector2D.by_xy(0, 1)))
+
     def test_by_radii(self):
         frame = Frame2D.by_origin(Point2D.by_xy(1, 0))
         e = Ellipse2D.by_radii(2, 1, frame)
@@ -152,6 +192,25 @@ class TestPoint(unittest.TestCase):
 
 
 class TestVector(unittest.TestCase):
+    def test_add(self):
+        v = Vector.by_xyz(1, 2, 3).add(Vector.by_xyz(4, -5, 6))
+        self.assertTrue(v.is_equal(Vector.by_xyz(5, -3, 9)))
+
+    def test_subtract(self):
+        v = Vector.by_xyz(1, 2, 3).subtract(Vector.by_xyz(4, -5, 6))
+        self.assertTrue(v.is_equal(Vector.by_xyz(-3, 7, -3)))
+
+    def test_reverse(self):
+        v = Vector.by_xyz(1, -2, 3).reverse()
+        self.assertTrue(v.is_equal(Vector.by_xyz(-1, 2, -3)))
+
+    def test_operations_keep_inputs(self):
+        v = Vector.by_xyz(1, 2, 3)
+        v.add(Vector.by_xyz(4, 5, 6))
+        v.subtract(Vector.by_xyz(4, 5, 6))
+        v.reverse()
+        self.assertTrue(v.is_equal(Vector.by_xyz(1, 2, 3)))
+
     def test_by_xyz(self):
         v = Vector.by_xyz(1, 2, 3)
         self.assertAlmostEqual(v.x, 1.0)
@@ -455,6 +514,10 @@ class TestBSplineCurve(unittest.TestCase):
     def setUp(self):
         self.points = [Point.by_xyz(0, 0, 0), Point.by_xyz(1, 1, 0), Point.by_xyz(2, 0, 1)]
 
+    def test_by_interpolation_too_few_points(self):
+        with self.assertRaises(RuntimeError):
+            BSplineCurve.by_interpolation([Point.by_xyz(0, 0, 0)])
+
     def test_by_interpolation_passes_through_ends(self):
         c = BSplineCurve.by_interpolation(self.points)
         self.assertTrue(c.evaluate(c.first_parameter).is_equal(self.points[0]))
@@ -478,6 +541,16 @@ class TestSurface(unittest.TestCase):
 
 
 class TestCylindricalSurface(unittest.TestCase):
+    def test_kind_data(self):
+        frame = Frame.by_vectors(
+            Point.by_xyz(1, 2, 3), Vector.by_xyz(0, 1, 0), Vector.by_xyz(0, 0, 1)
+        )
+        s = CylindricalSurface.by_radius(2, frame)
+        self.assertAlmostEqual(s.radius, 2.0)
+        self.assertTrue(s.frame.origin.is_equal(Point.by_xyz(1, 2, 3)))
+        self.assertTrue(s.frame.x_direction.is_equal(Vector.by_xyz(0, 1, 0)))
+        self.assertTrue(s.frame.z_direction.is_equal(Vector.by_xyz(0, 0, 1)))
+
     def test_by_radius(self):
         s = CylindricalSurface.by_radius(1, Frame.by_origin(Point.by_xyz(0, 0, 0)))
         self.assertIsInstance(s, CylindricalSurface)

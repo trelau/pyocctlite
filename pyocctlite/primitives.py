@@ -1,3 +1,7 @@
+"""
+Solids with named faces.
+"""
+
 from __future__ import annotations
 
 import math
@@ -15,6 +19,8 @@ from pyocctlite.topology import (
     Vertex,
     Wire,
 )
+
+__all__ = ["Box", "Cylinder", "Sphere"]
 
 # Smallest size that is distinct from zero, matching OCCT's Precision::Confusion
 _MIN_SIZE = 1.0e-7

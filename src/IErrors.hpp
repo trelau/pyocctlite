@@ -20,6 +20,6 @@ public:
 // Python bindings
 inline void bind_IErrors(nb::module_& m) {
 
-  nb::exception<IKindMismatch>(m, "IKindMismatch", PyExc_TypeError);
-  nb::exception<IBuildFailed>(m, "IBuildFailed", PyExc_RuntimeError);
+  nb::exception<IKindMismatch>(m, "KindMismatch", PyExc_TypeError);
+  nb::exception<IBuildFailed>(m, "BuildFailed", PyExc_RuntimeError);
 }

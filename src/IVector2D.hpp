@@ -33,6 +33,15 @@ public:
   // Make a scaled copy of this vector
   IVector2D Scaled(const double scale) const { return IVector2D(vec_.Scaled(scale)); }
 
+  // Make the sum with another vector
+  IVector2D Added(const IVector2D& other) const { return IVector2D(vec_.Added(other)); }
+
+  // Make the difference with another vector
+  IVector2D Subtracted(const IVector2D& other) const { return IVector2D(vec_.Subtracted(other)); }
+
+  // Make a copy of this vector pointing the opposite way
+  IVector2D Reversed() const { return IVector2D(vec_.Reversed()); }
+
   // Make a unit-length copy of this vector
   IVector2D Normalized() const { return IVector2D(vec_.Normalized()); }
 

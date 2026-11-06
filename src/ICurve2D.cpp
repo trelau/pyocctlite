@@ -99,6 +99,27 @@ IVector2D ICurve2D::Derivative(double u, int order) const {
   return IVector2D(v);
 }
 
+std::optional<ILine2DData> ICurve2D::LineData() const {
+  if (kind_ != ICurve2DKind::Line) {
+    return std::nullopt;
+  }
+  Handle(Geom2d_Line) line = AsLine();
+  IPoint2D origin(line->Position().Location());
+  IVector2D direction(line->Position().Direction());
+  ILine2DData data{origin, direction};
+  return data;
+}
+
+std::optional<IEllipse2DData> ICurve2D::EllipseData() const {
+  if (kind_ != ICurve2DKind::Ellipse) {
+    return std::nullopt;
+  }
+  Handle(Geom2d_Ellipse) ellipse = AsEllipse();
+  IFrame2D frame(ellipse->Position());
+  IEllipse2DData data{frame, ellipse->MajorRadius(), ellipse->MinorRadius()};
+  return data;
+}
+
 void ICurve2D::ValidateKind(const ICurve2DKind expected) const {
   if (kind_ != expected) {
     throw IKindMismatch("Expected " + kindToString(expected) + " but got " + kindToString(kind_) +
@@ -140,5 +161,8 @@ void bind_ICurve2D(nb::module_& m) {
       .def("LastParameter", &ICurve2D::LastParameter, "The last parameter of this curve.")
       .def("Evaluate", &ICurve2D::Evaluate, nb::arg("u"), "Evaluate a point on this curve.")
       .def("Derivative", &ICurve2D::Derivative, nb::arg("u"), nb::arg("order") = 1,
-           "Evaluate a derivative on this curve.");
+           "Evaluate a derivative on this curve.")
+
+      .def("LineData", &ICurve2D::LineData, "Get line data if this curve is a line.")
+      .def("EllipseData", &ICurve2D::EllipseData, "Get ellipse data if this curve is an ellipse.");
 }

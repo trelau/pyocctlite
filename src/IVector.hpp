@@ -35,6 +35,15 @@ public:
   // Make a scaled copy of this vector
   IVector Scaled(const double scale) const { return IVector(vec_.Scaled(scale)); }
 
+  // Make the sum with another vector
+  IVector Added(const IVector& other) const { return IVector(vec_.Added(other)); }
+
+  // Make the difference with another vector
+  IVector Subtracted(const IVector& other) const { return IVector(vec_.Subtracted(other)); }
+
+  // Make a copy of this vector pointing the opposite way
+  IVector Reversed() const { return IVector(vec_.Reversed()); }
+
   // Make a unit-length copy of this vector
   IVector Normalized() const { return IVector(vec_.Normalized()); }
 

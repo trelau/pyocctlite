@@ -12,6 +12,7 @@
 #include <Geom2d_Parabola.hxx>
 #include <Geom2d_TrimmedCurve.hxx>
 
+#include "ICurveData.hpp"
 #include "IFrame2D.hpp"
 #include "IPoint2D.hpp"
 #include "IVector2D.hpp"
@@ -103,6 +104,12 @@ public:
     ValidateKind(ICurve2DKind::Trimmed);
     return Handle(Geom2d_TrimmedCurve)::DownCast(curve_);
   }
+
+  // Get line data if this curve is a line
+  std::optional<ILine2DData> LineData() const;
+
+  // Get ellipse data if this curve is an ellipse
+  std::optional<IEllipse2DData> EllipseData() const;
 
   // Validate that the curve2d is of the expected kind
   void ValidateKind(const ICurve2DKind expected) const;

@@ -22,6 +22,10 @@ void bind_IVector2D(nb::module_& m) {
       .def("Y", &IVector2D::Y, "Vector Y-component.")
       .def("Magnitude", &IVector2D::Magnitude, "Get the magnitude of the vector.")
       .def("Scaled", &IVector2D::Scaled, nb::arg("scale"), "Return a scaled copy of this vector.")
+      .def("Added", &IVector2D::Added, nb::arg("other"), "Return the sum with another vector.")
+      .def("Subtracted", &IVector2D::Subtracted, nb::arg("other"),
+           "Return the difference with another vector.")
+      .def("Reversed", &IVector2D::Reversed, "Return a copy pointing the opposite way.")
       .def("Normalized", &IVector2D::Normalized, "Return a unit-length copy of this vector.")
       .def("Dot", &IVector2D::Dot, nb::arg("other"), "Compute the dot product with another vector.")
       .def("Cross", &IVector2D::Cross, nb::arg("other"),

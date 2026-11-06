@@ -1,6 +1,10 @@
+"""
+Topological shapes and the tools that build and query them.
+"""
+
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Sequence
 from enum import Enum
 from functools import cached_property
 from typing import Generic, Self, TypeVar, cast, overload
@@ -35,6 +39,35 @@ from pyocctlite.geometry import (
     TrimmedCurve,
     Vector,
 )
+
+__all__ = [
+    "BooleanShapes",
+    "ChamferShape",
+    "CompSolid",
+    "Compound",
+    "CopyShape",
+    "CutShapes",
+    "Edge",
+    "ExploreShape",
+    "ExtrudeShape",
+    "Face",
+    "FilletShape",
+    "IntersectShapes",
+    "LoftShape",
+    "MapShape",
+    "OffsetWire",
+    "RevolveShape",
+    "Shape",
+    "ShapeKind",
+    "ShapeTool",
+    "Shell",
+    "Solid",
+    "ThickenShape",
+    "TransformShape",
+    "UniteShapes",
+    "Vertex",
+    "Wire",
+]
 
 T = TypeVar("T", bound="Shape")
 S = TypeVar("S", bound="Shape")
@@ -455,11 +488,11 @@ class Shape:
         """
         return IntersectShapes(self, other, tol).shape()
 
-    def fillet(self, edge: Edge | Iterable[Edge], radius: float) -> Shape:
+    def fillet(self, edges: Edge | Iterable[Edge], radius: float) -> Shape:
         """
         Fillet edges of this shape with a constant radius.
 
-        :param Edge | Iterable[Edge] edge: Edge(s) to fillet. Must belong to this shape.
+        :param Edge | Iterable[Edge] edges: Edge(s) to fillet. Must belong to this shape.
         :param float radius: Fillet radius. Must be positive.
         :return: Filleted shape.
         :rtype: Shape
@@ -467,15 +500,15 @@ class Shape:
         :raises RuntimeError: If no edges are given or they do not belong to this shape.
         """
         tool = FilletShape(self)
-        for e in [edge] if isinstance(edge, Edge) else edge:
+        for e in [edges] if isinstance(edges, Edge) else edges:
             tool.add_edge(e, radius)
         return tool.shape()
 
-    def chamfer(self, edge: Edge | Iterable[Edge], distance: float) -> Shape:
+    def chamfer(self, edges: Edge | Iterable[Edge], distance: float) -> Shape:
         """
         Chamfer edges of this shape with the same distance on both adjacent faces.
 
-        :param Edge | Iterable[Edge] edge: Edge(s) to chamfer. Must belong to this shape.
+        :param Edge | Iterable[Edge] edges: Edge(s) to chamfer. Must belong to this shape.
         :param float distance: Distance from the edge along each adjacent face. Must be positive.
         :return: Chamfered shape.
         :rtype: Shape
@@ -483,7 +516,7 @@ class Shape:
         :raises RuntimeError: If no edges are given or they do not belong to this shape.
         """
         tool = ChamferShape(self)
-        for e in [edge] if isinstance(edge, Edge) else edge:
+        for e in [edges] if isinstance(edges, Edge) else edges:
             tool.add_edge(e, distance)
         return tool.shape()
 
@@ -682,8 +715,7 @@ class Edge(Shape):
 
         :return: Underlying curve, or None if the edge has no 3D curve.
         :rtype: Curve | None
-        :raises NotImplementedError: If the curve kind is not wrapped (e.g. an edge from
-            :meth:`by_curve2d`).
+        :raises NotImplementedError: If the curve kind is not wrapped (e.g. an offset of a spline).
         """
         icurve = self.ishape.Curve()
         return None if icurve is None else Curve.by_icurve(icurve)
@@ -1229,7 +1261,7 @@ class TransformShape(ShapeTool[TransformIShape], Generic[T]):
         :param S s: Sub-shape of the source shape.
         :return: Transformed sub-shape of the same type.
         :rtype: S
-        :raises RuntimeError: If the shape is not a sub-shape of the source shape.
+        :raises RuntimeError: If ``copy_geom`` is True and this is not a sub-shape of the source.
         """
         return cast(S, Shape.by_ishape(self._itool.ModifiedShape(s.ishape)))
 
@@ -1467,7 +1499,7 @@ class LoftShape(ShapeTool[LoftIShape]):
         self._itool.AddWire(w.ishape)
 
 
-class MapShape(Generic[T]):
+class MapShape(Sequence[T]):
     """
     Tool to map the unique sub-shapes of a shape.
     """
@@ -1502,16 +1534,23 @@ class MapShape(Generic[T]):
         for i in range(1, self._itool.Size() + 1):
             yield cast(T, Shape.by_ishape(self._itool.FindShape(i)))
 
-    def __getitem__(self, index: int) -> T:
-        """
-        Get shape by 0-based index.
+    @overload
+    def __getitem__(self, index: int) -> T: ...
+    @overload
+    def __getitem__(self, index: slice) -> list[T]: ...
 
-        :param int index: 0-based index, or negative to count from the end.
-        :return: Sub-shape.
-        :rtype: T
+    def __getitem__(self, index: int | slice) -> T | list[T]:
+        """
+        Get a shape by 0-based index, or a list of shapes by slice.
+
+        :param int | slice index: 0-based index, or negative to count from the end, or a slice.
+        :return: Sub-shape, or a list of sub-shapes for a slice.
+        :rtype: T | list[T]
         :raises IndexError: If the index is out of range.
         """
         n = len(self)
+        if isinstance(index, slice):
+            return [self[i] for i in range(*index.indices(n))]
         if index < 0:
             index += n
         if index < 0 or index >= n:
@@ -1533,7 +1572,7 @@ class MapShape(Generic[T]):
     @property
     def extent(self) -> int:
         """
-        Total number of shapes, including duplicates if any.
+        Number of shapes in the map, the same as :attr:`size`.
 
         :return: Extent.
         :rtype: int
@@ -1575,15 +1614,15 @@ class MapShape(Generic[T]):
         """
         return self._itool.Contains(shape.ishape)
 
-    def __contains__(self, shape: T) -> bool:
+    def __contains__(self, shape: object) -> bool:
         """
         Check if a shape is in the map, for the ``in`` operator.
 
-        :param T shape: Sub-shape.
+        :param object shape: Sub-shape.
         :return: True if found.
         :rtype: bool
         """
-        return self.contains(shape)
+        return isinstance(shape, Shape) and self._itool.Contains(shape.ishape)
 
 
 class ExploreShape(Generic[T]):

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import unittest
+from collections.abc import Sequence
 
 from pyocctlite.errors import BuildFailed, KindMismatch
 from pyocctlite.geometry import (
@@ -13,6 +14,7 @@ from pyocctlite.geometry import (
     Line,
     Point,
     Point2D,
+    Transform,
     TrimmedCurve2D,
     Vector,
 )
@@ -35,6 +37,7 @@ from pyocctlite.topology import (
     Shell,
     Solid,
     ThickenShape,
+    TransformShape,
     UniteShapes,
     Vertex,
     Wire,
@@ -205,6 +208,11 @@ class TestShape(unittest.TestCase):
         box = _box()
         result = box.fillet(box.edges(), 0.1)
         self.assertLess(result.volume, box.volume)
+
+    def test_edges_keyword(self):
+        box = _box()
+        self.assertLess(box.fillet(edges=box.edges()[0], radius=0.1).volume, box.volume)
+        self.assertLess(box.chamfer(edges=box.edges()[0], distance=0.1).volume, box.volume)
 
     def test_fillet_fails(self):
         box = _box()
@@ -843,6 +851,21 @@ class TestMapShape(unittest.TestCase):
         with self.assertRaises(IndexError):
             edges[-len(edges) - 1]
 
+    def test_slice(self):
+        edges = _box().edges()
+        self.assertEqual(edges[1:3], [edges[1], edges[2]])
+        self.assertEqual(edges[-1:], [edges[-1]])
+        self.assertEqual(edges[::-1], list(edges)[::-1])
+        self.assertEqual(edges[len(edges) :], [])
+
+    def test_sequence(self):
+        edges = _box().edges()
+        self.assertIsInstance(edges, Sequence)
+        self.assertEqual(edges.index(edges[3]), 3)
+        self.assertEqual(edges.count(edges[3]), 1)
+        self.assertEqual(list(reversed(edges)), list(edges)[::-1])
+        self.assertNotIn(1, edges)
+
     def test_find_index_contains(self):
         edges = _box().edges()
         self.assertEqual(edges.find_index(edges[3]), 3)
@@ -862,6 +885,16 @@ class TestMapShape(unittest.TestCase):
     def test_base_class_rejected(self):
         with self.assertRaises(TypeError):
             _box().map(Shape)
+
+
+class TestTransformShape(unittest.TestCase):
+    def test_modified_shape_not_a_sub_shape(self):
+        box, other = _box(), _box()
+        t = Transform.by_translation(Vector.by_xyz(0, 0, 1))
+        moved = TransformShape(box, t).modified_shape(other.faces()[0])
+        self.assertIsInstance(moved, Face)
+        with self.assertRaises(RuntimeError):
+            TransformShape(box, t, copy_geom=True).modified_shape(other.faces()[0])
 
 
 class TestExploreShape(unittest.TestCase):

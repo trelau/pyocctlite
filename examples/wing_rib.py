@@ -117,9 +117,7 @@ iml = Solid.by_loft(
 spar0, spar1 = chord_point(root, rear_spar), chord_point(yehudi, rear_spar)
 spar_direction = Vector.by_points(spar0, spar1)
 origin = spar0.translate(spar_direction.scale(rib_station / spar1.y))
-frame = Frame.by_vectors(
-    origin, Vector.by_xyz(1.0, 0.0, 0.0), spar_direction.normalize().scale(-1.0)
-)
+frame = Frame.by_vectors(origin, Vector.by_xyz(1.0, 0.0, 0.0), spar_direction.normalize().reverse())
 x_dir, y_dir, z_dir = frame.x_direction, frame.y_direction, frame.z_direction
 
 
@@ -133,7 +131,7 @@ def local(x: float, y: float, z: float = 0.0) -> Point:
     :return: World point.
     :rtype: Point
     """
-    return origin.translate(x_dir.scale(x)).translate(y_dir.scale(y)).translate(z_dir.scale(z))
+    return origin.translate(x_dir.scale(x).add(y_dir.scale(y)).add(z_dir.scale(z)))
 
 
 def polygon(points: Iterable[tuple[float, float]]) -> Wire:
@@ -367,11 +365,7 @@ render_image(
 )
 render_views(rib, "outputs/wing_rib_views.png")
 into_pockets = Camera.by_direction(
-    Vector.by_xyz(
-        z_dir.x + 0.3 * x_dir.x + 0.5 * y_dir.x,
-        z_dir.y + 0.3 * x_dir.y + 0.5 * y_dir.y,
-        z_dir.z + 0.3 * x_dir.z + 0.5 * y_dir.z,
-    ),
+    z_dir.add(x_dir.scale(0.3)).add(y_dir.scale(0.5)),
     y_dir,
     span=1.15 * length,
 )

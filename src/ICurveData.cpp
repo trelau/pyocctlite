@@ -9,4 +9,13 @@ void bind_ICurveData(nb::module_& m) {
   nb::class_<ICircleData>(m, "ICircleData", "Circle data.")
       .def_ro("Frame", &ICircleData::Frame)
       .def_ro("Radius", &ICircleData::Radius);
+
+  nb::class_<ILine2DData>(m, "ILine2DData", "2D line data.")
+      .def_ro("Origin", &ILine2DData::Origin)
+      .def_ro("Direction", &ILine2DData::Direction);
+
+  nb::class_<IEllipse2DData>(m, "IEllipse2DData", "2D ellipse data.")
+      .def_ro("Frame", &IEllipse2DData::Frame)
+      .def_ro("MajorRadius", &IEllipse2DData::MajorRadius)
+      .def_ro("MinorRadius", &IEllipse2DData::MinorRadius);
 }

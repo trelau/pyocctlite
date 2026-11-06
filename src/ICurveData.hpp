@@ -3,8 +3,11 @@
 #include "occtlite.hpp"
 
 #include "IFrame.hpp"
+#include "IFrame2D.hpp"
 #include "IPoint.hpp"
+#include "IPoint2D.hpp"
 #include "IVector.hpp"
+#include "IVector2D.hpp"
 
 // Data structure for line data
 struct ILineData {
@@ -16,6 +19,19 @@ struct ILineData {
 struct ICircleData {
   IFrame Frame;
   double Radius = 0.0;
+};
+
+// Data structure for 2D line data
+struct ILine2DData {
+  IPoint2D Origin;
+  IVector2D Direction;
+};
+
+// Data structure for 2D ellipse data
+struct IEllipse2DData {
+  IFrame2D Frame;
+  double MajorRadius = 0.0;
+  double MinorRadius = 0.0;
 };
 
 // Python bindings
