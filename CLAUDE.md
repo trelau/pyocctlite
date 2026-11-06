@@ -67,7 +67,8 @@ Start from existing patterns. If two patterns disagree, or the code disagrees wi
 | Kind data | Parameters specific to one kind | `ICurveData` |
 | Shared OCCT base API | One base API used by many tools, wrapped once | `MakeIShape.hpp`, `BooleanIShapes.hpp` |
 | Collection tool | Sequence-like results | `MapIShape` / `MapShape` |
-| Composite | Python-only object with named parts | `Cylinder` |
+| Composite | Python-only object with named parts | `Cylinder`, `Styled` |
+| Render | One-call output built on a C++ tool: stateless Python functions | `RenderIShapes` / `render_image` |
 | Errors | Domain errors across both layers | `IErrors.hpp` / `errors.py` |
 
 ## Conventions

@@ -142,6 +142,26 @@ class Cylinder(Solid)
     .lateral_face: Face
 ```
 
+# pyocctlite.rendering
+
+```
+class View(Enum)
+    View.ISO
+    View.TOP
+    View.BOTTOM
+    View.FRONT
+    View.BACK
+    View.LEFT
+    View.RIGHT
+class Styled
+    Styled(shape: Shape, color: tuple[float, float, float] | None = None, transparency: float = 0.0)
+    .shape: Shape
+    .color: tuple[float, float, float]
+    .transparency: float
+render_image(shapes: Shape | Styled | Iterable[Shape | Styled], path: str, view: View = View.ISO, width: int = 1200, height: int = 900) -> None
+render_views(shapes: Shape | Styled | Iterable[Shape | Styled], path: str, width: int = 1500, height: int = 1124) -> None
+```
+
 # pyocctlite.topology
 
 ```

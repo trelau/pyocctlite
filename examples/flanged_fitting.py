@@ -4,6 +4,7 @@ import math
 
 from pyocctlite.geometry import Axis, Frame, Point, Vector
 from pyocctlite.primitives import Cylinder
+from pyocctlite.rendering import render_views
 from pyocctlite.topology import CutShapes, Edge, Face, RevolveShape, Vertex, Wire
 
 # Dimensions for the fitting
@@ -69,3 +70,6 @@ fitting = drill.shape().chamfer(drill.intersection_edges(), bolt_hole_chamfer)
 
 # Export STEP
 fitting.export_step("outputs/flanged_fitting.step")
+
+# Render a sheet of views
+render_views(fitting, "outputs/flanged_fitting.png")

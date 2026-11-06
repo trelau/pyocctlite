@@ -20,9 +20,10 @@ This project intentionally:
 - Basic geometry (points, vectors, curves, surfaces)
 - Topological shapes (edges, faces, solids)
 - Simple construction and transformation operations
+- Rendering shapes to PNG images, with no GPU or display needed
 - Python bindings via `nanobind`
 
-More advanced features (meshing, analysis, IO, viewers) may be added later.
+More advanced features (meshing, analysis, IO, interactive viewers) may be added later.
 
 ## Non-Goals
 - Full OCCT coverage
