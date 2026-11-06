@@ -3,9 +3,12 @@ from __future__ import annotations
 import math
 import unittest
 
-from pyocctlite.geometry import Frame, Point, Vector
+from pyocctlite.geometry import Axis, Frame, Point, Vector
 from pyocctlite.primitives import Box, Cylinder, Sphere
 from pyocctlite.topology import Face
+
+_X_AXIS = Axis.by_vector(Point.by_xyz(0, 0, 0), Vector.by_xyz(1, 0, 0))
+_Z_AXIS = Axis.by_vector(Point.by_xyz(0, 0, 0), Vector.by_xyz(0, 0, 1))
 
 
 class TestBox(unittest.TestCase):
@@ -82,6 +85,17 @@ class TestBox(unittest.TestCase):
         self._assert_on_plane(result.bottom_face, z=10.0)
         self._assert_on_plane(result.top_face, z=7.0)
 
+    def test_rotate(self):
+        b = Box.by_size(1.0, 2.0, 3.0)
+        result = b.rotate(_Z_AXIS, math.pi / 2.0)
+        self._assert_valid(result)
+        self.assertAlmostEqual(result.volume, b.volume)
+        self._assert_on_plane(result.back_face, y=0.0)
+        self._assert_on_plane(result.front_face, y=1.0)
+        self._assert_on_plane(result.left_face, x=0.0)
+        self._assert_on_plane(result.right_face, x=-2.0)
+        self._assert_on_plane(result.top_face, z=3.0)
+
 
 class TestSphere(unittest.TestCase):
     def _assert_valid(self, s: Sphere):
@@ -124,6 +138,16 @@ class TestSphere(unittest.TestCase):
         for v in result.vertices():
             self.assertAlmostEqual(abs(v.point.z - 10.0), 2.0)
 
+    def test_rotate(self):
+        s = Sphere.by_size(2.0)
+        result = s.rotate(_X_AXIS, math.pi / 2.0)
+        self._assert_valid(result)
+        self.assertAlmostEqual(result.volume, s.volume, places=6)
+        # the poles move from the z-axis to the y-axis
+        for v in result.vertices():
+            self.assertAlmostEqual(abs(v.point.y), 2.0)
+            self.assertAlmostEqual(v.point.z, 0.0)
+
 
 class TestCylinder(unittest.TestCase):
     def _assert_valid(self, c: Cylinder):
@@ -157,6 +181,14 @@ class TestCylinder(unittest.TestCase):
         self._assert_valid(result)
         self.assertAlmostEqual(result.volume, c.volume)
         self.assertAlmostEqual(result.top_face.area, c.top_face.area)
+
+    def test_rotate(self):
+        c = Cylinder.by_size(1.0, 2.0)
+        result = c.rotate(_X_AXIS, math.pi)
+        self._assert_valid(result)
+        self.assertAlmostEqual(result.volume, c.volume)
+        for v in result.top_face.vertices():
+            self.assertAlmostEqual(v.point.z, -2.0)
 
 
 if __name__ == "__main__":

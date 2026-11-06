@@ -169,6 +169,15 @@ class TestFrame(unittest.TestCase):
 
 
 class TestAxis(unittest.TestCase):
+    def test_by_vector(self):
+        a = Axis.by_vector(Point.by_xyz(1, 2, 3), Vector.by_xyz(0, 0, 5))
+        self.assertTrue(a.origin.is_equal(Point.by_xyz(1, 2, 3)))
+        self.assertAlmostEqual(a.direction.z, 1.0)
+
+    def test_by_vector_zero_direction(self):
+        with self.assertRaises(RuntimeError):
+            Axis.by_vector(Point.by_xyz(0, 0, 0), Vector.by_xyz(0, 0, 0))
+
     def test_properties(self):
         f = Frame.by_origin(Point.by_xyz(1, 2, 3))
         a = Axis(f.iframe.Axis())
@@ -183,6 +192,11 @@ class TestAxis(unittest.TestCase):
 class TestTransform(unittest.TestCase):
     def test_by_mirror(self):
         t = Transform.by_mirror(Point.by_xyz(0, 0, 0), Vector.by_xyz(1, 0, 0))
+        self.assertIsInstance(t, Transform)
+
+    def test_by_rotation(self):
+        a = Axis.by_vector(Point.by_xyz(0, 0, 0), Vector.by_xyz(0, 0, 1))
+        t = Transform.by_rotation(a, math.pi / 2.0)
         self.assertIsInstance(t, Transform)
 
 

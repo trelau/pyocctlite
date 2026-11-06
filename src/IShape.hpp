@@ -140,6 +140,9 @@ public:
   // Calculate the volume of the shape
   double Volume() const;
 
+  // Check if this shape and its sub-shapes are valid
+  bool IsValid() const;
+
   // Get the curve if this shape is an edge
   std::optional<ICurve> Curve() const;
 

@@ -4,7 +4,7 @@ import math
 from typing import Self
 
 from pyocctlite._occtlite import IShape
-from pyocctlite.geometry import Circle, Frame, Point, Transform, Vector
+from pyocctlite.geometry import Axis, Circle, Frame, Point, Transform, Vector
 from pyocctlite.topology import (
     CopyShape,
     Edge,
@@ -230,6 +230,19 @@ class Box(Solid):
         t = Transform.by_mirror(origin, normal)
         return self._by_history(TransformShape(self, t))
 
+    def rotate(self, axis: Axis, angle: float) -> Self:
+        """
+        Create a rotated version of this box, including its named faces.
+
+        :param Axis axis: Axis of rotation.
+        :param float angle: Angle in radians, counterclockwise when looking against the axis
+            direction.
+        :return: Rotated box.
+        :rtype: Self
+        """
+        t = Transform.by_rotation(axis, angle)
+        return self._by_history(TransformShape(self, t))
+
     def _by_history(self, tool: CopyShape[Self] | TransformShape[Self]) -> Self:
         """
         Build a box from a kind-preserving tool by mapping each named face through its history.
@@ -320,6 +333,19 @@ class Sphere(Solid):
         :raises RuntimeError: If the normal has zero length.
         """
         t = Transform.by_mirror(origin, normal)
+        return self._by_history(TransformShape(self, t))
+
+    def rotate(self, axis: Axis, angle: float) -> Self:
+        """
+        Create a rotated version of this sphere, including its named face.
+
+        :param Axis axis: Axis of rotation.
+        :param float angle: Angle in radians, counterclockwise when looking against the axis
+            direction.
+        :return: Rotated sphere.
+        :rtype: Self
+        """
+        t = Transform.by_rotation(axis, angle)
         return self._by_history(TransformShape(self, t))
 
     def _by_history(self, tool: CopyShape[Self] | TransformShape[Self]) -> Self:
@@ -456,6 +482,19 @@ class Cylinder(Solid):
         :raises RuntimeError: If the normal has zero length.
         """
         t = Transform.by_mirror(origin, normal)
+        return self._by_history(TransformShape(self, t))
+
+    def rotate(self, axis: Axis, angle: float) -> Self:
+        """
+        Create a rotated version of this cylinder, including its named faces.
+
+        :param Axis axis: Axis of rotation.
+        :param float angle: Angle in radians, counterclockwise when looking against the axis
+            direction.
+        :return: Rotated cylinder.
+        :rtype: Self
+        """
+        t = Transform.by_rotation(axis, angle)
         return self._by_history(TransformShape(self, t))
 
     def _by_history(self, tool: CopyShape[Self] | TransformShape[Self]) -> Self:

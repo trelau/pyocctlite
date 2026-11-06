@@ -45,6 +45,7 @@ class Vector
     .magnitude: float
     .scaled(scale: float) -> Vector
 class Axis
+    Axis.by_vector(origin: Point, direction: Vector) -> Axis
     .origin: Point
     .direction: Vector
 class Frame
@@ -55,6 +56,7 @@ class Frame
     .z_direction: Vector
 class Transform
     Transform.by_mirror(origin: Point, normal: Vector) -> Transform
+    Transform.by_rotation(axis: Axis, angle: float) -> Transform
 class Curve
     .evaluate(u: float) -> Point
 class Line(Curve)
@@ -85,11 +87,13 @@ class Box(Solid)
     .right_face: Face
     .copy() -> Self
     .mirror(origin: Point, normal: Vector) -> Self
+    .rotate(axis: Axis, angle: float) -> Self
 class Sphere(Solid)
     Sphere.by_size(radius: float, frame: Frame | None = None) -> Sphere
     .face: Face
     .copy() -> Self
     .mirror(origin: Point, normal: Vector) -> Self
+    .rotate(axis: Axis, angle: float) -> Self
 class Cylinder(Solid)
     Cylinder.by_size(radius: float, height: float, frame: Frame | None = None) -> Cylinder
     .bottom_face: Face
@@ -97,6 +101,7 @@ class Cylinder(Solid)
     .lateral_face: Face
     .copy() -> Self
     .mirror(origin: Point, normal: Vector) -> Self
+    .rotate(axis: Axis, angle: float) -> Self
 ```
 
 # pyocctlite.topology
@@ -117,6 +122,7 @@ class Shape
     .length: float
     .area: float
     .volume: float
+    .is_valid: bool
     .explore(find: type[T], ignore: type[Shape] | None = None) -> ExploreShape[T]
     .map(kind: type[T]) -> MapShape[T]
     .vertices() -> MapShape[Vertex]
@@ -129,16 +135,20 @@ class Shape
     .compounds() -> MapShape[Compound]
     .copy() -> Self
     .mirror(origin: Point, normal: Vector) -> Self
+    .rotate(axis: Axis, angle: float) -> Self
     .extrude(vector: Vector) -> Shape
+    .revolve(axis: Axis) -> Shape
     .unite(other: Shape) -> Shape
     .cut(other: Shape) -> Shape
     .fillet(edge: Edge | Iterable[Edge], radius: float) -> Shape
+    .chamfer(edge: Edge | Iterable[Edge], distance: float) -> Shape
     .thicken(thickness: float, tol: float = 0.001, faces: Iterable[Face] | None = None) -> Shape
     .export_step(path: str) -> None
 class Vertex(Shape)
     Vertex.by_point(p: Point) -> Vertex
     .point: Point
     .extrude(vector: Vector) -> Edge
+    .revolve(axis: Axis) -> Edge
 class Edge(Shape)
     Edge.by_curve(c: Curve) -> Edge
     Edge.by_curve2d(c: Curve2D, s: Surface) -> Edge
@@ -147,16 +157,20 @@ class Edge(Shape)
     Edge.by_circular_arc(p1: Point, p2: Point, p3: Point) -> Edge
     .curve: Curve | None
     .extrude(vector: Vector) -> Face
+    .revolve(axis: Axis) -> Face
 class Wire(Shape)
     Wire.by_edge(e: Edge) -> Wire
     Wire.by_edges(edges: Iterable[Edge]) -> Wire
     .combine(other: Wire) -> Wire
     .extrude(vector: Vector) -> Shell
+    .revolve(axis: Axis) -> Shell
 class Face(Shape)
     Face.by_wire(w: Wire) -> Face
     .extrude(vector: Vector) -> Solid
+    .revolve(axis: Axis) -> Solid
 class Shell(Shape)
     .extrude(vector: Vector) -> CompSolid
+    .revolve(axis: Axis) -> CompSolid
 class Solid(Shape)
     Solid.by_loft(shapes: Iterable[Vertex | Edge | Wire], is_ruled: bool = False, tol: float = 1e-06) -> Solid
 class CompSolid(Shape)
@@ -190,6 +204,20 @@ class ExtrudeShape(ShapeTool, Generic[T])
     .shape() -> Shape
     .first_shape() -> T
     .last_shape() -> T
+class RevolveShape(ShapeTool, Generic[T])
+    RevolveShape(s: T, axis: Axis)
+    .shape(self: RevolveShape[Vertex]) -> Edge
+    .shape(self: RevolveShape[Edge]) -> Face
+    .shape(self: RevolveShape[Wire]) -> Shell
+    .shape(self: RevolveShape[Face]) -> Solid
+    .shape(self: RevolveShape[Shell]) -> CompSolid
+    .shape() -> Shape
+class FilletShape(ShapeTool)
+    FilletShape(s: Shape)
+    .add_edge(e: Edge, radius: float) -> None
+class ChamferShape(ShapeTool)
+    ChamferShape(s: Shape)
+    .add_edge(e: Edge, distance: float) -> None
 class ThickenShape(ShapeTool)
     ThickenShape(s: Shape, thickness: float, tol: float = 0.001, faces: Iterable[Face] | None = None)
 class LoftShape(ShapeTool)

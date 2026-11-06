@@ -6,6 +6,7 @@ from functools import cached_property
 from typing import Generic, Self, TypeVar, cast, overload
 
 from pyocctlite._occtlite import (
+    ChamferIShape,
     CopyIShape,
     CutIShapes,
     ExploreIShape,
@@ -15,22 +16,34 @@ from pyocctlite._occtlite import (
     IShapeKind,
     LoftIShape,
     MapIShape,
+    RevolveIShape,
     ThickenIShape,
     TransformIShape,
     UniteIShapes,
 )
-from pyocctlite.geometry import Curve, Curve2D, Point, Surface, Transform, TrimmedCurve, Vector
+from pyocctlite.geometry import (
+    Axis,
+    Curve,
+    Curve2D,
+    Point,
+    Surface,
+    Transform,
+    TrimmedCurve,
+    Vector,
+)
 
 T = TypeVar("T", bound="Shape")
 S = TypeVar("S", bound="Shape")
 
 # C++ tools wrapping OCCT BRepBuilderAPI_MakeShape (see MakeIShape.hpp)
 MakeShapeITool = (
-    CopyIShape
+    ChamferIShape
+    | CopyIShape
     | CutIShapes
     | ExtrudeIShape
     | FilletIShape
     | LoftIShape
+    | RevolveIShape
     | ThickenIShape
     | TransformIShape
     | UniteIShapes
@@ -184,6 +197,16 @@ class Shape:
         """
         return self.ishape.Volume()
 
+    @cached_property
+    def is_valid(self) -> bool:
+        """
+        Check if this shape and its sub-shapes are topologically and geometrically well-formed.
+
+        :return: True if no defect was found.
+        :rtype: bool
+        """
+        return self.ishape.IsValid()
+
     def explore(self, find: type[T], ignore: type[Shape] | None = None) -> ExploreShape[T]:
         """
         Iterate over sub-shapes, including repeats of shared sub-shapes (e.g. 24 edges for a box).
@@ -305,6 +328,19 @@ class Shape:
         t = Transform.by_mirror(origin, normal)
         return TransformShape(self, t).shape()
 
+    def rotate(self, axis: Axis, angle: float) -> Self:
+        """
+        Create a rotated version of this shape.
+
+        :param Axis axis: Axis of rotation.
+        :param float angle: Angle in radians, counterclockwise when looking against the axis
+            direction.
+        :return: Rotated shape of the same type.
+        :rtype: Self
+        """
+        t = Transform.by_rotation(axis, angle)
+        return TransformShape(self, t).shape()
+
     def extrude(self, vector: Vector) -> Shape:
         """
         Extrude this shape along a vector. The result is one dimension higher (e.g. face to solid).
@@ -315,6 +351,22 @@ class Shape:
         :raises RuntimeError: If this is a solid or the vector has zero length.
         """
         return ExtrudeShape(self, vector).shape()
+
+    def revolve(self, axis: Axis) -> Shape:
+        """
+        Revolve this shape a full turn about an axis. The result is one dimension higher (e.g. face
+        to solid).
+
+        The shape may touch the axis but must not cross it. Crashes the interpreter if the shape is
+        an edge lying along the axis.
+
+        :param Axis axis: Axis of revolution.
+        :return: Revolved shape.
+        :rtype: Shape
+        :raises BuildFailed: If the shape crosses the axis.
+        :raises RuntimeError: If this is a solid.
+        """
+        return RevolveShape(self, axis).shape()
 
     def unite(self, other: Shape) -> Shape:
         """
@@ -347,6 +399,9 @@ class Shape:
         """
         Fillet edges of this shape with a constant radius.
 
+        Edges that share no vertex with a filleted edge compare equal (``==``) to their counterparts
+        in the result.
+
         :param Edge | Iterable[Edge] edge: Edge(s) to fillet. Must belong to this shape.
         :param float radius: Fillet radius. Must be positive.
         :return: Filleted shape. Typically a ``Compound``, even for one solid.
@@ -354,15 +409,26 @@ class Shape:
         :raises BuildFailed: If the radius is not positive or is too large.
         :raises RuntimeError: If no edges are given or they do not belong to this shape.
         """
-        itool = FilletIShape(self.ishape)
-        if isinstance(edge, Edge):
-            itool.AddEdge(edge.ishape, radius)
-        else:
-            for e in edge:
-                itool.AddEdge(e.ishape, radius)
+        tool = FilletShape(self)
+        for e in [edge] if isinstance(edge, Edge) else edge:
+            tool.add_edge(e, radius)
+        return tool.shape()
 
-        ishape = itool.Shape()
-        return Shape.by_ishape(ishape)
+    def chamfer(self, edge: Edge | Iterable[Edge], distance: float) -> Shape:
+        """
+        Chamfer edges of this shape with the same distance on both adjacent faces.
+
+        :param Edge | Iterable[Edge] edge: Edge(s) to chamfer. Must belong to this shape.
+        :param float distance: Distance from the edge along each adjacent face. Must be positive.
+        :return: Chamfered shape. Typically a ``Compound``, even for one solid.
+        :rtype: Shape
+        :raises BuildFailed: If the distance is not positive or is too large.
+        :raises RuntimeError: If no edges are given or they do not belong to this shape.
+        """
+        tool = ChamferShape(self)
+        for e in [edge] if isinstance(edge, Edge) else edge:
+            tool.add_edge(e, distance)
+        return tool.shape()
 
     def thicken(
         self, thickness: float, tol: float = 1.0e-3, faces: Iterable[Face] | None = None
@@ -450,6 +516,18 @@ class Vertex(Shape):
         :raises RuntimeError: If the vector has zero length.
         """
         return ExtrudeShape(self, vector).shape()
+
+    def revolve(self, axis: Axis) -> Edge:
+        """
+        Revolve this vertex a full turn about an axis into a closed circular edge.
+
+        A vertex on the axis produces a zero-length edge without raising.
+
+        :param Axis axis: Axis of revolution.
+        :return: Revolved edge.
+        :rtype: Edge
+        """
+        return RevolveShape(self, axis).shape()
 
 
 class Edge(Shape):
@@ -563,6 +641,19 @@ class Edge(Shape):
         """
         return ExtrudeShape(self, vector).shape()
 
+    def revolve(self, axis: Axis) -> Face:
+        """
+        Revolve this edge a full turn about an axis into a face.
+
+        The edge may end on the axis. Crashes the interpreter if it lies along the axis.
+
+        :param Axis axis: Axis of revolution.
+        :return: Revolved face.
+        :rtype: Face
+        :raises BuildFailed: If the edge crosses the axis.
+        """
+        return RevolveShape(self, axis).shape()
+
 
 class Wire(Shape):
     """
@@ -633,6 +724,20 @@ class Wire(Shape):
         """
         return ExtrudeShape(self, vector).shape()
 
+    def revolve(self, axis: Axis) -> Shell:
+        """
+        Revolve this wire a full turn about an axis into a shell.
+
+        An edge of the wire on the axis produces no face. A wire entirely on the axis produces an
+        empty shell without raising.
+
+        :param Axis axis: Axis of revolution.
+        :return: Revolved shell.
+        :rtype: Shell
+        :raises BuildFailed: If the wire crosses the axis.
+        """
+        return RevolveShape(self, axis).shape()
+
 
 class Face(Shape):
     """
@@ -676,6 +781,19 @@ class Face(Shape):
         """
         return ExtrudeShape(self, vector).shape()
 
+    def revolve(self, axis: Axis) -> Solid:
+        """
+        Revolve this face a full turn about an axis into a solid.
+
+        The face may have an edge on the axis (e.g. a rectangle revolves into a full cylinder).
+
+        :param Axis axis: Axis of revolution.
+        :return: Revolved solid.
+        :rtype: Solid
+        :raises BuildFailed: If the face crosses the axis.
+        """
+        return RevolveShape(self, axis).shape()
+
 
 class Shell(Shape):
     """
@@ -702,6 +820,16 @@ class Shell(Shape):
         :raises RuntimeError: If the vector has zero length.
         """
         return ExtrudeShape(self, vector).shape()
+
+    def revolve(self, axis: Axis) -> CompSolid:
+        """
+        Revolve this shell a full turn about an axis into a compsolid.
+
+        :param Axis axis: Axis of revolution. Must not cross the shell.
+        :return: Revolved compsolid.
+        :rtype: CompSolid
+        """
+        return RevolveShape(self, axis).shape()
 
 
 class Solid(Shape):
@@ -1040,6 +1168,107 @@ class ExtrudeShape(ShapeTool[ExtrudeIShape], Generic[T]):
         :rtype: T
         """
         return cast(T, Shape.by_ishape(self._itool.LastShape()))
+
+
+class RevolveShape(ShapeTool[RevolveIShape], Generic[T]):
+    """
+    Tool to revolve a shape a full turn. The result is one dimension higher (e.g. face to solid).
+
+    Use :meth:`generated_shapes` to find what a sub-shape of the source became (e.g. the circular
+    edge from a vertex, or the face from an edge).
+    """
+
+    def __init__(self, s: T, axis: Axis):
+        """
+        Initialize with shape and axis.
+
+        :param T s: Source shape. May touch the axis but must not cross it.
+        :param Axis axis: Axis of revolution.
+        :raises RuntimeError: If the source is a solid.
+        """
+        itool = RevolveIShape(s.ishape, axis.iaxis)
+        super().__init__(itool)
+
+    @overload
+    def shape(self: RevolveShape[Vertex]) -> Edge: ...
+    @overload
+    def shape(self: RevolveShape[Edge]) -> Face: ...
+    @overload
+    def shape(self: RevolveShape[Wire]) -> Shell: ...
+    @overload
+    def shape(self: RevolveShape[Face]) -> Solid: ...
+    @overload
+    def shape(self: RevolveShape[Shell]) -> CompSolid: ...
+    @overload
+    def shape(self) -> Shape: ...
+
+    def shape(self) -> Shape:
+        """
+        Get the resulting shape, one dimension higher than the source.
+
+        Crashes the interpreter if the source is an edge lying along the axis.
+
+        :return: Revolved shape.
+        :rtype: Shape
+        :raises BuildFailed: If the source crosses the axis.
+        """
+        return super().shape()
+
+
+class FilletShape(ShapeTool[FilletIShape]):
+    """
+    Tool to fillet edges of a shape, with a constant radius per edge.
+
+    Use :meth:`generated_shapes` to find the fillet face made from an edge.
+    """
+
+    def __init__(self, s: Shape):
+        """
+        Initialize with shape.
+
+        :param Shape s: Source shape.
+        """
+        itool = FilletIShape(s.ishape)
+        super().__init__(itool)
+
+    def add_edge(self, e: Edge, radius: float) -> None:
+        """
+        Add an edge to fillet.
+
+        Problems with the edge or radius are raised when the result is requested.
+
+        :param Edge e: Edge. Must belong to the source shape.
+        :param float radius: Fillet radius. Must be positive.
+        """
+        self._itool.AddEdge(e.ishape, radius)
+
+
+class ChamferShape(ShapeTool[ChamferIShape]):
+    """
+    Tool to chamfer edges of a shape, with the same distance on both faces adjacent to each edge.
+
+    Use :meth:`generated_shapes` to find the chamfer face made from an edge.
+    """
+
+    def __init__(self, s: Shape):
+        """
+        Initialize with shape.
+
+        :param Shape s: Source shape.
+        """
+        itool = ChamferIShape(s.ishape)
+        super().__init__(itool)
+
+    def add_edge(self, e: Edge, distance: float) -> None:
+        """
+        Add an edge to chamfer.
+
+        Problems with the edge or distance are raised when the result is requested.
+
+        :param Edge e: Edge. Must belong to the source shape.
+        :param float distance: Distance from the edge along each adjacent face. Must be positive.
+        """
+        self._itool.AddEdge(e.ishape, distance)
 
 
 class ThickenShape(ShapeTool[ThickenIShape]):

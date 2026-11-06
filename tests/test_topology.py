@@ -3,7 +3,9 @@ from __future__ import annotations
 import math
 import unittest
 
+from pyocctlite.errors import BuildFailed
 from pyocctlite.geometry import (
+    Axis,
     Circle,
     CylindricalSurface,
     Line,
@@ -13,19 +15,27 @@ from pyocctlite.geometry import (
     Vector,
 )
 from pyocctlite.topology import (
+    ChamferShape,
     Compound,
+    CompSolid,
     CutShapes,
     Edge,
     ExtrudeShape,
     Face,
+    FilletShape,
     LoftShape,
+    RevolveShape,
     ShapeKind,
+    Shell,
     Solid,
     ThickenShape,
     UniteShapes,
     Vertex,
     Wire,
 )
+
+_Y_AXIS = Axis.by_vector(Point.by_xyz(0, 0, 0), Vector.by_xyz(0, 1, 0))
+_Z_AXIS = Axis.by_vector(Point.by_xyz(0, 0, 0), Vector.by_xyz(0, 0, 1))
 
 
 def _square(x0: float = 0.0, y0: float = 0.0, z: float = 0.0) -> Wire:
@@ -60,6 +70,22 @@ class TestShape(unittest.TestCase):
         self.assertAlmostEqual(box.area, 6.0)
         self.assertAlmostEqual(box.volume, 1.0)
 
+    def test_is_valid(self):
+        box = _box()
+        self.assertTrue(box.is_valid)
+        self.assertTrue(box.cut(_box(0.5, 0.5, 0.5)).is_valid)
+
+    def test_is_valid_self_intersecting_face(self):
+        pts = [Point.by_xyz(x, y, 0) for x, y in ((0, 0), (1, 1), (1, 0), (0, 1), (0, 0))]
+        w = Wire.by_edges([Edge.by_points(a, b) for a, b in zip(pts, pts[1:], strict=False)])
+        self.assertFalse(Face.by_wire(w).is_valid)
+
+    def test_is_valid_open_wire(self):
+        pts = [Point.by_xyz(x, y, 0) for x, y in ((0, 0), (1, 0), (1, 1))]
+        w = Wire.by_edges([Edge.by_points(a, b) for a, b in zip(pts, pts[1:], strict=False)])
+        self.assertTrue(w.is_valid)
+        self.assertFalse(Face.by_wire(w).is_valid)
+
     def test_eq_hash(self):
         box = _box()
         edges = list(box.edges())
@@ -81,11 +107,65 @@ class TestShape(unittest.TestCase):
         self.assertIsInstance(result, Solid)
         self.assertAlmostEqual(result.volume, box.volume)
 
+    def test_rotate(self):
+        v = Vertex.by_point(Point.by_xyz(1, 0, 5))
+        result = v.rotate(_Z_AXIS, math.pi / 2.0)
+        self.assertIsInstance(result, Vertex)
+        self.assertTrue(result.point.is_equal(Point.by_xyz(0, 1, 5)))
+        self.assertTrue(v.point.is_equal(Point.by_xyz(1, 0, 5)))
+
     def test_extrude(self):
         e = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
         f = e.extrude(Vector.by_xyz(0, 1, 0))
         self.assertIsInstance(f, Face)
         self.assertAlmostEqual(f.area, 1.0)
+
+    def test_revolve_vertex(self):
+        result = Vertex.by_point(Point.by_xyz(2, 0, 0)).revolve(_Z_AXIS)
+        self.assertIsInstance(result, Edge)
+        self.assertAlmostEqual(result.length, 4.0 * math.pi)
+
+    def test_revolve_vertex_on_axis(self):
+        result = Vertex.by_point(Point.by_xyz(0, 0, 1)).revolve(_Z_AXIS)
+        self.assertIsInstance(result, Edge)
+        self.assertAlmostEqual(result.length, 0.0)
+
+    def test_revolve_edge(self):
+        e = Edge.by_points(Point.by_xyz(1, 0, 0), Point.by_xyz(1, 0, 2))
+        result = e.revolve(_Z_AXIS)
+        self.assertIsInstance(result, Face)
+        self.assertAlmostEqual(result.area, 4.0 * math.pi)
+
+    def test_revolve_wire(self):
+        result = _square(1.0).revolve(_Y_AXIS)
+        self.assertIsInstance(result, Shell)
+        self.assertAlmostEqual(result.area, 12.0 * math.pi)
+
+    def test_revolve_face(self):
+        result = Face.by_wire(_square(1.0)).revolve(_Y_AXIS)
+        self.assertIsInstance(result, Solid)
+        self.assertAlmostEqual(result.volume, 3.0 * math.pi)
+
+    def test_revolve_face_touching_axis(self):
+        result = Face.by_wire(_square()).revolve(_Y_AXIS)
+        self.assertIsInstance(result, Solid)
+        self.assertAlmostEqual(result.volume, math.pi)
+
+    def test_revolve_shell(self):
+        e = Edge.by_points(Point.by_xyz(1, 0, 0), Point.by_xyz(2, 0, 0))
+        shell = Wire.by_edge(e).extrude(Vector.by_xyz(0, 0, 1))
+        result = shell.revolve(_Z_AXIS)
+        self.assertIsInstance(result, CompSolid)
+        self.assertAlmostEqual(result.volume, 3.0 * math.pi)
+
+    def test_revolve_crossing_axis_fails(self):
+        f = Face.by_wire(_square(-0.5))
+        with self.assertRaises(BuildFailed):
+            f.revolve(_Y_AXIS)
+
+    def test_revolve_solid_fails(self):
+        with self.assertRaises(RuntimeError):
+            _box().revolve(_Z_AXIS)
 
     def test_unite(self):
         result = _box().unite(_box(0.5))
@@ -110,6 +190,38 @@ class TestShape(unittest.TestCase):
         box = _box()
         with self.assertRaises(RuntimeError):
             box.fillet(box.edges(), 10.0)
+
+    def test_fillet_keeps_distant_edges(self):
+        box = _box()
+        edge = box.edges()[0]
+        distant = [e for e in box.edges() if not set(e.vertices()) & set(edge.vertices())]
+        self.assertTrue(distant)
+        result = box.fillet(edge, 0.1)
+        for e in distant:
+            self.assertTrue(result.edges().contains(e))
+
+    def test_chamfer(self):
+        box = _box()
+        result = box.chamfer(box.edges()[0], 0.1)
+        self.assertEqual(len(result.solids()), 1)
+        self.assertAlmostEqual(result.volume, 1.0 - 0.1 * 0.1 / 2.0)
+
+    def test_chamfer_many(self):
+        box = _box()
+        edges = list(box.edges())
+        one = box.chamfer(edges[0], 0.1)
+        result = box.chamfer(edges, 0.1)
+        self.assertLess(result.volume, one.volume)
+
+    def test_chamfer_fails(self):
+        box = _box()
+        for distance in (10.0, 0.0, -0.1):
+            with self.subTest(distance=distance), self.assertRaises(BuildFailed):
+                box.chamfer(box.edges(), distance)
+
+    def test_chamfer_no_edges(self):
+        with self.assertRaises(RuntimeError):
+            _box().chamfer([], 0.1)
 
     def test_thicken(self):
         box, top = _box_and_top()
@@ -292,6 +404,91 @@ class TestExtrudeShape(unittest.TestCase):
         generated = tool.generated_shapes(e)
         self.assertEqual(len(generated), 1)
         self.assertIsInstance(generated[0], Face)
+
+
+class TestRevolveShape(unittest.TestCase):
+    def test_shape(self):
+        tool = RevolveShape(Face.by_wire(_square(1.0)), _Y_AXIS)
+        self.assertIsInstance(tool.shape(), Solid)
+        self.assertTrue(tool.is_done)
+
+    def test_generated_shapes(self):
+        v1 = Vertex.by_point(Point.by_xyz(1, 0, 0))
+        v2 = Vertex.by_point(Point.by_xyz(1, 0, 2))
+        e = Edge.by_vertices(v1, v2)
+        tool = RevolveShape(e, _Z_AXIS)
+
+        # a vertex generates a circular edge of the result
+        circle = tool.generated_shapes(v2)[0]
+        self.assertIsInstance(circle, Edge)
+        self.assertAlmostEqual(circle.length, 2.0 * math.pi)
+        self.assertIn(circle, set(tool.shape().edges()))
+
+        # an edge generates a face of the result
+        face = tool.generated_shapes(e)[0]
+        self.assertIsInstance(face, Face)
+        self.assertEqual(face, tool.shape())
+
+
+def _distant_edges() -> tuple[Solid, Edge, Edge]:
+    """Unit cube and two of its edges that share no vertex."""
+    box = _box()
+    e1 = box.edges()[0]
+    e2 = next(e for e in box.edges() if not set(e.vertices()) & set(e1.vertices()))
+    return box, e1, e2
+
+
+class TestFilletShape(unittest.TestCase):
+    def test_radius_per_edge(self):
+        box, e1, e2 = _distant_edges()
+        tool = FilletShape(box)
+        tool.add_edge(e1, 0.1)
+        tool.add_edge(e2, 0.2)
+        removed = (1.0 - math.pi / 4.0) * (0.1**2 + 0.2**2)
+        self.assertAlmostEqual(tool.shape().volume, 1.0 - removed)
+        self.assertTrue(tool.is_done)
+
+    def test_generated_shapes(self):
+        box, edge, _ = _distant_edges()
+        tool = FilletShape(box)
+        tool.add_edge(edge, 0.1)
+        face = tool.generated_shapes(edge)[0]
+        self.assertIsInstance(face, Face)
+        self.assertIn(face, set(tool.shape().faces()))
+        self.assertAlmostEqual(face.area, math.pi / 2.0 * 0.1)
+
+    def test_fails_when_requested(self):
+        box, edge, _ = _distant_edges()
+        tool = FilletShape(box)
+        tool.add_edge(edge, -0.1)
+        with self.assertRaises(BuildFailed):
+            tool.shape()
+
+
+class TestChamferShape(unittest.TestCase):
+    def test_distance_per_edge(self):
+        box, e1, e2 = _distant_edges()
+        tool = ChamferShape(box)
+        tool.add_edge(e1, 0.1)
+        tool.add_edge(e2, 0.2)
+        self.assertAlmostEqual(tool.shape().volume, 1.0 - (0.1**2 + 0.2**2) / 2.0)
+        self.assertTrue(tool.is_done)
+
+    def test_generated_shapes(self):
+        box, edge, _ = _distant_edges()
+        tool = ChamferShape(box)
+        tool.add_edge(edge, 0.1)
+        face = tool.generated_shapes(edge)[0]
+        self.assertIsInstance(face, Face)
+        self.assertIn(face, set(tool.shape().faces()))
+        self.assertAlmostEqual(face.area, math.sqrt(2.0) * 0.1)
+
+    def test_fails_when_requested(self):
+        box, edge, _ = _distant_edges()
+        tool = ChamferShape(box)
+        tool.add_edge(edge, -0.1)
+        with self.assertRaises(BuildFailed):
+            tool.shape()
 
 
 class TestThickenShape(unittest.TestCase):

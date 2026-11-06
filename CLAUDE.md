@@ -41,7 +41,9 @@ These are guardrails. Use judgment on how to achieve a task. If a change seems t
 
 - **Python experience first.** The Python API is the product, and the C++ layer exists to serve it. Keep bindings simple and explicit. Don't reproduce OCCT's class hierarchy when Python doesn't need it.
 - **Consistency over cleverness.** The API should be predictable from one example of each pattern. When in doubt, choose what makes the codebase more uniform.
-- **Small surface.** Wrap only the OCCT the Python API needs.
+- **Think big, start small.** Choose first versions that can grow without breaking callers.
+- **Small surface.** Wrap only the OCCT the Python API needs. When in doubt, leave it out.
+- **Implementation stays private.** Public names and docstrings don't reference OCCT.
 - **Clear layers.**
   - C++ (`src/` → `_occtlite`, `I`-prefixed) handles OCCT calls and memory safety.
   - Python (`pyocctlite/`) owns everything that makes the API feel Pythonic: validation, defaults, naming, composition, and conventions like 0-based indices (OCCT's are usually 1-based).
@@ -49,7 +51,7 @@ These are guardrails. Use judgment on how to achieve a task. If a change seems t
 - **Immutable values.** Objects don't change after construction; operations return new objects and never mutate their inputs.
 - **Unitless lengths.** OCCT has no length unit, so callers keep theirs consistent. Angles are radians.
 - **Root causes, not guards.** Fix the cause of a problem, or report it and leave the code alone. Don't add checks or workarounds preemptively. A signature broader than its implementation is unfinished intent, not a bug.
-- **Docs for humans and agents.** Say what the name and signature can't in plain technical language.
+- **Docs for humans and agents.** Say what the name and signature can't in plain technical language. Make it clear but make it concise.
 
 ## Conventions
 
@@ -68,7 +70,7 @@ Start from existing patterns. If two patterns disagree, or the code disagrees wi
 
 ## Workflow
 
-- Typical order of work: pattern → C++ → Python → tests → docs.
+- Typical order of work: identify pattern → C++ → Python → tests → docs.
 - Start each new task on a new branch.
 - Done means:
   - No build warnings.

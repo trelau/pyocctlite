@@ -569,6 +569,20 @@ class Axis:
     :ivar IAxis iaxis: Underlying 3D axis.
     """
 
+    @classmethod
+    def by_vector(cls, origin: Point, direction: Vector) -> Axis:
+        """
+        Create a 3D axis from an origin and a direction.
+
+        :param Point origin: Origin point.
+        :param Vector direction: Direction. Must be non-zero. The axis stores it normalized.
+        :return: New 3D axis.
+        :rtype: Axis
+        :raises RuntimeError: If the direction has zero length.
+        """
+        iaxis = IAxis.MakeByVector(origin.ipoint, direction.ivector)
+        return cls(iaxis)
+
     def __init__(self, a: IAxis):
         """
         Initialize from an IAxis.
@@ -709,6 +723,20 @@ class Transform:
         :raises RuntimeError: If the normal has zero length.
         """
         itransform = ITransform.MakeMirror(origin.ipoint, normal.ivector)
+        return cls(itransform)
+
+    @classmethod
+    def by_rotation(cls, axis: Axis, angle: float) -> Transform:
+        """
+        Create a rotation transformation.
+
+        :param Axis axis: Axis of rotation.
+        :param float angle: Angle in radians, counterclockwise when looking against the axis
+            direction.
+        :return: New transformation.
+        :rtype: Transform
+        """
+        itransform = ITransform.MakeRotation(axis.iaxis, angle)
         return cls(itransform)
 
     def __init__(self, t: ITransform):

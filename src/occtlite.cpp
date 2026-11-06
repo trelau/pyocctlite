@@ -15,6 +15,7 @@
 #include "IVector.hpp"
 #include "ProjectIPointToICurve.hpp"
 
+#include "ChamferIShape.hpp"
 #include "CopyIShape.hpp"
 #include "CutIShapes.hpp"
 #include "ExploreIShape.hpp"
@@ -24,6 +25,7 @@
 #include "IShape.hpp"
 #include "LoftIShape.hpp"
 #include "MapIShape.hpp"
+#include "RevolveIShape.hpp"
 #include "ThickenIShape.hpp"
 #include "TransformIShape.hpp"
 #include "UniteIShapes.hpp"
@@ -50,8 +52,10 @@ NB_MODULE(_occtlite, m) {
   bind_ExploreIShape(m);
   bind_MapIShape(m);
   bind_ExtrudeIShape(m);
+  bind_RevolveIShape(m);
   bind_TransformIShape(m);
   bind_FilletIShape(m);
+  bind_ChamferIShape(m);
   bind_UniteIShapes(m);
   bind_CutIShapes(m);
   bind_ThickenIShape(m);

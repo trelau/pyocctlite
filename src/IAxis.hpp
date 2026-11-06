@@ -10,6 +10,9 @@
 // Interface class for a 3D axis
 class IAxis {
 public:
+  // Make an axis from an origin point and a direction vector
+  static IAxis MakeByVector(const IPoint& origin, const IVector& direction);
+
   // Construct a point from a gp_Ax1
   explicit IAxis(const gp_Ax1& a) : axis_(a) {}
 

@@ -4,6 +4,7 @@
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakeVertex.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
+#include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
 #include <BRepLib.hxx>
 #include <BRepPrimAPI_MakeSphere.hxx>
@@ -223,6 +224,8 @@ double IShape::Volume() const {
   return props.Mass();
 }
 
+bool IShape::IsValid() const { return BRepCheck_Analyzer(shape_).IsValid(); }
+
 std::optional<ICurve> IShape::Curve() const {
 
   if (Kind() != IShapeKind::Edge) {
@@ -296,6 +299,7 @@ void bind_IShape(nb::module_& m) {
       .def("Length", &IShape::Length, "Calculate the length of all edges of this shape.")
       .def("Area", &IShape::Area, "Calculate the area of all faces of this shape.")
       .def("Volume", &IShape::Volume, "Calculate the volume of all solids of this shape.")
+      .def("IsValid", &IShape::IsValid, "Check if this shape and its sub-shapes are valid.")
       .def("Curve", &IShape::Curve, "Get the curve if this shape is an edge.")
       .def("Point", &IShape::Point, "Get the point if this shape is a vertex.");
 }

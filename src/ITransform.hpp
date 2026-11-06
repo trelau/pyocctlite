@@ -4,6 +4,7 @@
 
 #include <gp_Trsf.hxx>
 
+#include "IAxis.hpp"
 #include "IPoint.hpp"
 #include "IVector.hpp"
 
@@ -12,6 +13,9 @@ class ITransform {
 public:
   // Make a mirror transformation defined by a point and a normal vector.
   static ITransform MakeMirror(const IPoint& origin, const IVector& normal);
+
+  // Make a rotation transformation about an axis by an angle in radians.
+  static ITransform MakeRotation(const IAxis& axis, double angle);
 
   // Construct a transformation from a gp_Trsf
   explicit ITransform(const gp_Trsf& t) : trsf_(t) {}
