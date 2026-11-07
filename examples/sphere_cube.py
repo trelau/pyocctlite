@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pyocctlite.geometry import Frame, Point
 from pyocctlite.primitives import Box, Sphere
+from pyocctlite.rendering import render_views
 from pyocctlite.topology import UniteShapes
 
 # Dimensions for the sphere-cube
@@ -23,3 +24,6 @@ sphere_cube = tool.shape().fillet(tool.intersection_edges(), fillet_radius)
 
 # Export STEP
 sphere_cube.export_step("outputs/sphere_cube.step")
+
+# Render a sheet of views
+render_views(sphere_cube, "outputs/sphere_cube.png")

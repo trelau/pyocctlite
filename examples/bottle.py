@@ -15,6 +15,7 @@ from pyocctlite.geometry import (
     Vector2D,
 )
 from pyocctlite.primitives import Cylinder
+from pyocctlite.rendering import render_views
 from pyocctlite.topology import Edge, Face, Solid, Wire
 
 # Dimensions for the bottle
@@ -97,3 +98,6 @@ bottle = bottle.unite(threads)
 
 # Export STEP
 bottle.export_step("outputs/bottle.step")
+
+# Render a sheet of views
+render_views(bottle, "outputs/bottle.png")
