@@ -1349,6 +1349,7 @@ class MapShape(Sequence[T]):
         :raises TypeError: If a class is not a core shape class (e.g. ``Shape`` or ``Box``).
         """
         self._itool = MapIShape(shape.ishape, _kind_of(kind).value)
+        self._kind = kind
 
     def __len__(self) -> int:
         """
@@ -1366,7 +1367,7 @@ class MapShape(Sequence[T]):
         """
         # OCCT is 1-based
         for i in range(1, self._itool.Size() + 1):
-            yield cast(T, Shape.by_ishape(self._itool.FindShape(i)))
+            yield self._kind(self._itool.FindShape(i))
 
     @overload
     def __getitem__(self, index: int) -> T: ...
@@ -1390,7 +1391,7 @@ class MapShape(Sequence[T]):
             raise IndexError(index)
 
         # Python is 0-based, OCCT is 1-based
-        return cast(T, Shape.by_ishape(self._itool.FindShape(index + 1)))
+        return self._kind(self._itool.FindShape(index + 1))
 
     @property
     def size(self) -> int:
@@ -1419,8 +1420,7 @@ class MapShape(Sequence[T]):
         :raises RuntimeError: If the index is out of range.
         """
         # OCCT is 1-based, Python is 0-based
-        ishape = self._itool.FindShape(index + 1)
-        return cast(T, Shape.by_ishape(ishape))
+        return self._kind(self._itool.FindShape(index + 1))
 
     def find_index(self, shape: T) -> int | None:
         """
@@ -1468,6 +1468,7 @@ class ExploreShape(Generic[T]):
         """
         self._shape = shape
         self._find = _kind_of(find)
+        self._find_class = find
         self._ignore = ShapeKind.SHAPE if ignore is None else _kind_of(ignore)
 
     def __iter__(self) -> Iterator[T]:
@@ -1478,5 +1479,5 @@ class ExploreShape(Generic[T]):
         """
         itool = ExploreIShape(self._shape.ishape, self._find.value, self._ignore.value)
         while itool.More():
-            yield cast(T, Shape.by_ishape(itool.Current()))
+            yield self._find_class(itool.Current())
             itool.Next()
