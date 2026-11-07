@@ -55,7 +55,7 @@ class Point2D:
     """
     Represents a 2D point.
 
-    :ivar IPoint2D ipoint: Underlying 2D point.
+    :ivar ipoint: Underlying 2D point.
     """
 
     @classmethod
@@ -63,10 +63,9 @@ class Point2D:
         """
         Create a 2D point from coordinates.
 
-        :param float x: x coordinate.
-        :param float y: y coordinate.
+        :param x: x coordinate.
+        :param y: y coordinate.
         :return: New 2D point.
-        :rtype: Point2D
         """
         return cls(IPoint2D.MakeByXY(x, y))
 
@@ -74,7 +73,7 @@ class Point2D:
         """
         Initialize from an IPoint2D.
 
-        :param IPoint2D p: Underlying 2D point.
+        :param p: Underlying 2D point.
         """
         if not isinstance(p, IPoint2D):
             raise TypeError(f"Expected IPoint2D, got {type(p).__name__}.")
@@ -86,7 +85,6 @@ class Point2D:
         Underlying 2D point.
 
         :return: IPoint2D object.
-        :rtype: IPoint2D
         """
         return self._ipoint
 
@@ -96,7 +94,6 @@ class Point2D:
         x coordinate.
 
         :return: x value.
-        :rtype: float
         """
         return self.ipoint.X()
 
@@ -106,7 +103,6 @@ class Point2D:
         y coordinate.
 
         :return: y value.
-        :rtype: float
         """
         return self.ipoint.Y()
 
@@ -114,9 +110,8 @@ class Point2D:
         """
         Create a copy of this point moved along a vector.
 
-        :param Vector2D vector: Translation direction and distance.
+        :param vector: Translation direction and distance.
         :return: Moved point.
-        :rtype: Point2D
         """
         return Point2D(self.ipoint.Translated(vector.ivector))
 
@@ -124,9 +119,8 @@ class Point2D:
         """
         Get the distance to another point.
 
-        :param Point2D other: Other point.
+        :param other: Other point.
         :return: Distance.
-        :rtype: float
         """
         return self.ipoint.Distance(other.ipoint)
 
@@ -134,10 +128,9 @@ class Point2D:
         """
         Check if this point is equal to another within a tolerance.
 
-        :param Point2D other: Other point.
-        :param float tol: Distance tolerance.
+        :param other: Other point.
+        :param tol: Distance tolerance.
         :return: True if the points are within the tolerance.
-        :rtype: bool
         """
         return self.ipoint.IsEqual(other.ipoint, tol)
 
@@ -146,7 +139,7 @@ class Vector2D:
     """
     Represents a 2D vector.
 
-    :ivar IVector2D ivector: Underlying 2D vector.
+    :ivar ivector: Underlying 2D vector.
     """
 
     @classmethod
@@ -154,10 +147,9 @@ class Vector2D:
         """
         Create a 2D vector from components.
 
-        :param float x: x component.
-        :param float y: y component.
+        :param x: x component.
+        :param y: y component.
         :return: New 2D vector.
-        :rtype: Vector2D
         """
         return cls(IVector2D.MakeByXY(x, y))
 
@@ -166,10 +158,9 @@ class Vector2D:
         """
         Create a vector from one point to another.
 
-        :param Point2D p1: Start point.
-        :param Point2D p2: End point.
+        :param p1: Start point.
+        :param p2: End point.
         :return: New vector.
-        :rtype: Vector2D
         """
         return cls(IVector2D.MakeByPoints(p1.ipoint, p2.ipoint))
 
@@ -177,7 +168,7 @@ class Vector2D:
         """
         Initialize from an IVector2D.
 
-        :param IVector2D v: Underlying 2D vector.
+        :param v: Underlying 2D vector.
         """
         if not isinstance(v, IVector2D):
             raise TypeError(f"Expected IVector2D, got {type(v).__name__}.")
@@ -189,7 +180,6 @@ class Vector2D:
         Underlying 2D vector.
 
         :return: IVector2D object.
-        :rtype: IVector2D
         """
         return self._ivector
 
@@ -199,7 +189,6 @@ class Vector2D:
         x component.
 
         :return: x value.
-        :rtype: float
         """
         return self.ivector.X()
 
@@ -209,17 +198,15 @@ class Vector2D:
         y component.
 
         :return: y value.
-        :rtype: float
         """
         return self.ivector.Y()
 
-    @property
+    @cached_property
     def magnitude(self) -> float:
         """
         Magnitude of the vector.
 
         :return: Magnitude.
-        :rtype: float
         """
         return self.ivector.Magnitude()
 
@@ -227,9 +214,8 @@ class Vector2D:
         """
         Create a scaled version of this vector.
 
-        :param float scale: Scale factor.
+        :param scale: Scale factor.
         :return: Scaled vector.
-        :rtype: Vector2D
         """
         return Vector2D(self.ivector.Scaled(scale))
 
@@ -237,9 +223,8 @@ class Vector2D:
         """
         Create the sum of this vector and another.
 
-        :param Vector2D other: Other vector.
+        :param other: Other vector.
         :return: Sum.
-        :rtype: Vector2D
         """
         return Vector2D(self.ivector.Added(other.ivector))
 
@@ -247,9 +232,8 @@ class Vector2D:
         """
         Create the difference of this vector and another.
 
-        :param Vector2D other: Vector to subtract.
+        :param other: Vector to subtract.
         :return: Difference.
-        :rtype: Vector2D
         """
         return Vector2D(self.ivector.Subtracted(other.ivector))
 
@@ -258,7 +242,6 @@ class Vector2D:
         Create a copy of this vector pointing the opposite way.
 
         :return: Reversed vector.
-        :rtype: Vector2D
         """
         return Vector2D(self.ivector.Reversed())
 
@@ -267,7 +250,6 @@ class Vector2D:
         Create a unit-length copy of this vector.
 
         :return: Unit vector.
-        :rtype: Vector2D
         :raises RuntimeError: If the vector has zero length.
         """
         return Vector2D(self.ivector.Normalized())
@@ -276,9 +258,8 @@ class Vector2D:
         """
         Compute the dot product with another vector.
 
-        :param Vector2D other: Other vector.
+        :param other: Other vector.
         :return: Dot product.
-        :rtype: float
         """
         return self.ivector.Dot(other.ivector)
 
@@ -286,9 +267,8 @@ class Vector2D:
         """
         Compute the scalar cross product with another vector.
 
-        :param Vector2D other: Other vector.
+        :param other: Other vector.
         :return: Signed area of the parallelogram, positive if ``other`` is counterclockwise.
-        :rtype: float
         """
         return self.ivector.Cross(other.ivector)
 
@@ -296,11 +276,10 @@ class Vector2D:
         """
         Check if this vector has the same magnitude and direction as another within tolerances.
 
-        :param Vector2D other: Other vector.
-        :param float tol: Magnitude tolerance.
-        :param float angular_tol: Direction tolerance in radians.
+        :param other: Other vector.
+        :param tol: Magnitude tolerance.
+        :param angular_tol: Direction tolerance in radians.
         :return: True if the vectors are within the tolerances.
-        :rtype: bool
         """
         return self.ivector.IsEqual(other.ivector, tol, angular_tol)
 
@@ -309,7 +288,7 @@ class Frame2D:
     """
     Represents a 2D coordinate system.
 
-    :ivar IFrame2D iframe: Underlying 2D frame.
+    :ivar iframe: Underlying 2D frame.
     """
 
     @classmethod
@@ -317,9 +296,8 @@ class Frame2D:
         """
         Create a 2D frame at an origin, aligned with the global axes.
 
-        :param Point2D origin: Origin point.
+        :param origin: Origin point.
         :return: New 2D frame.
-        :rtype: Frame2D
         """
         iframe = IFrame2D.MakeByOrigin(origin.ipoint)
         return cls(iframe)
@@ -329,10 +307,9 @@ class Frame2D:
         """
         Create a 2D frame from an origin and x-direction.
 
-        :param Point2D origin: Origin point.
-        :param Vector2D xvec: x-direction vector. Must be non-zero.
+        :param origin: Origin point.
+        :param xvec: x-direction vector. Must be non-zero.
         :return: New 2D frame.
-        :rtype: Frame2D
         :raises RuntimeError: If the vector has zero length.
         """
         iframe = IFrame2D.MakeByVector(origin.ipoint, xvec.ivector)
@@ -342,7 +319,7 @@ class Frame2D:
         """
         Initialize from an IFrame2D.
 
-        :param IFrame2D f: Underlying 2D frame.
+        :param f: Underlying 2D frame.
         """
         if not isinstance(f, IFrame2D):
             raise TypeError(f"Expected IFrame2D, got {type(f).__name__}.")
@@ -354,7 +331,6 @@ class Frame2D:
         Underlying 2D frame.
 
         :return: IFrame2D object.
-        :rtype: IFrame2D
         """
         return self._iframe
 
@@ -364,7 +340,6 @@ class Frame2D:
         Origin of the frame.
 
         :return: Origin point.
-        :rtype: Point2D
         """
         return Point2D(self.iframe.Origin())
 
@@ -374,7 +349,6 @@ class Frame2D:
         x-direction vector.
 
         :return: x-direction vector.
-        :rtype: Vector2D
         """
         return Vector2D(self.iframe.XDirection())
 
@@ -384,7 +358,6 @@ class Frame2D:
         y-direction vector.
 
         :return: y-direction vector.
-        :rtype: Vector2D
         """
         return Vector2D(self.iframe.YDirection())
 
@@ -393,7 +366,7 @@ class Curve2D:
     """
     Base class for 2D curves.
 
-    :ivar ICurve2D icurve: Underlying 2D curve.
+    :ivar icurve: Underlying 2D curve.
     """
 
     @staticmethod
@@ -401,9 +374,8 @@ class Curve2D:
         """
         Create a 2D curve from an ICurve2D.
 
-        :param ICurve2D icurve: Underlying 2D curve.
+        :param icurve: Underlying 2D curve.
         :return: New 2D curve.
-        :rtype: Curve2D
         """
         match icurve.Kind():
             case ICurve2DKind.Line:
@@ -419,7 +391,7 @@ class Curve2D:
         """
         Initialize from an ICurve2D.
 
-        :param ICurve2D c: Underlying 2D curve.
+        :param c: Underlying 2D curve.
         """
         if not isinstance(c, ICurve2D):
             raise TypeError(f"Expected ICurve2D, got {type(c).__name__}.")
@@ -431,7 +403,6 @@ class Curve2D:
         Underlying 2D curve.
 
         :return: ICurve2D object.
-        :rtype: ICurve2D
         """
         return self._icurve
 
@@ -439,9 +410,8 @@ class Curve2D:
         """
         Evaluate the curve at a parameter.
 
-        :param float u: Curve parameter.
+        :param u: Curve parameter.
         :return: Evaluated point.
-        :rtype: Point2D
         """
         ipoint = self.icurve.Evaluate(u)
         return Point2D(ipoint)
@@ -450,10 +420,9 @@ class Curve2D:
         """
         Evaluate a derivative of the curve at a parameter.
 
-        :param float u: Curve parameter.
-        :param int order: Order of the derivative. Must be at least 1.
+        :param u: Curve parameter.
+        :param order: Order of the derivative. Must be at least 1.
         :return: Derivative vector.
-        :rtype: Vector2D
         :raises RuntimeError: If the order is less than 1.
         """
         return Vector2D(self.icurve.Derivative(u, order))
@@ -464,7 +433,6 @@ class Curve2D:
         Check if the curve ends where it starts.
 
         :return: True if closed.
-        :rtype: bool
         """
         return self.icurve.IsClosed()
 
@@ -474,7 +442,6 @@ class Curve2D:
         Check if the curve repeats along its parameter.
 
         :return: True if periodic.
-        :rtype: bool
         """
         return self.icurve.IsPeriodic()
 
@@ -484,7 +451,6 @@ class Curve2D:
         Parameter at the start of the curve.
 
         :return: First parameter.
-        :rtype: float
         """
         return self.icurve.FirstParameter()
 
@@ -494,7 +460,6 @@ class Curve2D:
         Parameter at the end of the curve.
 
         :return: Last parameter.
-        :rtype: float
         """
         return self.icurve.LastParameter()
 
@@ -510,10 +475,9 @@ class Line2D(Curve2D):
         """
         Create a line through two points, with its origin at the first point.
 
-        :param Point2D p1: First point.
-        :param Point2D p2: Second point.
+        :param p1: First point.
+        :param p2: Second point.
         :return: New 2D line.
-        :rtype: Line2D
         :raises RuntimeError: If the points coincide.
         """
         icurve = ICurve2D.MakeLine(p1.ipoint, p2.ipoint)
@@ -523,7 +487,7 @@ class Line2D(Curve2D):
         """
         Initialize from an ICurve2D.
 
-        :param ICurve2D c: Underlying 2D curve.
+        :param c: Underlying 2D curve.
         """
         super().__init__(c)
         if c.Kind() != ICurve2DKind.Line:
@@ -535,7 +499,6 @@ class Line2D(Curve2D):
         Origin of the line.
 
         :return: Origin point.
-        :rtype: Point2D
         """
         idata = self.icurve.LineData()
         assert idata is not None  # guaranteed by the kind check in __init__
@@ -547,7 +510,6 @@ class Line2D(Curve2D):
         Unit direction of the line.
 
         :return: Unit direction vector.
-        :rtype: Vector2D
         """
         idata = self.icurve.LineData()
         assert idata is not None  # guaranteed by the kind check in __init__
@@ -565,11 +527,10 @@ class Ellipse2D(Curve2D):
         """
         Create an ellipse from radii and frame.
 
-        :param float rmajor: Major radius.
-        :param float rminor: Minor radius. Must not exceed the major radius.
-        :param Frame2D | None frame: Coordinate system. Defaults to the global origin.
+        :param rmajor: Major radius.
+        :param rminor: Minor radius. Must not exceed the major radius.
+        :param frame: Coordinate system. Defaults to the global origin.
         :return: New 2D ellipse.
-        :rtype: Ellipse2D
         :raises RuntimeError: If the minor radius exceeds the major radius.
         """
         if frame is None:
@@ -582,7 +543,7 @@ class Ellipse2D(Curve2D):
         """
         Initialize from an ICurve2D.
 
-        :param ICurve2D c: Underlying 2D curve.
+        :param c: Underlying 2D curve.
         """
         super().__init__(c)
         if c.Kind() != ICurve2DKind.Ellipse:
@@ -594,7 +555,6 @@ class Ellipse2D(Curve2D):
         Coordinate system of the ellipse, with its center at the origin.
 
         :return: Frame.
-        :rtype: Frame2D
         """
         idata = self.icurve.EllipseData()
         assert idata is not None  # guaranteed by the kind check in __init__
@@ -606,7 +566,6 @@ class Ellipse2D(Curve2D):
         Major radius of the ellipse.
 
         :return: Major radius.
-        :rtype: float
         """
         idata = self.icurve.EllipseData()
         assert idata is not None  # guaranteed by the kind check in __init__
@@ -618,7 +577,6 @@ class Ellipse2D(Curve2D):
         Minor radius of the ellipse.
 
         :return: Minor radius.
-        :rtype: float
         """
         idata = self.icurve.EllipseData()
         assert idata is not None  # guaranteed by the kind check in __init__
@@ -635,11 +593,10 @@ class TrimmedCurve2D(Curve2D):
         """
         Trim a curve between parameters.
 
-        :param Curve2D curve: Curve to trim.
-        :param float u0: Start parameter.
-        :param float u1: End parameter. Must differ from the start parameter.
+        :param curve: Curve to trim.
+        :param u0: Start parameter.
+        :param u1: End parameter. Must differ from the start parameter.
         :return: New trimmed curve.
-        :rtype: TrimmedCurve2D
         :raises RuntimeError: If the parameters are equal.
         """
         icurve = ICurve2D.MakeTrimmed(curve.icurve, u0, u1)
@@ -650,10 +607,9 @@ class TrimmedCurve2D(Curve2D):
         """
         Create a line segment between points, parameterized by the distance from the start point.
 
-        :param Point2D p1: Start point.
-        :param Point2D p2: End point.
+        :param p1: Start point.
+        :param p2: End point.
         :return: New trimmed curve.
-        :rtype: TrimmedCurve2D
         :raises RuntimeError: If the points coincide.
         """
         icurve = ICurve2D.MakeTrimmed(p1.ipoint, p2.ipoint)
@@ -663,7 +619,7 @@ class TrimmedCurve2D(Curve2D):
         """
         Initialize from an ICurve2D.
 
-        :param ICurve2D c: Underlying 2D curve.
+        :param c: Underlying 2D curve.
         """
         super().__init__(c)
         if c.Kind() != ICurve2DKind.Trimmed:
@@ -674,7 +630,7 @@ class Point:
     """
     Represents a 3D point.
 
-    :ivar IPoint ipoint: Underlying 3D point.
+    :ivar ipoint: Underlying 3D point.
     """
 
     @classmethod
@@ -682,11 +638,10 @@ class Point:
         """
         Create a 3D point from coordinates.
 
-        :param float x: x coordinate.
-        :param float y: y coordinate.
-        :param float z: z coordinate.
+        :param x: x coordinate.
+        :param y: y coordinate.
+        :param z: z coordinate.
         :return: New 3D point.
-        :rtype: Point
         """
         return cls(IPoint.MakeByXYZ(x, y, z))
 
@@ -694,7 +649,7 @@ class Point:
         """
         Initialize from an IPoint.
 
-        :param IPoint p: Underlying 3D point.
+        :param p: Underlying 3D point.
         """
         if not isinstance(p, IPoint):
             raise TypeError(f"Expected IPoint, got {type(p).__name__}.")
@@ -706,7 +661,6 @@ class Point:
         Underlying 3D point.
 
         :return: IPoint object.
-        :rtype: IPoint
         """
         return self._ipoint
 
@@ -716,7 +670,6 @@ class Point:
         x coordinate.
 
         :return: x value.
-        :rtype: float
         """
         return self.ipoint.X()
 
@@ -726,7 +679,6 @@ class Point:
         y coordinate.
 
         :return: y value.
-        :rtype: float
         """
         return self.ipoint.Y()
 
@@ -736,7 +688,6 @@ class Point:
         z coordinate.
 
         :return: z value.
-        :rtype: float
         """
         return self.ipoint.Z()
 
@@ -744,9 +695,8 @@ class Point:
         """
         Create a copy of this point moved along a vector.
 
-        :param Vector vector: Translation direction and distance.
+        :param vector: Translation direction and distance.
         :return: Moved point.
-        :rtype: Point
         """
         return Point(self.ipoint.Translated(vector.ivector))
 
@@ -754,9 +704,8 @@ class Point:
         """
         Get the distance to another point.
 
-        :param Point other: Other point.
+        :param other: Other point.
         :return: Distance.
-        :rtype: float
         """
         return self.ipoint.Distance(other.ipoint)
 
@@ -764,10 +713,9 @@ class Point:
         """
         Check if this point is equal to another within a tolerance.
 
-        :param Point other: Other point.
-        :param float tol: Distance tolerance.
+        :param other: Other point.
+        :param tol: Distance tolerance.
         :return: True if the points are within the tolerance.
-        :rtype: bool
         """
         return self.ipoint.IsEqual(other.ipoint, tol)
 
@@ -776,7 +724,7 @@ class Vector:
     """
     Represents a 3D vector.
 
-    :ivar IVector ivector: Underlying 3D vector.
+    :ivar ivector: Underlying 3D vector.
     """
 
     @classmethod
@@ -784,11 +732,10 @@ class Vector:
         """
         Create a 3D vector from components.
 
-        :param float x: x component.
-        :param float y: y component.
-        :param float z: z component.
+        :param x: x component.
+        :param y: y component.
+        :param z: z component.
         :return: New 3D vector.
-        :rtype: Vector
         """
         return cls(IVector.MakeByXYZ(x, y, z))
 
@@ -797,10 +744,9 @@ class Vector:
         """
         Create a vector from one point to another.
 
-        :param Point p1: Start point.
-        :param Point p2: End point.
+        :param p1: Start point.
+        :param p2: End point.
         :return: New vector.
-        :rtype: Vector
         """
         return cls(IVector.MakeByPoints(p1.ipoint, p2.ipoint))
 
@@ -808,7 +754,7 @@ class Vector:
         """
         Initialize from an IVector.
 
-        :param IVector v: Underlying 3D vector.
+        :param v: Underlying 3D vector.
         """
         if not isinstance(v, IVector):
             raise TypeError(f"Expected IVector, got {type(v).__name__}.")
@@ -820,7 +766,6 @@ class Vector:
         Underlying 3D vector.
 
         :return: IVector object.
-        :rtype: IVector
         """
         return self._ivector
 
@@ -830,7 +775,6 @@ class Vector:
         x component.
 
         :return: x value.
-        :rtype: float
         """
         return self.ivector.X()
 
@@ -840,7 +784,6 @@ class Vector:
         y component.
 
         :return: y value.
-        :rtype: float
         """
         return self.ivector.Y()
 
@@ -850,17 +793,15 @@ class Vector:
         z component.
 
         :return: z value.
-        :rtype: float
         """
         return self.ivector.Z()
 
-    @property
+    @cached_property
     def magnitude(self) -> float:
         """
         Magnitude of the vector.
 
         :return: Magnitude.
-        :rtype: float
         """
         return self.ivector.Magnitude()
 
@@ -868,9 +809,8 @@ class Vector:
         """
         Create a scaled version of this vector.
 
-        :param float scale: Scale factor.
+        :param scale: Scale factor.
         :return: Scaled vector.
-        :rtype: Vector
         """
         return Vector(self.ivector.Scaled(scale))
 
@@ -878,9 +818,8 @@ class Vector:
         """
         Create the sum of this vector and another.
 
-        :param Vector other: Other vector.
+        :param other: Other vector.
         :return: Sum.
-        :rtype: Vector
         """
         return Vector(self.ivector.Added(other.ivector))
 
@@ -888,9 +827,8 @@ class Vector:
         """
         Create the difference of this vector and another.
 
-        :param Vector other: Vector to subtract.
+        :param other: Vector to subtract.
         :return: Difference.
-        :rtype: Vector
         """
         return Vector(self.ivector.Subtracted(other.ivector))
 
@@ -899,7 +837,6 @@ class Vector:
         Create a copy of this vector pointing the opposite way.
 
         :return: Reversed vector.
-        :rtype: Vector
         """
         return Vector(self.ivector.Reversed())
 
@@ -908,7 +845,6 @@ class Vector:
         Create a unit-length copy of this vector.
 
         :return: Unit vector.
-        :rtype: Vector
         :raises RuntimeError: If the vector has zero length.
         """
         return Vector(self.ivector.Normalized())
@@ -917,9 +853,8 @@ class Vector:
         """
         Compute the dot product with another vector.
 
-        :param Vector other: Other vector.
+        :param other: Other vector.
         :return: Dot product.
-        :rtype: float
         """
         return self.ivector.Dot(other.ivector)
 
@@ -927,9 +862,8 @@ class Vector:
         """
         Compute the cross product with another vector.
 
-        :param Vector other: Other vector.
+        :param other: Other vector.
         :return: Cross product.
-        :rtype: Vector
         """
         return Vector(self.ivector.Cross(other.ivector))
 
@@ -937,11 +871,10 @@ class Vector:
         """
         Check if this vector has the same magnitude and direction as another within tolerances.
 
-        :param Vector other: Other vector.
-        :param float tol: Magnitude tolerance.
-        :param float angular_tol: Direction tolerance in radians.
+        :param other: Other vector.
+        :param tol: Magnitude tolerance.
+        :param angular_tol: Direction tolerance in radians.
         :return: True if the vectors are within the tolerances.
-        :rtype: bool
         """
         return self.ivector.IsEqual(other.ivector, tol, angular_tol)
 
@@ -950,7 +883,7 @@ class Axis:
     """
     Represents a 3D axis.
 
-    :ivar IAxis iaxis: Underlying 3D axis.
+    :ivar iaxis: Underlying 3D axis.
     """
 
     @classmethod
@@ -958,10 +891,9 @@ class Axis:
         """
         Create a 3D axis from an origin and a direction.
 
-        :param Point origin: Origin point.
-        :param Vector direction: Direction. Must be non-zero. The axis stores it normalized.
+        :param origin: Origin point.
+        :param direction: Direction. Must be non-zero. The axis stores it normalized.
         :return: New 3D axis.
-        :rtype: Axis
         :raises RuntimeError: If the direction has zero length.
         """
         iaxis = IAxis.MakeByVector(origin.ipoint, direction.ivector)
@@ -971,7 +903,7 @@ class Axis:
         """
         Initialize from an IAxis.
 
-        :param IAxis a: Underlying 3D axis.
+        :param a: Underlying 3D axis.
         """
         if not isinstance(a, IAxis):
             raise TypeError(f"Expected IAxis, got {type(a).__name__}.")
@@ -983,7 +915,6 @@ class Axis:
         Underlying 3D axis.
 
         :return: IAxis object.
-        :rtype: IAxis
         """
         return self._iaxis
 
@@ -993,7 +924,6 @@ class Axis:
         Origin of the axis.
 
         :return: Origin point.
-        :rtype: Point
         """
         return Point(self.iaxis.Origin())
 
@@ -1003,7 +933,6 @@ class Axis:
         Direction of the axis.
 
         :return: Direction vector.
-        :rtype: Vector
         """
         return Vector(self.iaxis.Direction())
 
@@ -1012,7 +941,7 @@ class Frame:
     """
     Represents a 3D coordinate system.
 
-    :ivar IFrame iframe: Underlying 3D frame.
+    :ivar iframe: Underlying 3D frame.
     """
 
     @classmethod
@@ -1020,9 +949,8 @@ class Frame:
         """
         Create a 3D frame at an origin, aligned with the global axes.
 
-        :param Point origin: Origin point.
+        :param origin: Origin point.
         :return: New 3D frame.
-        :rtype: Frame
         """
         iframe = IFrame.MakeByOrigin(origin.ipoint)
         return cls(iframe)
@@ -1033,11 +961,10 @@ class Frame:
         Create a right-handed 3D frame from an origin, x-direction, and z-direction, keeping the
         z-direction.
 
-        :param Point origin: Origin point.
-        :param Vector xvec: x-direction vector. Must be non-zero and not parallel to ``zvec``.
-        :param Vector zvec: z-direction vector. Must be non-zero.
+        :param origin: Origin point.
+        :param xvec: x-direction vector. Must be non-zero and not parallel to ``zvec``.
+        :param zvec: z-direction vector. Must be non-zero.
         :return: New 3D frame.
-        :rtype: Frame
         :raises RuntimeError: If a vector has zero length or the vectors are parallel.
         """
         iframe = IFrame.MakeByVectors(origin.ipoint, xvec.ivector, zvec.ivector)
@@ -1047,7 +974,7 @@ class Frame:
         """
         Initialize from an IFrame.
 
-        :param IFrame f: Underlying 3D frame.
+        :param f: Underlying 3D frame.
         """
         if not isinstance(f, IFrame):
             raise TypeError(f"Expected IFrame, got {type(f).__name__}.")
@@ -1059,7 +986,6 @@ class Frame:
         Underlying 3D frame.
 
         :return: IFrame object.
-        :rtype: IFrame
         """
         return self._iframe
 
@@ -1069,7 +995,6 @@ class Frame:
         Origin of the frame.
 
         :return: Origin point.
-        :rtype: Point
         """
         return Point(self.iframe.Origin())
 
@@ -1079,7 +1004,6 @@ class Frame:
         Axis through the origin along the z-direction.
 
         :return: Axis.
-        :rtype: Axis
         """
         return Axis(self.iframe.Axis())
 
@@ -1089,7 +1013,6 @@ class Frame:
         x-direction vector.
 
         :return: x-direction vector.
-        :rtype: Vector
         """
         return Vector(self.iframe.XDirection())
 
@@ -1099,7 +1022,6 @@ class Frame:
         y-direction vector.
 
         :return: y-direction vector.
-        :rtype: Vector
         """
         return Vector(self.iframe.YDirection())
 
@@ -1109,7 +1031,6 @@ class Frame:
         z-direction vector.
 
         :return: z-direction vector.
-        :rtype: Vector
         """
         return Vector(self.iframe.ZDirection())
 
@@ -1118,7 +1039,7 @@ class Transform:
     """
     Represents a 3D geometric transformation.
 
-    :ivar ITransform itransform: Underlying transformation.
+    :ivar itransform: Underlying transformation.
     """
 
     @classmethod
@@ -1126,10 +1047,9 @@ class Transform:
         """
         Create a mirror transformation.
 
-        :param Point origin: Point on the mirror plane.
-        :param Vector normal: Normal of the mirror plane. Must be non-zero.
+        :param origin: Point on the mirror plane.
+        :param normal: Normal of the mirror plane. Must be non-zero.
         :return: New transformation.
-        :rtype: Transform
         :raises RuntimeError: If the normal has zero length.
         """
         itransform = ITransform.MakeMirror(origin.ipoint, normal.ivector)
@@ -1140,11 +1060,10 @@ class Transform:
         """
         Create a rotation transformation.
 
-        :param Axis axis: Axis of rotation.
-        :param float angle: Angle in radians, counterclockwise when looking against the axis
+        :param axis: Axis of rotation.
+        :param angle: Angle in radians, counterclockwise when looking against the axis
             direction.
         :return: New transformation.
-        :rtype: Transform
         """
         itransform = ITransform.MakeRotation(axis.iaxis, angle)
         return cls(itransform)
@@ -1154,9 +1073,8 @@ class Transform:
         """
         Create a translation transformation.
 
-        :param Vector vector: Translation direction and distance.
+        :param vector: Translation direction and distance.
         :return: New transformation.
-        :rtype: Transform
         """
         itransform = ITransform.MakeTranslation(vector.ivector)
         return cls(itransform)
@@ -1165,7 +1083,7 @@ class Transform:
         """
         Initialize from an ITransform.
 
-        :param ITransform t: Underlying transformation.
+        :param t: Underlying transformation.
         """
         if not isinstance(t, ITransform):
             raise TypeError(f"Expected ITransform, got {type(t).__name__}.")
@@ -1177,7 +1095,6 @@ class Transform:
         Underlying transformation.
 
         :return: ITransform object.
-        :rtype: ITransform
         """
         return self._itransform
 
@@ -1186,14 +1103,14 @@ class BoundingBox:
     """
     Represents a 3D box aligned with the global axes.
 
-    :ivar IBoundingBox ibounding_box: Underlying bounding box.
+    :ivar ibounding_box: Underlying bounding box.
     """
 
     def __init__(self, b: IBoundingBox):
         """
         Initialize from an IBoundingBox.
 
-        :param IBoundingBox b: Underlying bounding box.
+        :param b: Underlying bounding box.
         """
         if not isinstance(b, IBoundingBox):
             raise TypeError(f"Expected IBoundingBox, got {type(b).__name__}.")
@@ -1205,7 +1122,6 @@ class BoundingBox:
         Underlying bounding box.
 
         :return: IBoundingBox object.
-        :rtype: IBoundingBox
         """
         return self._ibounding_box
 
@@ -1215,7 +1131,6 @@ class BoundingBox:
         Corner with the smallest coordinates.
 
         :return: Minimum corner.
-        :rtype: Point
         """
         return Point(self.ibounding_box.MinPoint())
 
@@ -1225,7 +1140,6 @@ class BoundingBox:
         Corner with the largest coordinates.
 
         :return: Maximum corner.
-        :rtype: Point
         """
         return Point(self.ibounding_box.MaxPoint())
 
@@ -1235,7 +1149,6 @@ class BoundingBox:
         Size along the global x-direction.
 
         :return: Size in x.
-        :rtype: float
         """
         return self.max_point.x - self.min_point.x
 
@@ -1245,7 +1158,6 @@ class BoundingBox:
         Size along the global y-direction.
 
         :return: Size in y.
-        :rtype: float
         """
         return self.max_point.y - self.min_point.y
 
@@ -1255,7 +1167,6 @@ class BoundingBox:
         Size along the global z-direction.
 
         :return: Size in z.
-        :rtype: float
         """
         return self.max_point.z - self.min_point.z
 
@@ -1265,7 +1176,6 @@ class BoundingBox:
         Center of the box.
 
         :return: Center point.
-        :rtype: Point
         """
         return self.min_point.translate(Vector.by_points(self.min_point, self.max_point).scale(0.5))
 
@@ -1274,7 +1184,7 @@ class Curve:
     """
     Base class for 3D curves.
 
-    :ivar ICurve icurve: Underlying 3D curve.
+    :ivar icurve: Underlying 3D curve.
     """
 
     @staticmethod
@@ -1282,9 +1192,8 @@ class Curve:
         """
         Create a curve from an ICurve.
 
-        :param ICurve icurve: Underlying 3D curve.
+        :param icurve: Underlying 3D curve.
         :return: New curve.
-        :rtype: Curve
         """
         match icurve.Kind():
             case ICurveKind.Line:
@@ -1302,7 +1211,7 @@ class Curve:
         """
         Initialize from an ICurve.
 
-        :param ICurve c: Underlying 3D curve.
+        :param c: Underlying 3D curve.
         """
         if not isinstance(c, ICurve):
             raise TypeError(f"Expected ICurve, got {type(c).__name__}.")
@@ -1314,7 +1223,6 @@ class Curve:
         Underlying 3D curve.
 
         :return: ICurve object.
-        :rtype: ICurve
         """
         return self._icurve
 
@@ -1322,9 +1230,8 @@ class Curve:
         """
         Evaluate the curve at a parameter.
 
-        :param float u: Curve parameter.
+        :param u: Curve parameter.
         :return: Evaluated point.
-        :rtype: Point
         """
         ipoint = self.icurve.Evaluate(u)
         return Point(ipoint)
@@ -1333,10 +1240,9 @@ class Curve:
         """
         Evaluate a derivative of the curve at a parameter.
 
-        :param float u: Curve parameter.
-        :param int order: Order of the derivative. Must be at least 1.
+        :param u: Curve parameter.
+        :param order: Order of the derivative. Must be at least 1.
         :return: Derivative vector.
-        :rtype: Vector
         :raises RuntimeError: If the order is less than 1.
         """
         return Vector(self.icurve.Derivative(u, order))
@@ -1347,7 +1253,6 @@ class Curve:
         Check if the curve ends where it starts.
 
         :return: True if closed.
-        :rtype: bool
         """
         return self.icurve.IsClosed()
 
@@ -1357,7 +1262,6 @@ class Curve:
         Check if the curve repeats along its parameter.
 
         :return: True if periodic.
-        :rtype: bool
         """
         return self.icurve.IsPeriodic()
 
@@ -1367,7 +1271,6 @@ class Curve:
         Parameter at the start of the curve.
 
         :return: First parameter.
-        :rtype: float
         """
         return self.icurve.FirstParameter()
 
@@ -1377,7 +1280,6 @@ class Curve:
         Parameter at the end of the curve.
 
         :return: Last parameter.
-        :rtype: float
         """
         return self.icurve.LastParameter()
 
@@ -1393,10 +1295,9 @@ class Line(Curve):
         """
         Create a line through two points, with its origin at the first point.
 
-        :param Point p1: First point.
-        :param Point p2: Second point.
+        :param p1: First point.
+        :param p2: Second point.
         :return: New 3D line.
-        :rtype: Line
         :raises RuntimeError: If the points coincide.
         """
         icurve = ICurve.MakeLine(p1.ipoint, p2.ipoint)
@@ -1406,7 +1307,7 @@ class Line(Curve):
         """
         Initialize from an ICurve.
 
-        :param ICurve c: Underlying 3D curve.
+        :param c: Underlying 3D curve.
         """
         super().__init__(c)
         if c.Kind() != ICurveKind.Line:
@@ -1418,7 +1319,6 @@ class Line(Curve):
         Origin of the line.
 
         :return: Origin point.
-        :rtype: Point
         """
         idata = self.icurve.LineData()
         assert idata is not None  # guaranteed by the kind check in __init__
@@ -1430,7 +1330,6 @@ class Line(Curve):
         Unit direction of the line.
 
         :return: Unit direction vector.
-        :rtype: Vector
         """
         idata = self.icurve.LineData()
         assert idata is not None  # guaranteed by the kind check in __init__
@@ -1447,10 +1346,9 @@ class Circle(Curve):
         """
         Create a circle centered at the frame origin, in its xy-plane.
 
-        :param float radius: Circle radius. Must not be negative.
-        :param Frame | None frame: Coordinate system. Defaults to the global origin.
+        :param radius: Circle radius. Must not be negative.
+        :param frame: Coordinate system. Defaults to the global origin.
         :return: New 3D circle.
-        :rtype: Circle
         :raises RuntimeError: If the radius is negative.
         """
         if frame is None:
@@ -1464,11 +1362,10 @@ class Circle(Curve):
         """
         Create a circle through three points.
 
-        :param Point p1: First point.
-        :param Point p2: Second point.
-        :param Point p3: Third point.
+        :param p1: First point.
+        :param p2: Second point.
+        :param p3: Third point.
         :return: New 3D circle.
-        :rtype: Circle
         :raises RuntimeError: If the points are collinear.
         """
         icurve = ICurve.MakeCircle(p1.ipoint, p2.ipoint, p3.ipoint)
@@ -1478,7 +1375,7 @@ class Circle(Curve):
         """
         Initialize from an ICurve.
 
-        :param ICurve c: Underlying 3D curve.
+        :param c: Underlying 3D curve.
         """
         super().__init__(c)
         if c.Kind() != ICurveKind.Circle:
@@ -1490,7 +1387,6 @@ class Circle(Curve):
         Coordinate system of the circle, with its center at the origin.
 
         :return: Frame.
-        :rtype: Frame
         """
         idata = self.icurve.CircleData()
         assert idata is not None  # guaranteed by the kind check in __init__
@@ -1502,7 +1398,6 @@ class Circle(Curve):
         Radius of the circle.
 
         :return: Radius.
-        :rtype: float
         """
         idata = self.icurve.CircleData()
         assert idata is not None  # guaranteed by the kind check in __init__
@@ -1519,11 +1414,10 @@ class TrimmedCurve(Curve):
         """
         Create a circular arc through three points.
 
-        :param Point p1: Start point.
-        :param Point p2: Intermediate point.
-        :param Point p3: End point.
+        :param p1: Start point.
+        :param p2: Intermediate point.
+        :param p3: End point.
         :return: New trimmed curve.
-        :rtype: TrimmedCurve
         :raises RuntimeError: If the points are collinear.
         """
         icurve = ICurve.MakeCircularArc(p1.ipoint, p2.ipoint, p3.ipoint)
@@ -1533,7 +1427,7 @@ class TrimmedCurve(Curve):
         """
         Initialize from an ICurve.
 
-        :param ICurve c: Underlying 3D curve.
+        :param c: Underlying 3D curve.
         """
         super().__init__(c)
         if c.Kind() != ICurveKind.Trimmed:
@@ -1550,10 +1444,9 @@ class BSplineCurve(Curve):
         """
         Create a smooth curve passing through ordered points.
 
-        :param Iterable[Point] points: At least two points.
-        :param float tol: Distance below which two points count as coincident.
+        :param points: At least two points.
+        :param tol: Distance below which two points count as coincident.
         :return: New B-spline curve.
-        :rtype: BSplineCurve
         :raises BuildFailed: If the interpolation fails.
         :raises RuntimeError: If there are fewer than two points.
         """
@@ -1564,7 +1457,7 @@ class BSplineCurve(Curve):
         """
         Initialize from an ICurve.
 
-        :param ICurve c: Underlying 3D curve.
+        :param c: Underlying 3D curve.
         """
         super().__init__(c)
         if c.Kind() != ICurveKind.BSpline:
@@ -1575,7 +1468,7 @@ class Surface:
     """
     Base class for surfaces.
 
-    :ivar ISurface isurface: Underlying surface.
+    :ivar isurface: Underlying surface.
     """
 
     @staticmethod
@@ -1583,9 +1476,8 @@ class Surface:
         """
         Create a surface from an ISurface.
 
-        :param ISurface isurface: Underlying surface.
+        :param isurface: Underlying surface.
         :return: New surface.
-        :rtype: Surface
         """
         match isurface.Kind():
             case ISurfaceKind.Cylindrical:
@@ -1597,7 +1489,7 @@ class Surface:
         """
         Initialize from an ISurface.
 
-        :param ISurface s: Underlying surface.
+        :param s: Underlying surface.
         """
         if not isinstance(s, ISurface):
             raise TypeError(f"Expected ISurface, got {type(s).__name__}.")
@@ -1609,7 +1501,6 @@ class Surface:
         Underlying surface.
 
         :return: ISurface object.
-        :rtype: ISurface
         """
         return self._isurface
 
@@ -1625,10 +1516,9 @@ class CylindricalSurface(Surface):
         """
         Create a cylindrical surface from radius and frame.
 
-        :param float radius: Cylinder radius. Must not be negative.
-        :param Frame | None frame: Coordinate system. Defaults to the global origin.
+        :param radius: Cylinder radius. Must not be negative.
+        :param frame: Coordinate system. Defaults to the global origin.
         :return: New cylindrical surface.
-        :rtype: CylindricalSurface
         :raises RuntimeError: If the radius is negative.
         """
         if frame is None:
@@ -1641,7 +1531,7 @@ class CylindricalSurface(Surface):
         """
         Initialize from an ISurface.
 
-        :param ISurface s: Underlying surface.
+        :param s: Underlying surface.
         """
         super().__init__(s)
         if s.Kind() != ISurfaceKind.Cylindrical:
@@ -1653,7 +1543,6 @@ class CylindricalSurface(Surface):
         Coordinate system of the surface, with its axis along the z-direction.
 
         :return: Frame.
-        :rtype: Frame
         """
         idata = self.isurface.CylindricalData()
         assert idata is not None  # guaranteed by the kind check in __init__
@@ -1665,7 +1554,6 @@ class CylindricalSurface(Surface):
         Radius of the surface.
 
         :return: Radius.
-        :rtype: float
         """
         idata = self.isurface.CylindricalData()
         assert idata is not None  # guaranteed by the kind check in __init__
@@ -1682,10 +1570,10 @@ class ProjectPointToCurve:
         """
         Initialize with a point, a curve, and an optional parameter range.
 
-        :param Point p: Point to project.
-        :param Curve c: Curve.
-        :param float | None u0: Start of the range. Defaults to the start of the curve.
-        :param float | None u1: End of the range. Defaults to the end of the curve.
+        :param p: Point to project.
+        :param c: Curve.
+        :param u0: Start of the range. Defaults to the start of the curve.
+        :param u1: End of the range. Defaults to the end of the curve.
         :raises RuntimeError: If the start of the range is after its end.
         """
         start = c.first_parameter if u0 is None else u0
@@ -1696,7 +1584,7 @@ class ProjectPointToCurve:
         """
         Project a new point onto the same curve and range, replacing the results.
 
-        :param Point p: Point to project.
+        :param p: Point to project.
         """
         self._itool.Perform(p.ipoint)
 
@@ -1706,7 +1594,6 @@ class ProjectPointToCurve:
         Check if the projection has results.
 
         :return: True if there is at least one result.
-        :rtype: bool
         """
         return self._itool.IsDone()
 
@@ -1716,7 +1603,6 @@ class ProjectPointToCurve:
         Number of results.
 
         :return: Count.
-        :rtype: int
         """
         return self._itool.NumPoints()
 
@@ -1724,9 +1610,8 @@ class ProjectPointToCurve:
         """
         Get a projected point.
 
-        :param int index: 0-based index of the result.
+        :param index: 0-based index of the result.
         :return: Point on the curve.
-        :rtype: Point
         :raises RuntimeError: If the index is out of range.
         """
         # Python is 0-based, OCCT is 1-based
@@ -1736,9 +1621,8 @@ class ProjectPointToCurve:
         """
         Get the curve parameter of a projected point.
 
-        :param int index: 0-based index of the result.
+        :param index: 0-based index of the result.
         :return: Curve parameter.
-        :rtype: float
         :raises RuntimeError: If the index is out of range.
         """
         # Python is 0-based, OCCT is 1-based
@@ -1748,9 +1632,8 @@ class ProjectPointToCurve:
         """
         Get the distance from the point to a projected point.
 
-        :param int index: 0-based index of the result.
+        :param index: 0-based index of the result.
         :return: Distance.
-        :rtype: float
         :raises RuntimeError: If the index is out of range.
         """
         # Python is 0-based, OCCT is 1-based
@@ -1762,7 +1645,6 @@ class ProjectPointToCurve:
         Nearest projected point.
 
         :return: Point on the curve.
-        :rtype: Point
         :raises RuntimeError: If there are no results.
         """
         return Point(self._itool.NearestPoint())
@@ -1773,7 +1655,6 @@ class ProjectPointToCurve:
         Curve parameter of the nearest projected point.
 
         :return: Curve parameter.
-        :rtype: float
         :raises RuntimeError: If there are no results.
         """
         return self._itool.NearestParameter()
@@ -1784,7 +1665,6 @@ class ProjectPointToCurve:
         Distance to the nearest projected point.
 
         :return: Distance.
-        :rtype: float
         :raises RuntimeError: If there are no results.
         """
         return self._itool.NearestDistance()

@@ -55,6 +55,9 @@ exclude_patterns = []
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
 
+# Show types from signatures in the parameter and return descriptions
+autodoc_typehints = "description"
+
 # Default options
 autodoc_default_options = {
     "members": True,

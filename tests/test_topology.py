@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import math
 import unittest
 from collections.abc import Sequence
@@ -93,12 +94,12 @@ class TestShape(unittest.TestCase):
 
     def test_is_valid_self_intersecting_face(self):
         pts = [Point.by_xyz(x, y, 0) for x, y in ((0, 0), (1, 1), (1, 0), (0, 1), (0, 0))]
-        w = Wire.by_edges([Edge.by_points(a, b) for a, b in zip(pts, pts[1:], strict=False)])
+        w = Wire.by_edges([Edge.by_points(a, b) for a, b in itertools.pairwise(pts)])
         self.assertFalse(Face.by_wire(w).is_valid)
 
     def test_is_valid_open_wire(self):
         pts = [Point.by_xyz(x, y, 0) for x, y in ((0, 0), (1, 0), (1, 1))]
-        w = Wire.by_edges([Edge.by_points(a, b) for a, b in zip(pts, pts[1:], strict=False)])
+        w = Wire.by_edges([Edge.by_points(a, b) for a, b in itertools.pairwise(pts)])
         self.assertTrue(w.is_valid)
         self.assertFalse(Face.by_wire(w).is_valid)
 

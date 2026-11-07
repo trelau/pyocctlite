@@ -4,6 +4,7 @@
 # mm.
 from __future__ import annotations
 
+import itertools
 import math
 from collections.abc import Iterable
 
@@ -60,11 +61,10 @@ def chord_point(section: tuple[float, float, float, float], x: float, z: float =
     """
     Get a world point from coordinates relative to the chord of a wing section.
 
-    :param tuple[float, float, float, float] section: Position, chord, thickness and twist.
-    :param float x: Fraction of the chord behind the leading edge.
-    :param float z: Fraction of the chord above the chord line.
+    :param section: Position, chord, thickness and twist.
+    :param x: Fraction of the chord behind the leading edge.
+    :param z: Fraction of the chord above the chord line.
     :return: World point.
-    :rtype: Point
     """
     y, chord, _, twist = section
     cos, sin = math.cos(twist), math.sin(twist)
@@ -79,10 +79,9 @@ def airfoil(section: tuple[float, float, float, float], count: int = 41) -> Wire
     """
     Create a closed section from the NACA 4-digit formula with 2% camber at 40% chord.
 
-    :param tuple[float, float, float, float] section: Position, chord, thickness and twist.
-    :param int count: Number of points on each of the upper and lower surfaces.
+    :param section: Position, chord, thickness and twist.
+    :param count: Number of points on each of the upper and lower surfaces.
     :return: One spline around the leading edge, closed by a blunt trailing edge.
-    :rtype: Wire
     """
     camber, crest, thickness = 0.02, 0.4, section[2]
     upper, lower = [], []
@@ -125,11 +124,10 @@ def local(x: float, y: float, z: float = 0.0) -> Point:
     """
     Get a world point from coordinates in the rib frame.
 
-    :param float x: Distance aft of the rear spar.
-    :param float y: Distance above the chord line.
-    :param float z: Distance inboard of the rib plane.
+    :param x: Distance aft of the rear spar.
+    :param y: Distance above the chord line.
+    :param z: Distance inboard of the rib plane.
     :return: World point.
-    :rtype: Point
     """
     return origin.translate(x_dir.scale(x).add(y_dir.scale(y)).add(z_dir.scale(z)))
 
@@ -138,9 +136,8 @@ def polygon(points: Iterable[tuple[float, float]]) -> Wire:
     """
     Create a closed wire on the rib plane.
 
-    :param Iterable[tuple[float, float]] points: Corners in rib frame coordinates.
+    :param points: Corners in rib frame coordinates.
     :return: New wire.
-    :rtype: Wire
     """
     p = [local(x, y) for x, y in points]
     return Wire.by_edges([Edge.by_points(a, b) for a, b in zip(p, p[1:] + p[:1], strict=True)])
@@ -150,12 +147,11 @@ def rectangle(x0: float, x1: float, y0: float = -1500.0, y1: float = 1500.0) -> 
     """
     Create a rectangle on the rib plane, tall enough by default to cross the whole wing.
 
-    :param float x0: First x.
-    :param float x1: Second x.
-    :param float y0: First y.
-    :param float y1: Second y.
+    :param x0: First x.
+    :param x1: Second x.
+    :param y0: First y.
+    :param y1: Second y.
     :return: New face.
-    :rtype: Face
     """
     return Face.by_wire(polygon([(x0, y0), (x1, y0), (x1, y1), (x0, y1)]))
 
@@ -184,9 +180,8 @@ def inset(distance: float) -> Face:
     """
     Create the region inside the contour at a distance.
 
-    :param float distance: Distance inside the contour.
+    :param distance: Distance inside the contour.
     :return: New face.
-    :rtype: Face
     """
     return Face.by_wire(contour.offset(-distance).wires()[0])
 
@@ -254,7 +249,7 @@ band = (
 
 # Between the stems a window goes through the web, and a narrower neck goes through the cap, which
 # leaves T-shaped tabs with flared feet
-gaps = [(a + b) / 2.0 for a, b in zip(stems, stems[1:], strict=False)]
+gaps = [(a + b) / 2.0 for a, b in itertools.pairwise(stems)]
 window_regions = [
     f
     for x in gaps
@@ -276,10 +271,9 @@ def cutter_path(face: Face, radius: float) -> list[Face]:
     cutter does not fit in disappear. A small blend first rounds the corners that point into the
     region, so that the floor fillet can run around a smooth boundary.
 
-    :param Face face: Region with no islands.
-    :param float radius: Cutter radius.
+    :param face: Region with no islands.
+    :param radius: Cutter radius.
     :return: Faces the cutter sweeps. A narrow neck in the region splits it into several.
-    :rtype: list[Face]
     """
     wire = face.wires()[0]
     blended = wire.offset(blend_radius).wires()[0].offset(-blend_radius).wires()[0]
@@ -290,9 +284,8 @@ def pocket_tool(face: Face) -> Shape:
     """
     Create the solid a pocket removes, down to the web and with the cutter's floor radius.
 
-    :param Face face: Pocket region on the rib plane.
+    :param face: Pocket region on the rib plane.
     :return: New solid.
-    :rtype: Shape
     """
     tool = ExtrudeShape(
         face.translate(z_dir.scale(web_thickness)),
@@ -308,9 +301,8 @@ def through_tool(face: Face) -> Shape:
     """
     Create the solid a through cut removes.
 
-    :param Face face: Region on the rib plane.
+    :param face: Region on the rib plane.
     :return: New solid.
-    :rtype: Shape
     """
     start = face.translate(z_dir.scale(-overshoot))
     return start.extrude(z_dir.scale(depth + 2.0 * overshoot))

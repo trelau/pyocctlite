@@ -85,7 +85,7 @@ def _check_color(color: tuple[float, float, float]) -> None:
     """
     Check that a color has three components from 0 to 1.
 
-    :param tuple[float, float, float] color: Red, green and blue.
+    :param color: Red, green and blue.
     :raises ValueError: If a color component is not from 0 to 1.
     """
     if not (len(color) == 3 and all(0.0 <= c <= 1.0 for c in color)):
@@ -96,9 +96,9 @@ class Styled:
     """
     A shape with its appearance in an image.
 
-    :ivar Shape shape: Shape to draw.
-    :ivar tuple[float, float, float] color: Red, green and blue from 0 to 1.
-    :ivar float transparency: From 0 for opaque to 1 for invisible faces.
+    :ivar shape: Shape to draw.
+    :ivar color: Red, green and blue from 0 to 1.
+    :ivar transparency: From 0 for opaque to 1 for invisible faces.
     """
 
     def __init__(
@@ -110,10 +110,10 @@ class Styled:
         """
         Initialize from a shape and its appearance.
 
-        :param Shape shape: Shape to draw.
-        :param tuple[float, float, float] | None color: Red, green and blue from 0 to 1. Defaults to
+        :param shape: Shape to draw.
+        :param color: Red, green and blue from 0 to 1. Defaults to
             a neutral gray.
-        :param float transparency: From 0 for opaque to 1 for invisible faces.
+        :param transparency: From 0 for opaque to 1 for invisible faces.
         :raises ValueError: If a color component or the transparency is not from 0 to 1.
         """
         if color is None:
@@ -131,7 +131,6 @@ class Styled:
         Shape to draw.
 
         :return: Shape.
-        :rtype: Shape
         """
         return self._shape
 
@@ -141,7 +140,6 @@ class Styled:
         Color of the shape.
 
         :return: Red, green and blue from 0 to 1.
-        :rtype: tuple[float, float, float]
         """
         return self._color
 
@@ -151,7 +149,6 @@ class Styled:
         Transparency of the faces.
 
         :return: From 0 for opaque to 1 for invisible.
-        :rtype: float
         """
         return self._transparency
 
@@ -160,11 +157,11 @@ class Camera:
     """
     A custom orthographic view.
 
-    :ivar Vector direction: Direction from the view's center toward the viewer.
-    :ivar Vector up: Direction that appears up in the image.
-    :ivar Point | None target: Point at the center of the image, or None to fit all shapes.
-    :ivar float | None span: Length across the image's smaller side, or None to fit all shapes.
-    :ivar str label: Name shown on the image.
+    :ivar direction: Direction from the view's center toward the viewer.
+    :ivar up: Direction that appears up in the image.
+    :ivar target: Point at the center of the image, or None to fit all shapes.
+    :ivar span: Length across the image's smaller side, or None to fit all shapes.
+    :ivar label: Name shown on the image.
     """
 
     @classmethod
@@ -178,15 +175,14 @@ class Camera:
         """
         Create a camera from the direction toward the viewer.
 
-        :param Vector direction: Direction from the view's center toward the viewer.
-        :param Vector | None up: Direction that appears up in the image. Defaults to +z, or +y if
+        :param direction: Direction from the view's center toward the viewer.
+        :param up: Direction that appears up in the image. Defaults to +z, or +y if
             looking along z.
-        :param Point | None target: Point at the center of the image. Defaults to the center of all
+        :param target: Point at the center of the image. Defaults to the center of all
             shapes.
-        :param float | None span: Length across the image's smaller side. Defaults to fitting all
+        :param span: Length across the image's smaller side. Defaults to fitting all
             shapes.
         :return: New camera.
-        :rtype: Camera
         :raises ValueError: If the direction has no length, up is parallel to it, or the span is not
             positive.
         """
@@ -203,14 +199,13 @@ class Camera:
         """
         Create a camera that looks from a position at a target.
 
-        :param Point position: Point to look from, which only sets the direction of the view.
-        :param Point target: Point at the center of the image.
-        :param Vector | None up: Direction that appears up in the image. Defaults to +z, or +y if
+        :param position: Point to look from, which only sets the direction of the view.
+        :param target: Point at the center of the image.
+        :param up: Direction that appears up in the image. Defaults to +z, or +y if
             looking along z.
-        :param float | None span: Length across the image's smaller side. Defaults to fitting all
+        :param span: Length across the image's smaller side. Defaults to fitting all
             shapes.
         :return: New camera.
-        :rtype: Camera
         :raises ValueError: If the points coincide, up is parallel to the view, or the span is not
             positive.
         """
@@ -221,13 +216,12 @@ class Camera:
         """
         Create a camera from a standard view, usually to look closer at something.
 
-        :param View view: Standard view.
-        :param Point | None target: Point at the center of the image. Defaults to the center of all
+        :param view: Standard view.
+        :param target: Point at the center of the image. Defaults to the center of all
             shapes.
-        :param float | None span: Length across the image's smaller side. Defaults to fitting all
+        :param span: Length across the image's smaller side. Defaults to fitting all
             shapes.
         :return: New camera.
-        :rtype: Camera
         :raises ValueError: If the span is not positive.
         """
         direction, up = view.value
@@ -244,13 +238,13 @@ class Camera:
         """
         Initialize from named parts.
 
-        :param Vector direction: Direction from the view's center toward the viewer.
-        :param Vector | None up: Direction that appears up in the image. Defaults to +z, or +y if
+        :param direction: Direction from the view's center toward the viewer.
+        :param up: Direction that appears up in the image. Defaults to +z, or +y if
             looking along z.
-        :param Point | None target: Point at the center of the image, or None to fit all shapes.
-        :param float | None span: Length across the image's smaller side, or None to fit all
+        :param target: Point at the center of the image, or None to fit all shapes.
+        :param span: Length across the image's smaller side, or None to fit all
             shapes.
-        :param str label: Name shown on the image.
+        :param label: Name shown on the image.
         :raises ValueError: If the direction has no length, up is parallel to it, or the span is not
             positive.
         """
@@ -279,7 +273,6 @@ class Camera:
         Direction from the view's center toward the viewer.
 
         :return: Direction.
-        :rtype: Vector
         """
         return self._direction
 
@@ -289,7 +282,6 @@ class Camera:
         Direction that appears up in the image.
 
         :return: Up direction.
-        :rtype: Vector
         """
         return self._up
 
@@ -299,7 +291,6 @@ class Camera:
         Point at the center of the image.
 
         :return: Target, or None to fit all shapes.
-        :rtype: Point | None
         """
         return self._target
 
@@ -309,7 +300,6 @@ class Camera:
         Length across the image's smaller side.
 
         :return: Span, or None to fit all shapes.
-        :rtype: float | None
         """
         return self._span
 
@@ -319,7 +309,6 @@ class Camera:
         Name shown on the image.
 
         :return: Label.
-        :rtype: str
         """
         return self._label
 
@@ -328,16 +317,16 @@ class Callout:
     """
     A text box beside the part with a line pointing at a target.
 
-    :ivar Shape | Point target: What to point at.
-    :ivar str text: Text in printable ASCII, where a newline starts a new line.
+    :ivar target: What to point at.
+    :ivar text: Text in printable ASCII, where a newline starts a new line.
     """
 
     def __init__(self, target: Shape | Point, text: str):
         """
         Initialize from a target and text.
 
-        :param Shape | Point target: What to point at.
-        :param str text: Text in printable ASCII, where a newline starts a new line.
+        :param target: What to point at.
+        :param text: Text in printable ASCII, where a newline starts a new line.
         """
         self._target = target
         self._text = text
@@ -348,7 +337,6 @@ class Callout:
         What to point at.
 
         :return: Target.
-        :rtype: Shape | Point
         """
         return self._target
 
@@ -358,7 +346,6 @@ class Callout:
         Text in the box.
 
         :return: Text.
-        :rtype: str
         """
         return self._text
 
@@ -367,9 +354,9 @@ class Section:
     """
     A plane that cuts away part of an image to show the inside of a part, without changing shapes.
 
-    :ivar Point origin: Point on the plane.
-    :ivar Vector normal: Normal of the plane, pointing to the side that is removed.
-    :ivar tuple[float, float, float] | None color: Red, green and blue of the cut from 0 to 1, or
+    :ivar origin: Point on the plane.
+    :ivar normal: Normal of the plane, pointing to the side that is removed.
+    :ivar color: Red, green and blue of the cut from 0 to 1, or
         None for a pale tint of each shape's color.
     """
 
@@ -383,12 +370,11 @@ class Section:
         """
         Create a section from a plane.
 
-        :param Point origin: Point on the plane.
-        :param Vector normal: Normal of the plane, pointing to the side that is removed.
-        :param tuple[float, float, float] | None color: Red, green and blue of the cut from 0 to 1.
+        :param origin: Point on the plane.
+        :param normal: Normal of the plane, pointing to the side that is removed.
+        :param color: Red, green and blue of the cut from 0 to 1.
             Defaults to a pale tint of each shape's color.
         :return: New section.
-        :rtype: Section
         :raises ValueError: If the normal has no length or a color component is not from 0 to 1.
         """
         return cls(origin, normal, color)
@@ -402,9 +388,9 @@ class Section:
         """
         Initialize from named parts.
 
-        :param Point origin: Point on the plane.
-        :param Vector normal: Normal of the plane, pointing to the side that is removed.
-        :param tuple[float, float, float] | None color: Red, green and blue of the cut from 0 to 1.
+        :param origin: Point on the plane.
+        :param normal: Normal of the plane, pointing to the side that is removed.
+        :param color: Red, green and blue of the cut from 0 to 1.
             Defaults to a pale tint of each shape's color.
         :raises ValueError: If the normal has no length or a color component is not from 0 to 1.
         """
@@ -422,7 +408,6 @@ class Section:
         Point on the plane.
 
         :return: Origin.
-        :rtype: Point
         """
         return self._origin
 
@@ -432,7 +417,6 @@ class Section:
         Normal of the plane, pointing to the side that is removed.
 
         :return: Normal.
-        :rtype: Vector
         """
         return self._normal
 
@@ -442,7 +426,6 @@ class Section:
         Color of the cut.
 
         :return: Red, green and blue from 0 to 1, or None for a pale tint of each shape's color.
-        :rtype: tuple[float, float, float] | None
         """
         return self._color
 
@@ -451,8 +434,8 @@ def _check_size(width: int, height: int) -> None:
     """
     Check that an image size is positive.
 
-    :param int width: Width in pixels.
-    :param int height: Height in pixels.
+    :param width: Width in pixels.
+    :param height: Height in pixels.
     :raises ValueError: If either size is not positive.
     """
     if width < 1 or height < 1:
@@ -465,12 +448,11 @@ def _make_tool(
     """
     Make the render tool for the given shapes.
 
-    :param Shape | Styled | Iterable[Shape | Styled] shapes: Shape(s) to draw, in drawing order.
-    :param int w: Width in pixels.
-    :param int h: Height in pixels.
-    :param Section | None section: Plane to cut the image with, if any.
+    :param shapes: Shape(s) to draw, in drawing order.
+    :param w: Width in pixels.
+    :param h: Height in pixels.
+    :param section: Plane to cut the image with, if any.
     :return: Tool with the shapes added.
-    :rtype: RenderIShapes
     """
     items = [shapes] if isinstance(shapes, Shape | Styled) else shapes
     tool = RenderIShapes(w, h)
@@ -491,12 +473,11 @@ def _render(tool: RenderIShapes, view: View | Camera, shading: Shading, labels: 
     """
     Render one view.
 
-    :param RenderIShapes tool: Render tool.
-    :param View | Camera view: View to render.
-    :param Shading shading: How faces are shaded.
-    :param bool labels: Whether to draw the view name, the axes and any numbers.
+    :param tool: Render tool.
+    :param view: View to render.
+    :param shading: How faces are shaded.
+    :param labels: Whether to draw the view name, the axes and any numbers.
     :return: Rows of RGB bytes, from the top row down.
-    :rtype: bytes
     """
     camera = view if isinstance(view, Camera) else Camera.by_view(view)
     target = camera.target.ipoint if camera.target is not None else None
@@ -515,10 +496,10 @@ def _write_png(path: str, rgb: bytes, width: int, height: int) -> None:
     """
     Write RGB bytes to a PNG file.
 
-    :param str path: File path.
-    :param bytes rgb: Rows of RGB bytes, from the top row down.
-    :param int width: Width in pixels.
-    :param int height: Height in pixels.
+    :param path: File path.
+    :param rgb: Rows of RGB bytes, from the top row down.
+    :param width: Width in pixels.
+    :param height: Height in pixels.
     """
 
     def chunk(kind: bytes, data: bytes) -> bytes:
@@ -550,15 +531,15 @@ def render_image(
     """
     Write one orthographic view of the shapes to a PNG file.
 
-    :param Shape | Styled | Iterable[Shape | Styled] shapes: Shape(s) to draw, in drawing order.
-    :param str path: PNG file path.
-    :param View | Camera view: View to render.
-    :param int width: Image width in pixels.
-    :param int height: Image height in pixels.
-    :param Callout | Iterable[Callout] callouts: Text boxes pointing at targets.
-    :param Shading shading: How faces are shaded.
-    :param bool labels: Whether to draw the view name, the axes and any numbers.
-    :param Section | None section: Plane to cut the image with, to show the inside of a part.
+    :param shapes: Shape(s) to draw, in drawing order.
+    :param path: PNG file path.
+    :param view: View to render.
+    :param width: Image width in pixels.
+    :param height: Image height in pixels.
+    :param callouts: Text boxes pointing at targets.
+    :param shading: How faces are shaded.
+    :param labels: Whether to draw the view name, the axes and any numbers.
+    :param section: Plane to cut the image with, to show the inside of a part.
     :raises ValueError: If the image size is not positive.
     :raises BuildFailed: If there is nothing to render, a shape is unbounded, or a face fails
         to mesh.
@@ -585,15 +566,14 @@ def render_faces(
     """
     Write a view with each face colored and numbered to a PNG file, and return what is visible.
 
-    :param Shape shape: Shape to draw.
-    :param str path: PNG file path.
-    :param View | Camera view: View to render.
-    :param int width: Image width in pixels.
-    :param int height: Image height in pixels.
-    :param Shading shading: How faces are shaded.
-    :param bool labels: Whether to draw the view name, the axes and any numbers.
+    :param shape: Shape to draw.
+    :param path: PNG file path.
+    :param view: View to render.
+    :param width: Image width in pixels.
+    :param height: Image height in pixels.
+    :param shading: How faces are shaded.
+    :param labels: Whether to draw the view name, the axes and any numbers.
     :return: Number of visible pixels for each visible face, by index in ``shape.faces()``.
-    :rtype: dict[int, int]
     :raises ValueError: If the image size is not positive.
     :raises BuildFailed: If there is nothing to render, the shape is unbounded, or a face fails to
         mesh.
@@ -618,15 +598,14 @@ def render_edges(
     """
     Write a view with each edge colored and numbered to a PNG file, and return what is visible.
 
-    :param Shape shape: Shape to draw.
-    :param str path: PNG file path.
-    :param View | Camera view: View to render.
-    :param int width: Image width in pixels.
-    :param int height: Image height in pixels.
-    :param Shading shading: How faces are shaded.
-    :param bool labels: Whether to draw the view name, the axes and any numbers.
+    :param shape: Shape to draw.
+    :param path: PNG file path.
+    :param view: View to render.
+    :param width: Image width in pixels.
+    :param height: Image height in pixels.
+    :param shading: How faces are shaded.
+    :param labels: Whether to draw the view name, the axes and any numbers.
     :return: Visible length in pixels for each visible edge, by index in ``shape.edges()``.
-    :rtype: dict[int, int]
     :raises ValueError: If the image size is not positive.
     :raises BuildFailed: If there is nothing to render, the shape is unbounded, or a face fails to
         mesh.
@@ -652,13 +631,13 @@ def render_views(
     """
     Write a sheet of four views of the shapes to a PNG file.
 
-    :param Shape | Styled | Iterable[Shape | Styled] shapes: Shape(s) to draw, in drawing order.
-    :param str path: PNG file path.
-    :param int width: Sheet width in pixels.
-    :param int height: Sheet height in pixels.
-    :param Shading shading: How faces are shaded.
-    :param bool labels: Whether to draw the view name, the axes and any numbers.
-    :param Section | None section: Plane to cut every view with.
+    :param shapes: Shape(s) to draw, in drawing order.
+    :param path: PNG file path.
+    :param width: Sheet width in pixels.
+    :param height: Sheet height in pixels.
+    :param shading: How faces are shaded.
+    :param labels: Whether to draw the view name, the axes and any numbers.
+    :param section: Plane to cut every view with.
     :raises ValueError: If the sheet is too small to hold four views.
     :raises BuildFailed: If there is nothing to render, a shape is unbounded, or a face fails
         to mesh.

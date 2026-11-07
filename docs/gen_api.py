@@ -17,9 +17,8 @@ def internal_names(tree: ast.Module) -> set[str]:
     """
     Find the names that belong to the C++ layer: its imports and aliases or TypeVars built on them.
 
-    :param ast.Module tree: Parsed module.
+    :param tree: Parsed module.
     :return: Names that must not appear in the public API.
-    :rtype: set[str]
     """
     names = set()
     for node in tree.body:
@@ -37,10 +36,9 @@ def mentions(node: ast.AST | None, names: set[str]) -> bool:
     """
     Check if an expression refers to any of the given names.
 
-    :param ast.AST | None node: Expression, if any.
-    :param set[str] names: Names to look for.
+    :param node: Expression, if any.
+    :param names: Names to look for.
     :return: True if any name is used.
-    :rtype: bool
     """
     if node is None:
         return False
@@ -51,9 +49,8 @@ def is_public(name: str) -> bool:
     """
     Check if a member name is part of the public API.
 
-    :param str name: Member name.
+    :param name: Member name.
     :return: True if public.
-    :rtype: bool
     """
     return not name.startswith("_") or name in PUBLIC_DUNDERS
 
@@ -62,9 +59,8 @@ def decorators(fn: Function) -> set[str]:
     """
     Get the decorator names of a function.
 
-    :param Function fn: Function.
+    :param fn: Function.
     :return: Decorator names, without any module prefix.
-    :rtype: set[str]
     """
     found = set()
     for d in fn.decorator_list:
@@ -79,11 +75,10 @@ def format_arg(arg: ast.arg, default: ast.expr | None = None, prefix: str = "") 
     """
     Format one parameter.
 
-    :param ast.arg arg: Parameter.
-    :param ast.expr | None default: Default value, if any.
-    :param str prefix: Prefix for variadic parameters.
+    :param arg: Parameter.
+    :param default: Default value, if any.
+    :param prefix: Prefix for variadic parameters.
     :return: Parameter as source text.
-    :rtype: str
     """
     text = prefix + arg.arg
     if arg.annotation is not None:
@@ -97,10 +92,9 @@ def format_args(args: ast.arguments, is_member: bool) -> str:
     """
     Format a parameter list, leaving out an unannotated ``self`` or ``cls``.
 
-    :param ast.arguments args: Parameters.
-    :param bool is_member: True if the first parameter may be ``self`` or ``cls``.
+    :param args: Parameters.
+    :param is_member: True if the first parameter may be ``self`` or ``cls``.
     :return: Parameters as source text.
-    :rtype: str
     """
     positional = [*args.posonlyargs, *args.args]
     defaults: list[ast.expr | None] = [None] * (len(positional) - len(args.defaults))
@@ -126,16 +120,17 @@ def signature_mentions(fn: Function, names: set[str]) -> bool:
     """
     Check if a function's parameters or return type refer to any of the given names.
 
-    :param Function fn: Function.
-    :param set[str] names: Names to look for.
+    :param fn: Function.
+    :param names: Names to look for.
     :return: True if any name is used.
-    :rtype: bool
     """
     annotations = [fn.returns]
     args = fn.args
-    for a in (*args.posonlyargs, *args.args, *args.kwonlyargs, args.vararg, args.kwarg):
-        if a is not None:
-            annotations.append(a.annotation)
+    annotations.extend(
+        a.annotation
+        for a in (*args.posonlyargs, *args.args, *args.kwonlyargs, args.vararg, args.kwarg)
+        if a is not None
+    )
     return any(mentions(a, names) for a in annotations)
 
 
@@ -143,10 +138,9 @@ def format_bases(node: ast.ClassDef, internal: set[str]) -> str:
     """
     Format the bases of a class, leaving out the C++ layer.
 
-    :param ast.ClassDef node: Class.
-    :param set[str] internal: Names that belong to the C++ layer.
+    :param node: Class.
+    :param internal: Names that belong to the C++ layer.
     :return: Bases in parentheses, or nothing if none are left.
-    :rtype: str
     """
     bases = []
     for base in node.bases:
@@ -164,10 +158,9 @@ def format_class(node: ast.ClassDef, internal: set[str]) -> list[str]:
     """
     Format a class and the members it defines.
 
-    :param ast.ClassDef node: Class.
-    :param set[str] internal: Names that belong to the C++ layer.
+    :param node: Class.
+    :param internal: Names that belong to the C++ layer.
     :return: One line for the class and one for each public member.
-    :rtype: list[str]
     """
     functions = [m for m in node.body if isinstance(m, Function)]
     overloaded = {f.name for f in functions if "overload" in decorators(f)}
@@ -214,9 +207,8 @@ def format_module(path: Path) -> str:
     """
     Format the public API of a module.
 
-    :param Path path: Module file.
+    :param path: Module file.
     :return: Heading and fenced signatures.
-    :rtype: str
     """
     tree = ast.parse(path.read_text(encoding="utf-8"))
     internal = internal_names(tree)

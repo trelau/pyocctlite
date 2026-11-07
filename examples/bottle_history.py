@@ -51,10 +51,10 @@ def snapshot(
     """
     Write the next numbered image of the construction history.
 
-    :param str name: What the step did, used in the file name.
-    :param Shape | Styled | Iterable[Shape | Styled] shapes: Shape(s) to draw.
-    :param Camera camera: View to render.
-    :param Section | None section: Plane to cut the image with, if any.
+    :param name: What the step did, used in the file name.
+    :param shapes: Shape(s) to draw.
+    :param camera: View to render.
+    :param section: Plane to cut the image with, if any.
     """
     path = str(folder / f"{next(numbers):02d}_{name}.png")
     render_image(shapes, path, camera, section=section)

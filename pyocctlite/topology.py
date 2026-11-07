@@ -111,8 +111,8 @@ class Shape:
     """
     Base class for all topological shapes.
 
-    :ivar IShape ishape: Underlying topological shape.
-    :ivar ShapeKind kind: Kind of this shape.
+    :ivar ishape: Underlying topological shape.
+    :ivar kind: Kind of this shape.
     """
 
     @staticmethod
@@ -120,9 +120,8 @@ class Shape:
         """
         Create a Shape from an IShape.
 
-        :param IShape ishape: Underlying topological shape.
+        :param ishape: Underlying topological shape.
         :return: New shape.
-        :rtype: Shape
         """
         match ishape.Kind():
             case IShapeKind.Vertex:
@@ -149,18 +148,16 @@ class Shape:
         """
         Create a list of Shapes from an iterable of IShapes.
 
-        :param Iterable[IShape] ishapes: Underlying topological shapes.
+        :param ishapes: Underlying topological shapes.
         :return: List of shapes.
-        :rtype: list[Shape]
         """
-        shapes = [Shape.by_ishape(ishape) for ishape in ishapes]
-        return shapes
+        return [Shape.by_ishape(ishape) for ishape in ishapes]
 
     def __init__(self, s: IShape):
         """
         Initialize from an IShape.
 
-        :param IShape s: Underlying topological shape.
+        :param s: Underlying topological shape.
         """
         if not isinstance(s, IShape):
             raise TypeError(f"Expected IShape, got {type(s).__name__}.")
@@ -170,9 +167,8 @@ class Shape:
         """
         Check if both shapes share the same underlying shape (orientation may differ).
 
-        :param object other: Other object.
+        :param other: Other object.
         :return: True if the shapes are the same.
-        :rtype: bool
         """
         if not isinstance(other, Shape):
             return NotImplemented
@@ -183,7 +179,6 @@ class Shape:
         Hash consistent with equality.
 
         :return: Hash value.
-        :rtype: int
         """
         return self.ishape.HashCode()
 
@@ -193,7 +188,6 @@ class Shape:
         Underlying topological shape.
 
         :return: IShape object.
-        :rtype: IShape
         """
         return self._ishape
 
@@ -203,7 +197,6 @@ class Shape:
         Kind of this shape.
 
         :return: Shape kind.
-        :rtype: ShapeKind
         """
         return ShapeKind(self.ishape.Kind())
 
@@ -213,7 +206,6 @@ class Shape:
         Total length of all edges.
 
         :return: Total length.
-        :rtype: float
         """
         return self.ishape.Length()
 
@@ -223,7 +215,6 @@ class Shape:
         Total area of all faces.
 
         :return: Total area.
-        :rtype: float
         """
         return self.ishape.Area()
 
@@ -233,7 +224,6 @@ class Shape:
         Total volume of all solids.
 
         :return: Total volume.
-        :rtype: float
         """
         return self.ishape.Volume()
 
@@ -243,7 +233,6 @@ class Shape:
         Smallest box aligned with the global axes that contains this shape.
 
         :return: Bounding box.
-        :rtype: BoundingBox
         """
         return BoundingBox(self.ishape.BoundingBox())
 
@@ -253,7 +242,6 @@ class Shape:
         Geometric center of the highest dimension present in this shape.
 
         :return: Centroid.
-        :rtype: Point
         """
         return Point(self.ishape.Centroid())
 
@@ -263,7 +251,6 @@ class Shape:
         Check if this shape and its sub-shapes are topologically and geometrically well-formed.
 
         :return: True if no defect was found.
-        :rtype: bool
         """
         return self.ishape.IsValid()
 
@@ -271,9 +258,8 @@ class Shape:
         """
         Check if both shapes share the same underlying shape with the same orientation.
 
-        :param Shape other: Other shape.
+        :param other: Other shape.
         :return: True if the shapes are equal.
-        :rtype: bool
         """
         return self.ishape.IsEqual(other.ishape)
 
@@ -281,10 +267,9 @@ class Shape:
         """
         Iterate over sub-shapes, including repeats of shared sub-shapes (e.g. 24 edges for a box).
 
-        :param type[T] find: Class of shapes to find (e.g. ``Edge``).
-        :param type[Shape] | None ignore: Class of shapes to skip, along with their sub-shapes.
+        :param find: Class of shapes to find (e.g. ``Edge``).
+        :param ignore: Class of shapes to skip, along with their sub-shapes.
         :return: Explore tool.
-        :rtype: ExploreShape[T]
         :raises TypeError: If a class is not a core shape class (e.g. ``Shape`` or ``Box``).
         """
         return ExploreShape(self, find, ignore)
@@ -293,9 +278,8 @@ class Shape:
         """
         Map the unique sub-shapes (e.g. 12 edges for a box).
 
-        :param type[T] kind: Class of shapes to map (e.g. ``Edge``).
+        :param kind: Class of shapes to map (e.g. ``Edge``).
         :return: Map tool.
-        :rtype: MapShape[T]
         :raises TypeError: If a class is not a core shape class (e.g. ``Shape`` or ``Box``).
         """
         return MapShape(self, kind)
@@ -305,7 +289,6 @@ class Shape:
         Get all vertices.
 
         :return: Map of vertices.
-        :rtype: MapShape[Vertex]
         """
         return self.map(Vertex)
 
@@ -314,7 +297,6 @@ class Shape:
         Get all edges.
 
         :return: Map of edges.
-        :rtype: MapShape[Edge]
         """
         return self.map(Edge)
 
@@ -323,7 +305,6 @@ class Shape:
         Get all wires.
 
         :return: Map of wires.
-        :rtype: MapShape[Wire]
         """
         return self.map(Wire)
 
@@ -332,7 +313,6 @@ class Shape:
         Get all faces.
 
         :return: Map of faces.
-        :rtype: MapShape[Face]
         """
         return self.map(Face)
 
@@ -341,7 +321,6 @@ class Shape:
         Get all shells.
 
         :return: Map of shells.
-        :rtype: MapShape[Shell]
         """
         return self.map(Shell)
 
@@ -350,7 +329,6 @@ class Shape:
         Get all solids.
 
         :return: Map of solids.
-        :rtype: MapShape[Solid]
         """
         return self.map(Solid)
 
@@ -359,7 +337,6 @@ class Shape:
         Get all compsolids.
 
         :return: Map of compsolids.
-        :rtype: MapShape[CompSolid]
         """
         return self.map(CompSolid)
 
@@ -368,7 +345,6 @@ class Shape:
         Get all compounds.
 
         :return: Map of compounds.
-        :rtype: MapShape[Compound]
         """
         return self.map(Compound)
 
@@ -377,7 +353,6 @@ class Shape:
         Create a copy of this shape.
 
         :return: Copied shape of the same type.
-        :rtype: Self
         """
         return self._by_history(CopyShape(self))
 
@@ -385,10 +360,9 @@ class Shape:
         """
         Create a mirrored version of this shape.
 
-        :param Point origin: Point on the mirror plane.
-        :param Vector normal: Normal of the mirror plane. Must be non-zero.
+        :param origin: Point on the mirror plane.
+        :param normal: Normal of the mirror plane. Must be non-zero.
         :return: Mirrored shape of the same type.
-        :rtype: Self
         :raises RuntimeError: If the normal has zero length.
         """
         t = Transform.by_mirror(origin, normal)
@@ -398,11 +372,10 @@ class Shape:
         """
         Create a rotated version of this shape.
 
-        :param Axis axis: Axis of rotation.
-        :param float angle: Angle in radians, counterclockwise when looking against the axis
+        :param axis: Axis of rotation.
+        :param angle: Angle in radians, counterclockwise when looking against the axis
             direction.
         :return: Rotated shape of the same type.
-        :rtype: Self
         """
         t = Transform.by_rotation(axis, angle)
         return self._by_history(TransformShape(self, t))
@@ -411,9 +384,8 @@ class Shape:
         """
         Create a translated version of this shape.
 
-        :param Vector vector: Translation direction and distance.
+        :param vector: Translation direction and distance.
         :return: Translated shape of the same type.
-        :rtype: Self
         """
         t = Transform.by_translation(vector)
         return self._by_history(TransformShape(self, t))
@@ -423,9 +395,8 @@ class Shape:
         Build the result of a kind-preserving tool applied to this shape, which composites override
         to carry their named parts.
 
-        :param CopyShape[Self] | TransformShape[Self] tool: Tool applied to this shape.
+        :param tool: Tool applied to this shape.
         :return: New shape.
-        :rtype: Self
         """
         return tool.shape()
 
@@ -433,9 +404,8 @@ class Shape:
         """
         Extrude this shape along a vector into one dimension higher (e.g. face to solid).
 
-        :param Vector vector: Extrusion direction and distance.
+        :param vector: Extrusion direction and distance.
         :return: Extruded shape.
-        :rtype: Shape
         :raises RuntimeError: If this is a solid or the vector has zero length.
         """
         return ExtrudeShape(self, vector).shape()
@@ -444,9 +414,8 @@ class Shape:
         """
         Revolve this shape a full turn about an axis into one dimension higher (e.g. face to solid).
 
-        :param Axis axis: Axis of revolution.
+        :param axis: Axis of revolution.
         :return: Revolved shape.
-        :rtype: Shape
         :raises BuildFailed: If the shape crosses the axis.
         :raises RuntimeError: If this is a solid.
         """
@@ -456,10 +425,9 @@ class Shape:
         """
         Unite this shape with others (boolean union).
 
-        :param Shape | Iterable[Shape] other: Shape(s) to unite.
-        :param float tol: Distance below which geometry counts as touching.
+        :param other: Shape(s) to unite.
+        :param tol: Distance below which geometry counts as touching.
         :return: United shape.
-        :rtype: Shape
         :raises BuildFailed: If the operation fails or no shapes are given.
         """
         return UniteShapes(self, other, tol).shape()
@@ -468,10 +436,9 @@ class Shape:
         """
         Cut other shapes from this shape (boolean subtraction).
 
-        :param Shape | Iterable[Shape] other: Shape(s) to subtract.
-        :param float tol: Distance below which geometry counts as touching.
+        :param other: Shape(s) to subtract.
+        :param tol: Distance below which geometry counts as touching.
         :return: Resulting shape.
-        :rtype: Shape
         :raises BuildFailed: If the operation fails or no shapes are given.
         """
         return CutShapes(self, other, tol).shape()
@@ -480,10 +447,9 @@ class Shape:
         """
         Keep the part of this shape inside any of the other shapes (boolean common).
 
-        :param Shape | Iterable[Shape] other: Shape(s) to intersect with.
-        :param float tol: Distance below which geometry counts as touching.
+        :param other: Shape(s) to intersect with.
+        :param tol: Distance below which geometry counts as touching.
         :return: Resulting shape.
-        :rtype: Shape
         :raises BuildFailed: If the operation fails or no shapes are given.
         """
         return IntersectShapes(self, other, tol).shape()
@@ -492,10 +458,9 @@ class Shape:
         """
         Fillet edges of this shape with a constant radius.
 
-        :param Edge | Iterable[Edge] edges: Edge(s) to fillet. Must belong to this shape.
-        :param float radius: Fillet radius. Must be positive.
+        :param edges: Edge(s) to fillet. Must belong to this shape.
+        :param radius: Fillet radius. Must be positive.
         :return: Filleted shape.
-        :rtype: Shape
         :raises BuildFailed: If the radius is not positive or is too large.
         :raises RuntimeError: If no edges are given or they do not belong to this shape.
         """
@@ -508,10 +473,9 @@ class Shape:
         """
         Chamfer edges of this shape with the same distance on both adjacent faces.
 
-        :param Edge | Iterable[Edge] edges: Edge(s) to chamfer. Must belong to this shape.
-        :param float distance: Distance from the edge along each adjacent face. Must be positive.
+        :param edges: Edge(s) to chamfer. Must belong to this shape.
+        :param distance: Distance from the edge along each adjacent face. Must be positive.
         :return: Chamfered shape.
-        :rtype: Shape
         :raises BuildFailed: If the distance is not positive or is too large.
         :raises RuntimeError: If no edges are given or they do not belong to this shape.
         """
@@ -526,11 +490,10 @@ class Shape:
         """
         Create a hollow solid with uniform wall thickness.
 
-        :param float thickness: Wall thickness, negative for inward and positive for outward.
-        :param Face | Iterable[Face] | None faces: Face(s) to remove.
-        :param float tol: Tolerance. Used only with ``faces``.
+        :param thickness: Wall thickness, negative for inward and positive for outward.
+        :param faces: Face(s) to remove.
+        :param tol: Tolerance. Used only with ``faces``.
         :return: Hollow solid.
-        :rtype: Shape
         :raises BuildFailed: If the operation fails (e.g. a solid without ``faces``).
         """
         return ThickenShape(self, thickness, faces, tol).shape()
@@ -539,7 +502,7 @@ class Shape:
         """
         Export this shape to a STEP file.
 
-        :param str path: File path.
+        :param path: File path.
         :raises RuntimeError: If the export fails.
         """
         if not self.ishape.ExportSTEP(path):
@@ -556,9 +519,8 @@ class Vertex(Shape):
         """
         Create a vertex at a point.
 
-        :param Point p: Location.
+        :param p: Location.
         :return: New vertex.
-        :rtype: Vertex
         """
         ivertex = IShape.MakeVertex(p.ipoint)
         return cls(ivertex)
@@ -567,7 +529,7 @@ class Vertex(Shape):
         """
         Initialize from an IShape.
 
-        :param IShape v: Underlying topological shape.
+        :param v: Underlying topological shape.
         """
         super().__init__(v)
         if v.Kind() != IShapeKind.Vertex:
@@ -579,7 +541,6 @@ class Vertex(Shape):
         Location of the vertex.
 
         :return: Location.
-        :rtype: Point
         """
         ipoint = self.ishape.Point()
         assert ipoint is not None  # guaranteed by the kind check in __init__
@@ -589,9 +550,8 @@ class Vertex(Shape):
         """
         Extrude this vertex along a vector into an edge.
 
-        :param Vector vector: Extrusion direction and distance.
+        :param vector: Extrusion direction and distance.
         :return: Extruded edge.
-        :rtype: Edge
         :raises RuntimeError: If the vector has zero length.
         """
         return ExtrudeShape(self, vector).shape()
@@ -600,9 +560,8 @@ class Vertex(Shape):
         """
         Revolve this vertex a full turn about an axis into a closed circular edge.
 
-        :param Axis axis: Axis of revolution.
+        :param axis: Axis of revolution.
         :return: Revolved edge.
-        :rtype: Edge
         """
         return RevolveShape(self, axis).shape()
 
@@ -617,9 +576,8 @@ class Edge(Shape):
         """
         Create an edge from a 3D curve.
 
-        :param Curve c: 3D curve.
+        :param c: 3D curve.
         :return: New edge.
-        :rtype: Edge
         """
         iedge = IShape.MakeEdge(c.icurve)
         return cls(iedge)
@@ -629,10 +587,9 @@ class Edge(Shape):
         """
         Create an edge from a 2D curve in the (u, v) parameter space of a surface.
 
-        :param Curve2D c: 2D curve, with x as u and y as v.
-        :param Surface s: Surface.
+        :param c: 2D curve, with x as u and y as v.
+        :param s: Surface.
         :return: New edge.
-        :rtype: Edge
         """
         iedge = IShape.MakeEdge(c.icurve, s.isurface)
         return cls(iedge)
@@ -642,10 +599,9 @@ class Edge(Shape):
         """
         Create an edge from two points.
 
-        :param Point p1: Start point.
-        :param Point p2: End point.
+        :param p1: Start point.
+        :param p2: End point.
         :return: New edge.
-        :rtype: Edge
         :raises RuntimeError: If the points coincide.
         """
         iedge = IShape.MakeEdge(p1.ipoint, p2.ipoint)
@@ -656,10 +612,9 @@ class Edge(Shape):
         """
         Create an edge between two vertices without copying them.
 
-        :param Vertex v1: Start vertex.
-        :param Vertex v2: End vertex.
+        :param v1: Start vertex.
+        :param v2: End vertex.
         :return: New edge.
-        :rtype: Edge
         :raises KindMismatch: If an argument is a shape other than a vertex.
         :raises RuntimeError: If the vertices coincide.
         """
@@ -671,11 +626,10 @@ class Edge(Shape):
         """
         Create an edge from a circular arc through three points.
 
-        :param Point p1: Start point.
-        :param Point p2: Intermediate point.
-        :param Point p3: End point.
+        :param p1: Start point.
+        :param p2: Intermediate point.
+        :param p3: End point.
         :return: New edge.
-        :rtype: Edge
         :raises RuntimeError: If the points are collinear.
         """
         c = TrimmedCurve.by_circular_arc(p1, p2, p3)
@@ -687,10 +641,9 @@ class Edge(Shape):
         """
         Create an edge from a smooth curve passing through points in order.
 
-        :param Iterable[Point] points: At least two points.
-        :param float tol: Distance below which two points count as coincident.
+        :param points: At least two points.
+        :param tol: Distance below which two points count as coincident.
         :return: New edge.
-        :rtype: Edge
         :raises BuildFailed: If the interpolation fails.
         :raises RuntimeError: If there are fewer than two points.
         """
@@ -702,7 +655,7 @@ class Edge(Shape):
         """
         Initialize from an IShape.
 
-        :param IShape e: Underlying topological shape.
+        :param e: Underlying topological shape.
         """
         super().__init__(e)
         if e.Kind() != IShapeKind.Edge:
@@ -714,7 +667,6 @@ class Edge(Shape):
         Underlying curve of the edge.
 
         :return: Underlying curve, or None if the edge has no 3D curve.
-        :rtype: Curve | None
         :raises NotImplementedError: If the curve kind is not wrapped (e.g. an offset of a spline).
         """
         icurve = self.ishape.Curve()
@@ -724,9 +676,8 @@ class Edge(Shape):
         """
         Extrude this edge along a vector into a face.
 
-        :param Vector vector: Extrusion direction and distance.
+        :param vector: Extrusion direction and distance.
         :return: Extruded face.
-        :rtype: Face
         :raises RuntimeError: If the vector has zero length.
         """
         return ExtrudeShape(self, vector).shape()
@@ -735,9 +686,8 @@ class Edge(Shape):
         """
         Revolve this edge a full turn about an axis into a face.
 
-        :param Axis axis: Axis of revolution.
+        :param axis: Axis of revolution.
         :return: Revolved face.
-        :rtype: Face
         :raises BuildFailed: If the edge crosses the axis.
         """
         return RevolveShape(self, axis).shape()
@@ -753,9 +703,8 @@ class Wire(Shape):
         """
         Create a wire from an edge.
 
-        :param Edge e: Edge.
+        :param e: Edge.
         :return: New wire.
-        :rtype: Wire
         :raises KindMismatch: If the argument is a shape other than an edge.
         """
         iwire = IShape.MakeWire(e.ishape)
@@ -766,9 +715,8 @@ class Wire(Shape):
         """
         Create a wire from connected edges in any order.
 
-        :param Iterable[Edge] edges: Edges. Must not be empty.
+        :param edges: Edges. Must not be empty.
         :return: New wire.
-        :rtype: Wire
         :raises KindMismatch: If an item is a shape other than an edge.
         :raises RuntimeError: If the edges are not connected.
         """
@@ -780,7 +728,7 @@ class Wire(Shape):
         """
         Initialize from an IShape.
 
-        :param IShape w: Underlying topological shape.
+        :param w: Underlying topological shape.
         """
         super().__init__(w)
         if w.Kind() != IShapeKind.Wire:
@@ -790,9 +738,8 @@ class Wire(Shape):
         """
         Create a wire by joining this wire to a connected wire.
 
-        :param Wire other: Other wire.
+        :param other: Other wire.
         :return: New wire.
-        :rtype: Wire
         :raises KindMismatch: If the argument is a shape other than a wire.
         :raises RuntimeError: If the wires are not connected.
         """
@@ -803,10 +750,9 @@ class Wire(Shape):
         """
         Offset this planar wire within its plane.
 
-        :param float distance: Offset distance.
-        :param Face | None spine: Planar face the wire lies on.
+        :param distance: Offset distance.
+        :param spine: Planar face the wire lies on.
         :return: Offset wire or wires.
-        :rtype: Shape
         :raises BuildFailed: If the offset fails.
         """
         return OffsetWire(self, distance, spine).shape()
@@ -815,9 +761,8 @@ class Wire(Shape):
         """
         Extrude this wire along a vector into a shell.
 
-        :param Vector vector: Extrusion direction and distance.
+        :param vector: Extrusion direction and distance.
         :return: Extruded shell.
-        :rtype: Shell
         :raises RuntimeError: If the vector has zero length.
         """
         return ExtrudeShape(self, vector).shape()
@@ -826,9 +771,8 @@ class Wire(Shape):
         """
         Revolve this wire a full turn about an axis into a shell.
 
-        :param Axis axis: Axis of revolution.
+        :param axis: Axis of revolution.
         :return: Revolved shell.
-        :rtype: Shell
         :raises BuildFailed: If the wire crosses the axis.
         """
         return RevolveShape(self, axis).shape()
@@ -844,9 +788,8 @@ class Face(Shape):
         """
         Create a planar face from a wire.
 
-        :param Wire w: Closed, planar wire.
+        :param w: Closed, planar wire.
         :return: New face.
-        :rtype: Face
         :raises KindMismatch: If the argument is a shape other than a wire.
         """
         iface = IShape.MakeFace(w.ishape)
@@ -856,7 +799,7 @@ class Face(Shape):
         """
         Initialize from an IShape.
 
-        :param IShape f: Underlying topological shape.
+        :param f: Underlying topological shape.
         """
         super().__init__(f)
         if f.Kind() != IShapeKind.Face:
@@ -866,9 +809,8 @@ class Face(Shape):
         """
         Extrude this face along a vector into a solid.
 
-        :param Vector vector: Extrusion direction and distance.
+        :param vector: Extrusion direction and distance.
         :return: Extruded solid.
-        :rtype: Solid
         :raises RuntimeError: If the vector has zero length.
         """
         return ExtrudeShape(self, vector).shape()
@@ -877,9 +819,8 @@ class Face(Shape):
         """
         Revolve this face a full turn about an axis into a solid.
 
-        :param Axis axis: Axis of revolution.
+        :param axis: Axis of revolution.
         :return: Revolved solid.
-        :rtype: Solid
         :raises BuildFailed: If the face crosses the axis.
         """
         return RevolveShape(self, axis).shape()
@@ -894,7 +835,7 @@ class Shell(Shape):
         """
         Initialize from an IShape.
 
-        :param IShape s: Underlying topological shape.
+        :param s: Underlying topological shape.
         """
         super().__init__(s)
         if s.Kind() != IShapeKind.Shell:
@@ -904,9 +845,8 @@ class Shell(Shape):
         """
         Extrude this shell along a vector into a compsolid.
 
-        :param Vector vector: Extrusion direction and distance.
+        :param vector: Extrusion direction and distance.
         :return: Extruded compsolid.
-        :rtype: CompSolid
         :raises RuntimeError: If the vector has zero length.
         """
         return ExtrudeShape(self, vector).shape()
@@ -915,9 +855,8 @@ class Shell(Shape):
         """
         Revolve this shell a full turn about an axis into a compsolid.
 
-        :param Axis axis: Axis of revolution. Must not cross the shell.
+        :param axis: Axis of revolution. Must not cross the shell.
         :return: Revolved compsolid.
-        :rtype: CompSolid
         """
         return RevolveShape(self, axis).shape()
 
@@ -934,11 +873,10 @@ class Solid(Shape):
         """
         Create a solid by lofting through sections in order.
 
-        :param Iterable[Vertex | Edge | Wire] shapes: Sections.
-        :param bool is_ruled: True for ruled surfaces between sections, False for smooth surfaces.
-        :param float tol: Tolerance.
+        :param shapes: Sections.
+        :param is_ruled: True for ruled surfaces between sections, False for smooth surfaces.
+        :param tol: Tolerance.
         :return: New solid.
-        :rtype: Solid
         :raises NotImplementedError: If a section is not a wire.
         :raises BuildFailed: If no sections are given or the loft fails.
         """
@@ -955,7 +893,7 @@ class Solid(Shape):
         """
         Initialize from an IShape.
 
-        :param IShape s: Underlying topological shape.
+        :param s: Underlying topological shape.
         """
         super().__init__(s)
         if s.Kind() != IShapeKind.Solid:
@@ -971,7 +909,7 @@ class CompSolid(Shape):
         """
         Initialize from an IShape.
 
-        :param IShape cs: Underlying topological shape.
+        :param cs: Underlying topological shape.
         """
         super().__init__(cs)
         if cs.Kind() != IShapeKind.CompSolid:
@@ -988,9 +926,8 @@ class Compound(Shape):
         """
         Create a compound from a list of shapes.
 
-        :param Iterable[Shape] shapes: Shapes to include in the compound.
+        :param shapes: Shapes to include in the compound.
         :return: New compound.
-        :rtype: Compound
         """
         ishapes = [s.ishape for s in shapes]
         icompound = IShape.MakeCompound(ishapes)
@@ -1000,7 +937,7 @@ class Compound(Shape):
         """
         Initialize from an IShape.
 
-        :param IShape c: Underlying topological shape.
+        :param c: Underlying topological shape.
         """
         super().__init__(c)
         if c.Kind() != IShapeKind.Compound:
@@ -1011,9 +948,8 @@ def _kind_of(cls: type[Shape]) -> ShapeKind:
     """
     Get the shape kind of a core shape class.
 
-    :param type[Shape] cls: Core shape class (e.g. ``Edge``).
+    :param cls: Core shape class (e.g. ``Edge``).
     :return: Shape kind.
-    :rtype: ShapeKind
     :raises TypeError: If the class is not a core shape class (e.g. the base class or a composite).
     """
     kinds = {
@@ -1040,7 +976,7 @@ class ShapeTool(Generic[ToolT]):
         """
         Initialize from an internal tool.
 
-        :param ToolT itool: Internal tool.
+        :param itool: Internal tool.
         """
         self._itool = itool
 
@@ -1050,7 +986,6 @@ class ShapeTool(Generic[ToolT]):
         Check if the tool finished successfully.
 
         :return: True if done.
-        :rtype: bool
         """
         return self._itool.IsDone()
 
@@ -1065,7 +1000,6 @@ class ShapeTool(Generic[ToolT]):
         Get the resulting shape.
 
         :return: Resulting shape.
-        :rtype: Shape
         :raises BuildFailed: If the operation fails.
         """
         return Shape.by_ishape(self._itool.Shape())
@@ -1074,9 +1008,8 @@ class ShapeTool(Generic[ToolT]):
         """
         Get shapes generated from a sub-shape of the source shape (e.g. the face from an edge).
 
-        :param Shape s: Sub-shape of the source shape.
+        :param s: Sub-shape of the source shape.
         :return: Generated shapes.
-        :rtype: list[Shape]
         :raises BuildFailed: If the operation fails.
         """
         return Shape.by_ishapes(self._itool.GeneratedShapes(s.ishape))
@@ -1085,9 +1018,8 @@ class ShapeTool(Generic[ToolT]):
         """
         Get what a sub-shape of the source shape became (e.g. the trimmed face after a fillet).
 
-        :param Shape s: Sub-shape of the source shape.
+        :param s: Sub-shape of the source shape.
         :return: Modified shapes.
-        :rtype: list[Shape]
         :raises BuildFailed: If the operation fails.
         """
         return Shape.by_ishapes(self._itool.ModifiedShapes(s.ishape))
@@ -1096,9 +1028,8 @@ class ShapeTool(Generic[ToolT]):
         """
         Check if a sub-shape of the source shape is absent from the result (e.g. a filleted edge).
 
-        :param Shape s: Sub-shape of the source shape.
+        :param s: Sub-shape of the source shape.
         :return: True if deleted.
-        :rtype: bool
         :raises BuildFailed: If the operation fails.
         """
         return self._itool.IsDeleted(s.ishape)
@@ -1108,9 +1039,8 @@ def _ishapes(shapes: Shape | Iterable[Shape]) -> list[IShape]:
     """
     Get the underlying shapes of one shape or an iterable of shapes.
 
-    :param Shape | Iterable[Shape] shapes: Shape(s).
+    :param shapes: Shape(s).
     :return: Underlying topological shapes.
-    :rtype: list[IShape]
     """
     return [shapes.ishape] if isinstance(shapes, Shape) else [s.ishape for s in shapes]
 
@@ -1125,7 +1055,6 @@ class BooleanShapes(ShapeTool[BooleanToolT]):
         Get the edges where the surfaces of the shapes intersect.
 
         :return: Intersection edges.
-        :rtype: list[Edge]
         """
         return [Edge(e) for e in self._itool.IntersectionEdges()]
 
@@ -1144,9 +1073,9 @@ class UniteShapes(BooleanShapes[UniteIShapes]):
         """
         Initialize with target and tool shapes.
 
-        :param Shape | Iterable[Shape] target: Target shape(s) to unite with.
-        :param Shape | Iterable[Shape] tool: Tool shape(s) to unite.
-        :param float tol: Distance below which geometry counts as touching.
+        :param target: Target shape(s) to unite with.
+        :param tool: Tool shape(s) to unite.
+        :param tol: Distance below which geometry counts as touching.
         """
         super().__init__(UniteIShapes(_ishapes(target), _ishapes(tool), tol))
 
@@ -1165,9 +1094,9 @@ class CutShapes(BooleanShapes[CutIShapes]):
         """
         Initialize with target and tool shapes.
 
-        :param Shape | Iterable[Shape] target: Target shape(s) to cut from.
-        :param Shape | Iterable[Shape] tool: Tool shape(s) to subtract.
-        :param float tol: Distance below which geometry counts as touching.
+        :param target: Target shape(s) to cut from.
+        :param tool: Tool shape(s) to subtract.
+        :param tol: Distance below which geometry counts as touching.
         """
         super().__init__(CutIShapes(_ishapes(target), _ishapes(tool), tol))
 
@@ -1186,9 +1115,9 @@ class IntersectShapes(BooleanShapes[IntersectIShapes]):
         """
         Initialize with target and tool shapes.
 
-        :param Shape | Iterable[Shape] target: Target shape(s) to intersect.
-        :param Shape | Iterable[Shape] tool: Tool shape(s) to intersect with.
-        :param float tol: Distance below which geometry counts as touching.
+        :param target: Target shape(s) to intersect.
+        :param tool: Tool shape(s) to intersect with.
+        :param tol: Distance below which geometry counts as touching.
         """
         super().__init__(IntersectIShapes(_ishapes(target), _ishapes(tool), tol))
 
@@ -1202,8 +1131,8 @@ class CopyShape(ShapeTool[CopyIShape], Generic[T]):
         """
         Initialize with shape.
 
-        :param Shape s: Source shape.
-        :param bool copy_geom: True to copy the underlying geometry.
+        :param s: Source shape.
+        :param copy_geom: True to copy the underlying geometry.
         """
         itool = CopyIShape(s.ishape, copy_geom)
         super().__init__(itool)
@@ -1213,7 +1142,6 @@ class CopyShape(ShapeTool[CopyIShape], Generic[T]):
         Get the resulting shape.
 
         :return: Resulting shape of the same type as the source.
-        :rtype: T
         """
         return cast(T, super().shape())
 
@@ -1221,9 +1149,8 @@ class CopyShape(ShapeTool[CopyIShape], Generic[T]):
         """
         Get the copy of a sub-shape of the source shape.
 
-        :param S s: Sub-shape of the source shape.
+        :param s: Sub-shape of the source shape.
         :return: Copied sub-shape of the same type.
-        :rtype: S
         :raises RuntimeError: If the shape is not a sub-shape of the source shape.
         """
         return cast(S, Shape.by_ishape(self._itool.ModifiedShape(s.ishape)))
@@ -1238,9 +1165,9 @@ class TransformShape(ShapeTool[TransformIShape], Generic[T]):
         """
         Initialize with shape and transformation.
 
-        :param Shape s: Source shape.
-        :param Transform t: Transformation.
-        :param bool copy_geom: True to copy the underlying geometry.
+        :param s: Source shape.
+        :param t: Transformation.
+        :param copy_geom: True to copy the underlying geometry.
         """
         itool = TransformIShape(s.ishape, t.itransform, copy_geom)
         super().__init__(itool)
@@ -1250,7 +1177,6 @@ class TransformShape(ShapeTool[TransformIShape], Generic[T]):
         Get the resulting shape.
 
         :return: Resulting shape of the same type as the source.
-        :rtype: T
         """
         return cast(T, super().shape())
 
@@ -1258,9 +1184,8 @@ class TransformShape(ShapeTool[TransformIShape], Generic[T]):
         """
         Get the transformed version of a sub-shape of the source shape.
 
-        :param S s: Sub-shape of the source shape.
+        :param s: Sub-shape of the source shape.
         :return: Transformed sub-shape of the same type.
-        :rtype: S
         :raises RuntimeError: If ``copy_geom`` is True and this is not a sub-shape of the source.
         """
         return cast(S, Shape.by_ishape(self._itool.ModifiedShape(s.ishape)))
@@ -1275,8 +1200,8 @@ class ExtrudeShape(ShapeTool[ExtrudeIShape], Generic[T]):
         """
         Initialize with shape and vector.
 
-        :param T s: Source shape.
-        :param Vector v: Extrusion direction and distance.
+        :param s: Source shape.
+        :param v: Extrusion direction and distance.
         :raises RuntimeError: If the source is a solid or the vector has zero length.
         """
         itool = ExtrudeIShape(s.ishape, v.ivector)
@@ -1300,7 +1225,6 @@ class ExtrudeShape(ShapeTool[ExtrudeIShape], Generic[T]):
         Get the resulting shape, one dimension higher than the source.
 
         :return: Extruded shape.
-        :rtype: Shape
         """
         return super().shape()
 
@@ -1313,9 +1237,8 @@ class ExtrudeShape(ShapeTool[ExtrudeIShape], Generic[T]):
         """
         Get the shape at the start of the extrusion.
 
-        :param Shape | None s: Sub-shape of the source shape. Defaults to the source shape.
+        :param s: Sub-shape of the source shape. Defaults to the source shape.
         :return: First shape of the same type as the argument.
-        :rtype: Shape
         :raises RuntimeError: If the shape is not a sub-shape of the source shape.
         """
         ishape = self._itool.FirstShape() if s is None else self._itool.FirstShape(s.ishape)
@@ -1330,9 +1253,8 @@ class ExtrudeShape(ShapeTool[ExtrudeIShape], Generic[T]):
         """
         Get the shape at the end of the extrusion, for the source shape or its sub-shape.
 
-        :param Shape | None s: Sub-shape of the source shape. Defaults to the source shape.
+        :param s: Sub-shape of the source shape. Defaults to the source shape.
         :return: Last shape of the same type as the argument.
-        :rtype: Shape
         :raises RuntimeError: If the shape is not a sub-shape of the source shape.
         """
         ishape = self._itool.LastShape() if s is None else self._itool.LastShape(s.ishape)
@@ -1348,8 +1270,8 @@ class RevolveShape(ShapeTool[RevolveIShape], Generic[T]):
         """
         Initialize with shape and axis.
 
-        :param T s: Source shape. May touch the axis but must not cross it.
-        :param Axis axis: Axis of revolution.
+        :param s: Source shape. May touch the axis but must not cross it.
+        :param axis: Axis of revolution.
         :raises RuntimeError: If the source is a solid.
         """
         itool = RevolveIShape(s.ishape, axis.iaxis)
@@ -1373,7 +1295,6 @@ class RevolveShape(ShapeTool[RevolveIShape], Generic[T]):
         Get the resulting shape, one dimension higher than the source.
 
         :return: Revolved shape.
-        :rtype: Shape
         :raises BuildFailed: If the source crosses the axis.
         """
         return super().shape()
@@ -1388,7 +1309,7 @@ class FilletShape(ShapeTool[FilletIShape]):
         """
         Initialize with shape.
 
-        :param Shape s: Source shape.
+        :param s: Source shape.
         """
         itool = FilletIShape(s.ishape)
         super().__init__(itool)
@@ -1397,8 +1318,8 @@ class FilletShape(ShapeTool[FilletIShape]):
         """
         Add an edge to fillet.
 
-        :param Edge e: Edge. Must belong to the source shape.
-        :param float radius: Fillet radius. Must be positive.
+        :param e: Edge. Must belong to the source shape.
+        :param radius: Fillet radius. Must be positive.
         """
         self._itool.AddEdge(e.ishape, radius)
 
@@ -1412,7 +1333,7 @@ class ChamferShape(ShapeTool[ChamferIShape]):
         """
         Initialize with shape.
 
-        :param Shape s: Source shape.
+        :param s: Source shape.
         """
         itool = ChamferIShape(s.ishape)
         super().__init__(itool)
@@ -1421,8 +1342,8 @@ class ChamferShape(ShapeTool[ChamferIShape]):
         """
         Add an edge to chamfer.
 
-        :param Edge e: Edge. Must belong to the source shape.
-        :param float distance: Distance from the edge along each adjacent face. Must be positive.
+        :param e: Edge. Must belong to the source shape.
+        :param distance: Distance from the edge along each adjacent face. Must be positive.
         """
         self._itool.AddEdge(e.ishape, distance)
 
@@ -1442,10 +1363,10 @@ class ThickenShape(ShapeTool[ThickenIShape]):
         """
         Initialize with shape and thickness.
 
-        :param Shape s: Source shape.
-        :param float thickness: Wall thickness, negative for inward and positive for outward.
-        :param Face | Iterable[Face] | None faces: Face(s) to remove.
-        :param float tol: Tolerance. Used only with ``faces``.
+        :param s: Source shape.
+        :param thickness: Wall thickness, negative for inward and positive for outward.
+        :param faces: Face(s) to remove.
+        :param tol: Tolerance. Used only with ``faces``.
         """
         if faces is None:
             itool = ThickenIShape(s.ishape, thickness)
@@ -1463,9 +1384,9 @@ class OffsetWire(ShapeTool[OffsetIWire]):
         """
         Initialize with wire and distance.
 
-        :param Wire w: Source wire.
-        :param float distance: Offset distance.
-        :param Face | None spine: Planar face the wire lies on.
+        :param w: Source wire.
+        :param distance: Offset distance.
+        :param spine: Planar face the wire lies on.
         """
         if spine is None:
             itool = OffsetIWire(w.ishape, distance)
@@ -1483,9 +1404,9 @@ class LoftShape(ShapeTool[LoftIShape]):
         """
         Initialize with loft options.
 
-        :param bool is_solid: True to create a solid, False to create a shell.
-        :param bool is_ruled: True for ruled surfaces between sections, False for smooth surfaces.
-        :param float tol: Tolerance.
+        :param is_solid: True to create a solid, False to create a shell.
+        :param is_ruled: True for ruled surfaces between sections, False for smooth surfaces.
+        :param tol: Tolerance.
         """
         itool = LoftIShape(is_solid, is_ruled, tol)
         super().__init__(itool)
@@ -1494,7 +1415,7 @@ class LoftShape(ShapeTool[LoftIShape]):
         """
         Add the next section wire.
 
-        :param Wire w: Section wire.
+        :param w: Section wire.
         """
         self._itool.AddWire(w.ishape)
 
@@ -1508,8 +1429,8 @@ class MapShape(Sequence[T]):
         """
         Initialize with shape and class of sub-shapes.
 
-        :param Shape shape: Source shape.
-        :param type[T] kind: Class of sub-shapes to map (e.g. ``Edge``).
+        :param shape: Source shape.
+        :param kind: Class of sub-shapes to map (e.g. ``Edge``).
         :raises TypeError: If a class is not a core shape class (e.g. ``Shape`` or ``Box``).
         """
         self._itool = MapIShape(shape.ishape, _kind_of(kind).value)
@@ -1519,7 +1440,6 @@ class MapShape(Sequence[T]):
         Number of mapped shapes.
 
         :return: Count.
-        :rtype: int
         """
         return self._itool.Size()
 
@@ -1528,7 +1448,6 @@ class MapShape(Sequence[T]):
         Iterate over mapped shapes.
 
         :return: Iterator of shapes.
-        :rtype: Iterator[T]
         """
         # OCCT is 1-based
         for i in range(1, self._itool.Size() + 1):
@@ -1543,9 +1462,8 @@ class MapShape(Sequence[T]):
         """
         Get a shape by 0-based index, or a list of shapes by slice.
 
-        :param int | slice index: 0-based index, or negative to count from the end, or a slice.
+        :param index: 0-based index, or negative to count from the end, or a slice.
         :return: Sub-shape, or a list of sub-shapes for a slice.
-        :rtype: T | list[T]
         :raises IndexError: If the index is out of range.
         """
         n = len(self)
@@ -1565,7 +1483,6 @@ class MapShape(Sequence[T]):
         Number of shapes in the map.
 
         :return: Size.
-        :rtype: int
         """
         return self._itool.Size()
 
@@ -1575,7 +1492,6 @@ class MapShape(Sequence[T]):
         Number of shapes in the map, the same as :attr:`size`.
 
         :return: Extent.
-        :rtype: int
         """
         return self._itool.Extent()
 
@@ -1583,9 +1499,8 @@ class MapShape(Sequence[T]):
         """
         Find shape by 0-based index.
 
-        :param int index: 0-based index.
+        :param index: 0-based index.
         :return: Sub-shape.
-        :rtype: T
         :raises RuntimeError: If the index is out of range.
         """
         # OCCT is 1-based, Python is 0-based
@@ -1596,9 +1511,8 @@ class MapShape(Sequence[T]):
         """
         Find 0-based index of a shape.
 
-        :param T shape: Sub-shape.
+        :param shape: Sub-shape.
         :return: 0-based index, or None if not found.
-        :rtype: int | None
         """
         # OCCT is 1-based, Python is 0-based
         indx = self._itool.FindIndex(shape.ishape)
@@ -1608,9 +1522,8 @@ class MapShape(Sequence[T]):
         """
         Check if a shape is in the map.
 
-        :param T shape: Sub-shape.
+        :param shape: Sub-shape.
         :return: True if found.
-        :rtype: bool
         """
         return self._itool.Contains(shape.ishape)
 
@@ -1618,9 +1531,8 @@ class MapShape(Sequence[T]):
         """
         Check if a shape is in the map, for the ``in`` operator.
 
-        :param object shape: Sub-shape.
+        :param shape: Sub-shape.
         :return: True if found.
-        :rtype: bool
         """
         return isinstance(shape, Shape) and self._itool.Contains(shape.ishape)
 
@@ -1634,9 +1546,9 @@ class ExploreShape(Generic[T]):
         """
         Initialize with shape and classes of sub-shapes to find and skip.
 
-        :param Shape shape: Source shape.
-        :param type[T] find: Class of shapes to find (e.g. ``Edge``).
-        :param type[Shape] | None ignore: Class of shapes to skip, along with their sub-shapes.
+        :param shape: Source shape.
+        :param find: Class of shapes to find (e.g. ``Edge``).
+        :param ignore: Class of shapes to skip, along with their sub-shapes.
         :raises TypeError: If a class is not a core shape class (e.g. ``Shape`` or ``Box``).
         """
         self._shape = shape
@@ -1648,7 +1560,6 @@ class ExploreShape(Generic[T]):
         Iterate over discovered shapes.
 
         :return: Iterator of shapes.
-        :rtype: Iterator[T]
         """
         itool = ExploreIShape(self._shape.ishape, self._find.value, self._ignore.value)
         while itool.More():

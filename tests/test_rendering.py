@@ -684,9 +684,7 @@ class TestCallout(RenderingTest):
         def margin(text: str) -> int:
             render_image(box, str(path), View.FRONT, 400, 400, Callout(box.front_face, text))
             image = Image(path)
-            return sum(
-                1 for y in range(100, 300) for x in range(0, 60) if image.pixel(x, y) != WHITE
-            )
+            return sum(1 for y in range(100, 300) for x in range(60) if image.pixel(x, y) != WHITE)
 
         blank = margin(" ")
         for code in range(33, 127):

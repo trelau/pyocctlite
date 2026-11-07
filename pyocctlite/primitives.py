@@ -30,8 +30,8 @@ def _check_size(name: str, value: float) -> None:
     """
     Check that a size is finite and large enough for OCCT to build.
 
-    :param str name: Name of the size, used in the error message.
-    :param float value: Size to check.
+    :param name: Name of the size, used in the error message.
+    :param value: Size to check.
     :raises ValueError: If the size is not finite or is too small.
     """
     if not _MIN_SIZE < value < math.inf:
@@ -42,12 +42,12 @@ class Box(Solid):
     """
     Represents a box with one corner at the frame origin, extending along its positive axes.
 
-    :ivar Face bottom_face: Bottom face (minimum z).
-    :ivar Face top_face: Top face (maximum z).
-    :ivar Face back_face: Back face (maximum y).
-    :ivar Face front_face: Front face (minimum y).
-    :ivar Face left_face: Left face (minimum x).
-    :ivar Face right_face: Right face (maximum x).
+    :ivar bottom_face: Bottom face (minimum z).
+    :ivar top_face: Top face (maximum z).
+    :ivar back_face: Back face (maximum y).
+    :ivar front_face: Front face (minimum y).
+    :ivar left_face: Left face (minimum x).
+    :ivar right_face: Right face (maximum x).
     """
 
     @classmethod
@@ -55,12 +55,11 @@ class Box(Solid):
         """
         Create a box from size and location.
 
-        :param float dx: Size along the x-direction of the frame.
-        :param float dy: Size along the y-direction of the frame.
-        :param float dz: Size along the z-direction of the frame.
-        :param Frame | None frame: Coordinate system. Defaults to the global origin.
+        :param dx: Size along the x-direction of the frame.
+        :param dy: Size along the y-direction of the frame.
+        :param dz: Size along the z-direction of the frame.
+        :param frame: Coordinate system. Defaults to the global origin.
         :return: New box.
-        :rtype: Box
         :raises ValueError: If a size is not finite or is too small.
         """
         _check_size("dx", dx)
@@ -130,13 +129,13 @@ class Box(Solid):
         """
         Initialize from component faces.
 
-        :param Solid solid: Underlying solid.
-        :param Face bottom_face: Bottom face.
-        :param Face top_face: Top face.
-        :param Face back_face: Back face.
-        :param Face front_face: Front face.
-        :param Face left_face: Left face.
-        :param Face right_face: Right face.
+        :param solid: Underlying solid.
+        :param bottom_face: Bottom face.
+        :param top_face: Top face.
+        :param back_face: Back face.
+        :param front_face: Front face.
+        :param left_face: Left face.
+        :param right_face: Right face.
         """
         super().__init__(solid.ishape)
 
@@ -153,7 +152,6 @@ class Box(Solid):
         Bottom face.
 
         :return: Face object.
-        :rtype: Face
         """
         return self._bottom_face
 
@@ -163,7 +161,6 @@ class Box(Solid):
         Top face.
 
         :return: Face object.
-        :rtype: Face
         """
         return self._top_face
 
@@ -173,7 +170,6 @@ class Box(Solid):
         Back face.
 
         :return: Face object.
-        :rtype: Face
         """
         return self._back_face
 
@@ -183,7 +179,6 @@ class Box(Solid):
         Front face.
 
         :return: Face object.
-        :rtype: Face
         """
         return self._front_face
 
@@ -193,7 +188,6 @@ class Box(Solid):
         Left face.
 
         :return: Face object.
-        :rtype: Face
         """
         return self._left_face
 
@@ -203,7 +197,6 @@ class Box(Solid):
         Right face.
 
         :return: Face object.
-        :rtype: Face
         """
         return self._right_face
 
@@ -211,9 +204,8 @@ class Box(Solid):
         """
         Build a box from a kind-preserving tool by mapping each named face through its history.
 
-        :param CopyShape[Self] | TransformShape[Self] tool: Tool applied to this box.
+        :param tool: Tool applied to this box.
         :return: New box.
-        :rtype: Self
         """
         return type(self)(
             tool.shape(),
@@ -230,7 +222,7 @@ class Sphere(Solid):
     """
     Represents a sphere centered at the frame origin.
 
-    :ivar Face face: Spherical face.
+    :ivar face: Spherical face.
     """
 
     @classmethod
@@ -238,10 +230,9 @@ class Sphere(Solid):
         """
         Create a sphere from size and location.
 
-        :param float radius: Radius.
-        :param Frame | None frame: Coordinate system. Defaults to the global origin.
+        :param radius: Radius.
+        :param frame: Coordinate system. Defaults to the global origin.
         :return: New sphere.
-        :rtype: Sphere
         :raises ValueError: If the radius is not finite or is too small.
         """
         _check_size("radius", radius)
@@ -260,8 +251,8 @@ class Sphere(Solid):
         """
         Initialize from component faces.
 
-        :param Solid solid: Underlying solid.
-        :param Face face: Spherical face.
+        :param solid: Underlying solid.
+        :param face: Spherical face.
         """
         super().__init__(solid.ishape)
 
@@ -273,7 +264,6 @@ class Sphere(Solid):
         Spherical face.
 
         :return: Face object.
-        :rtype: Face
         """
         return self._face
 
@@ -281,9 +271,8 @@ class Sphere(Solid):
         """
         Build a sphere from a kind-preserving tool by mapping its named face through its history.
 
-        :param CopyShape[Self] | TransformShape[Self] tool: Tool applied to this sphere.
+        :param tool: Tool applied to this sphere.
         :return: New sphere.
-        :rtype: Self
         """
         return type(self)(tool.shape(), tool.modified_shape(self.face))
 
@@ -293,9 +282,9 @@ class Cylinder(Solid):
     Represents a cylinder with its base centered at the frame origin, extending along its
     z-direction.
 
-    :ivar Face bottom_face: Bottom face.
-    :ivar Face top_face: Top face.
-    :ivar Face lateral_face: Lateral face.
+    :ivar bottom_face: Bottom face.
+    :ivar top_face: Top face.
+    :ivar lateral_face: Lateral face.
     """
 
     @classmethod
@@ -303,11 +292,10 @@ class Cylinder(Solid):
         """
         Create a cylinder from size and location.
 
-        :param float radius: Radius.
-        :param float height: Height.
-        :param Frame | None frame: Coordinate system. Defaults to the global origin.
+        :param radius: Radius.
+        :param height: Height.
+        :param frame: Coordinate system. Defaults to the global origin.
         :return: New cylinder.
-        :rtype: Cylinder
         :raises ValueError: If a size is not finite or is too small.
         """
         _check_size("radius", radius)
@@ -350,10 +338,10 @@ class Cylinder(Solid):
         """
         Initialize from component faces.
 
-        :param Solid solid: Underlying solid.
-        :param Face bottom_face: Bottom face.
-        :param Face top_face: Top face.
-        :param Face lateral_face: Lateral face.
+        :param solid: Underlying solid.
+        :param bottom_face: Bottom face.
+        :param top_face: Top face.
+        :param lateral_face: Lateral face.
         """
         super().__init__(solid.ishape)
 
@@ -367,7 +355,6 @@ class Cylinder(Solid):
         Bottom face.
 
         :return: Face object.
-        :rtype: Face
         """
         return self._bottom_face
 
@@ -377,7 +364,6 @@ class Cylinder(Solid):
         Top face.
 
         :return: Face object.
-        :rtype: Face
         """
         return self._top_face
 
@@ -387,7 +373,6 @@ class Cylinder(Solid):
         Lateral face.
 
         :return: Face object.
-        :rtype: Face
         """
         return self._lateral_face
 
@@ -395,9 +380,8 @@ class Cylinder(Solid):
         """
         Build a cylinder from a kind-preserving tool by mapping each named face through its history.
 
-        :param CopyShape[Self] | TransformShape[Self] tool: Tool applied to this cylinder.
+        :param tool: Tool applied to this cylinder.
         :return: New cylinder.
-        :rtype: Self
         """
         return type(self)(
             tool.shape(),
