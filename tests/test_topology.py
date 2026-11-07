@@ -395,11 +395,12 @@ class TestSolid(unittest.TestCase):
         s = Solid.by_loft([_square(z=0.0), _square(z=1.0)])
         self.assertAlmostEqual(s.volume, 1.0)
 
-    def test_by_loft_on_composite(self):
-        for cls in (Box, Cylinder, Sphere):
-            s = cls.by_loft([_square(z=0.0), _square(z=1.0)])
-            self.assertIs(type(s), Solid)
-            self.assertAlmostEqual(s.volume, 1.0)
+    def test_composites_are_shapes_with_solid_kind(self):
+        for s in (Box.by_size(1, 1, 1), Cylinder.by_size(1, 1), Sphere.by_size(1)):
+            self.assertIsInstance(s, Shape)
+            self.assertNotIsInstance(s, Solid)
+            self.assertEqual(s.kind, ShapeKind.SOLID)
+            self.assertFalse(hasattr(s, "by_loft"))
 
     def test_by_loft_unsupported(self):
         e = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))

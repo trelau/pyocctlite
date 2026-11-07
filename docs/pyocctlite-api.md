@@ -141,7 +141,7 @@ class ProjectPointToCurve
 # pyocctlite.primitives
 
 ```
-class Box(Solid)
+class Box(Shape)
     Box.by_size(dx: float, dy: float, dz: float, frame: Frame | None = None) -> Box
     .bottom_face: Face
     .top_face: Face
@@ -149,10 +149,10 @@ class Box(Solid)
     .front_face: Face
     .left_face: Face
     .right_face: Face
-class Sphere(Solid)
+class Sphere(Shape)
     Sphere.by_size(radius: float, frame: Frame | None = None) -> Sphere
     .face: Face
-class Cylinder(Solid)
+class Cylinder(Shape)
     Cylinder.by_size(radius: float, height: float, frame: Frame | None = None) -> Cylinder
     .bottom_face: Face
     .top_face: Face

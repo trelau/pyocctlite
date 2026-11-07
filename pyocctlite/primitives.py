@@ -7,13 +7,14 @@ from __future__ import annotations
 import math
 from typing import Self
 
-from pyocctlite._occtlite import IShape
+from pyocctlite._occtlite import IShape, IShapeKind
 from pyocctlite.geometry import Circle, Frame, Point
 from pyocctlite.topology import (
     CopyShape,
     Edge,
     ExtrudeShape,
     Face,
+    Shape,
     Solid,
     TransformShape,
     Vertex,
@@ -38,7 +39,7 @@ def _check_size(name: str, value: float) -> None:
         raise ValueError(f"Expected {name} to be finite and above {_MIN_SIZE}, got {value}.")
 
 
-class Box(Solid):
+class Box(Shape):
     """
     Represents a box with one corner at the frame origin, extending along its positive axes.
 
@@ -49,6 +50,8 @@ class Box(Solid):
     :ivar left_face: Left face (minimum x).
     :ivar right_face: Right face (maximum x).
     """
+
+    _ikind = IShapeKind.Solid
 
     @classmethod
     def by_size(cls, dx: float, dy: float, dz: float, frame: Frame | None = None) -> Box:
@@ -205,7 +208,7 @@ class Box(Solid):
         :return: New box.
         """
         return type(self)(
-            tool.shape(),
+            Solid(tool.shape().ishape),
             tool.modified_shape(self.bottom_face),
             tool.modified_shape(self.top_face),
             tool.modified_shape(self.back_face),
@@ -215,12 +218,14 @@ class Box(Solid):
         )
 
 
-class Sphere(Solid):
+class Sphere(Shape):
     """
     Represents a sphere centered at the frame origin.
 
     :ivar face: Spherical face.
     """
+
+    _ikind = IShapeKind.Solid
 
     @classmethod
     def by_size(cls, radius: float, frame: Frame | None = None) -> Sphere:
@@ -271,10 +276,10 @@ class Sphere(Solid):
         :param tool: Tool applied to this sphere.
         :return: New sphere.
         """
-        return type(self)(tool.shape(), tool.modified_shape(self.face))
+        return type(self)(Solid(tool.shape().ishape), tool.modified_shape(self.face))
 
 
-class Cylinder(Solid):
+class Cylinder(Shape):
     """
     Represents a cylinder with its base centered at the frame origin, extending along its
     z-direction.
@@ -283,6 +288,8 @@ class Cylinder(Solid):
     :ivar top_face: Top face.
     :ivar lateral_face: Lateral face.
     """
+
+    _ikind = IShapeKind.Solid
 
     @classmethod
     def by_size(cls, radius: float, height: float, frame: Frame | None = None) -> Cylinder:
@@ -378,7 +385,7 @@ class Cylinder(Solid):
         :return: New cylinder.
         """
         return type(self)(
-            tool.shape(),
+            Solid(tool.shape().ishape),
             tool.modified_shape(self.bottom_face),
             tool.modified_shape(self.top_face),
             tool.modified_shape(self.lateral_face),
