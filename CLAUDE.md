@@ -25,10 +25,12 @@ Running the format, lint, and type checks:
 pre-commit run --all-files
 ```
 
-- After a C++ change, build and install before running Python checks; mypy reads the regenerated
-`pyocctlite/_occtlite.pyi`.
+- After a C++ change, build and install before editing Python; the edit hook runs mypy, which reads
+the regenerated `pyocctlite/_occtlite.pyi`.
+- OCCT can crash the interpreter on bad input rather than raise, so try uncertain inputs in their own
+process.
 - Temporary work goes in `scratch/`, generated output in `outputs/`.
-- Clear with `git clean -fdX <dir>/`.
+- Clear `scratch/` with `git clean -fdX scratch/` when moving on from a task.
 
 ## Layers
 
