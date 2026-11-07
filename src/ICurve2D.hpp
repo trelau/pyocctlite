@@ -105,11 +105,11 @@ public:
     return Handle(Geom2d_TrimmedCurve)::DownCast(curve_);
   }
 
-  // Get line data if this curve is a line
-  std::optional<ILine2DData> LineData() const;
+  // Get line data
+  ILine2DData LineData() const;
 
-  // Get ellipse data if this curve is an ellipse
-  std::optional<IEllipse2DData> EllipseData() const;
+  // Get ellipse data
+  IEllipse2DData EllipseData() const;
 
   // Validate that the curve2d is of the expected kind
   void ValidateKind(const ICurve2DKind expected) const;

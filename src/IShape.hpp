@@ -150,11 +150,11 @@ public:
   // Check if this shape and its sub-shapes are valid
   bool IsValid() const;
 
-  // Get the curve if this shape is an edge
+  // Get the curve of this edge, if it has one
   std::optional<ICurve> Curve() const;
 
-  // Get the point if this shape is a vertex
-  std::optional<IPoint> Point() const;
+  // Get the point of this vertex
+  IPoint Point() const;
 
   // Conversion operator to TopoDS_Shape
   operator const TopoDS_Shape&() const { return shape_; }

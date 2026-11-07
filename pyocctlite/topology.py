@@ -542,9 +542,7 @@ class Vertex(Shape):
 
         :return: Location.
         """
-        ipoint = self.ishape.Point()
-        assert ipoint is not None  # guaranteed by the kind check in __init__
-        return Point(ipoint)
+        return Point(self.ishape.Point())
 
     def extrude(self, vector: Vector) -> Edge:
         """

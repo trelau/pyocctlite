@@ -45,14 +45,11 @@ ISurface::ISurface(const Handle(Geom_Surface) & s) : surface_(s), kind_(ISurface
   }
 }
 
-std::optional<ICylindricalData> ISurface::CylindricalData() const {
-  if (kind_ != ISurfaceKind::Cylindrical) {
-    return std::nullopt;
-  }
+ICylindricalData ISurface::CylindricalData() const {
+
   Handle(Geom_CylindricalSurface) cylinder = AsCylindrical();
-  IFrame frame(cylinder->Position().Ax2());
-  ICylindricalData data{frame, cylinder->Radius()};
-  return data;
+
+  return {IFrame(cylinder->Position().Ax2()), cylinder->Radius()};
 }
 
 void ISurface::ValidateKind(const ISurfaceKind expected) const {
@@ -84,6 +81,5 @@ void bind_ISurface(nb::module_& m) {
 
       .def("Kind", &ISurface::Kind, "The kind of this surface.")
 
-      .def("CylindricalData", &ISurface::CylindricalData,
-           "Get cylindrical data if this surface is cylindrical.");
+      .def("CylindricalData", &ISurface::CylindricalData, "Get cylindrical data.");
 }

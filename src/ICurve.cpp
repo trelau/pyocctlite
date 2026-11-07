@@ -116,27 +116,18 @@ IVector ICurve::Derivative(double u, int order) const {
   return IVector(v);
 }
 
-std::optional<ILineData> ICurve::LineData() const {
-  if (kind_ != ICurveKind::Line) {
-    return std::nullopt;
-  }
+ILineData ICurve::LineData() const {
+
   Handle(Geom_Line) line = AsLine();
-  IPoint origin(line->Position().Location());
-  IVector direction(line->Position().Direction());
-  ILineData data{origin, direction};
-  return data;
+
+  return {IPoint(line->Position().Location()), IVector(line->Position().Direction())};
 }
 
-std::optional<ICircleData> ICurve::CircleData() const {
+ICircleData ICurve::CircleData() const {
 
-  if (kind_ != ICurveKind::Circle) {
-    return std::nullopt;
-  }
   Handle(Geom_Circle) circle = AsCircle();
-  IFrame frame(circle->Position());
-  double radius = circle->Radius();
-  ICircleData data{frame, radius};
-  return data;
+
+  return {IFrame(circle->Position()), circle->Radius()};
 }
 
 void ICurve::ValidateKind(const ICurveKind expected) const {
@@ -184,6 +175,6 @@ void bind_ICurve(nb::module_& m) {
       .def("Derivative", &ICurve::Derivative, nb::arg("u"), nb::arg("order") = 1,
            "Evaluate a derivative on this curve.")
 
-      .def("LineData", &ICurve::LineData, "Get line data if this curve is a line.")
-      .def("CircleData", &ICurve::CircleData, "Get circle data if this curve is a circle.");
+      .def("LineData", &ICurve::LineData, "Get line data.")
+      .def("CircleData", &ICurve::CircleData, "Get circle data.");
 }

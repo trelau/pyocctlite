@@ -107,11 +107,11 @@ public:
     return Handle(Geom_TrimmedCurve)::DownCast(curve_);
   }
 
-  // Get line data if this curve is a line
-  std::optional<ILineData> LineData() const;
+  // Get line data
+  ILineData LineData() const;
 
-  // Get circle data if this curve is a circle
-  std::optional<ICircleData> CircleData() const;
+  // Get circle data
+  ICircleData CircleData() const;
 
   // Validate that the curve is of the expected kind
   void ValidateKind(const ICurveKind expected) const;

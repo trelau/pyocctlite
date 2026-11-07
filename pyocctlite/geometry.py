@@ -500,9 +500,7 @@ class Line2D(Curve2D):
 
         :return: Origin point.
         """
-        idata = self.icurve.LineData()
-        assert idata is not None  # guaranteed by the kind check in __init__
-        return Point2D(idata.Origin)
+        return Point2D(self.icurve.LineData().Origin)
 
     @cached_property
     def direction(self) -> Vector2D:
@@ -511,9 +509,7 @@ class Line2D(Curve2D):
 
         :return: Unit direction vector.
         """
-        idata = self.icurve.LineData()
-        assert idata is not None  # guaranteed by the kind check in __init__
-        return Vector2D(idata.Direction)
+        return Vector2D(self.icurve.LineData().Direction)
 
 
 class Ellipse2D(Curve2D):
@@ -556,9 +552,7 @@ class Ellipse2D(Curve2D):
 
         :return: Frame.
         """
-        idata = self.icurve.EllipseData()
-        assert idata is not None  # guaranteed by the kind check in __init__
-        return Frame2D(idata.Frame)
+        return Frame2D(self.icurve.EllipseData().Frame)
 
     @cached_property
     def rmajor(self) -> float:
@@ -567,9 +561,7 @@ class Ellipse2D(Curve2D):
 
         :return: Major radius.
         """
-        idata = self.icurve.EllipseData()
-        assert idata is not None  # guaranteed by the kind check in __init__
-        return idata.MajorRadius
+        return self.icurve.EllipseData().MajorRadius
 
     @cached_property
     def rminor(self) -> float:
@@ -578,9 +570,7 @@ class Ellipse2D(Curve2D):
 
         :return: Minor radius.
         """
-        idata = self.icurve.EllipseData()
-        assert idata is not None  # guaranteed by the kind check in __init__
-        return idata.MinorRadius
+        return self.icurve.EllipseData().MinorRadius
 
 
 class TrimmedCurve2D(Curve2D):
@@ -1320,9 +1310,7 @@ class Line(Curve):
 
         :return: Origin point.
         """
-        idata = self.icurve.LineData()
-        assert idata is not None  # guaranteed by the kind check in __init__
-        return Point(idata.Origin)
+        return Point(self.icurve.LineData().Origin)
 
     @cached_property
     def direction(self) -> Vector:
@@ -1331,9 +1319,7 @@ class Line(Curve):
 
         :return: Unit direction vector.
         """
-        idata = self.icurve.LineData()
-        assert idata is not None  # guaranteed by the kind check in __init__
-        return Vector(idata.Direction)
+        return Vector(self.icurve.LineData().Direction)
 
 
 class Circle(Curve):
@@ -1388,9 +1374,7 @@ class Circle(Curve):
 
         :return: Frame.
         """
-        idata = self.icurve.CircleData()
-        assert idata is not None  # guaranteed by the kind check in __init__
-        return Frame(idata.Frame)
+        return Frame(self.icurve.CircleData().Frame)
 
     @cached_property
     def radius(self) -> float:
@@ -1399,9 +1383,7 @@ class Circle(Curve):
 
         :return: Radius.
         """
-        idata = self.icurve.CircleData()
-        assert idata is not None  # guaranteed by the kind check in __init__
-        return idata.Radius
+        return self.icurve.CircleData().Radius
 
 
 class TrimmedCurve(Curve):
@@ -1544,9 +1526,7 @@ class CylindricalSurface(Surface):
 
         :return: Frame.
         """
-        idata = self.isurface.CylindricalData()
-        assert idata is not None  # guaranteed by the kind check in __init__
-        return Frame(idata.Frame)
+        return Frame(self.isurface.CylindricalData().Frame)
 
     @cached_property
     def radius(self) -> float:
@@ -1555,9 +1535,7 @@ class CylindricalSurface(Surface):
 
         :return: Radius.
         """
-        idata = self.isurface.CylindricalData()
-        assert idata is not None  # guaranteed by the kind check in __init__
-        return idata.Radius
+        return self.isurface.CylindricalData().Radius
 
 
 class ProjectPointToCurve:
