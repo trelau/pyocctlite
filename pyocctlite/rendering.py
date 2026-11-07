@@ -17,6 +17,7 @@ from pyocctlite.topology import Shape, Vertex
 __all__ = [
     "Callout",
     "Camera",
+    "RenderShapes",
     "Section",
     "Shading",
     "Styled",
@@ -442,56 +443,6 @@ def _check_size(width: int, height: int) -> None:
         raise ValueError(f"Expected a positive image size, got {width} by {height}.")
 
 
-def _make_tool(
-    shapes: Shape | Styled | Iterable[Shape | Styled], w: int, h: int, section: Section | None
-) -> RenderIShapes:
-    """
-    Make the render tool for the given shapes.
-
-    :param shapes: Shape(s) to draw, in drawing order.
-    :param w: Width in pixels.
-    :param h: Height in pixels.
-    :param section: Plane to cut the image with, if any.
-    :return: Tool with the shapes added.
-    """
-    items = [shapes] if isinstance(shapes, Shape | Styled) else shapes
-    tool = RenderIShapes(w, h)
-    cut_colors: list[float] = []
-    for item in items:
-        styled = item if isinstance(item, Styled) else Styled(item)
-        r, g, b = styled.color
-        tool.AddShape(styled.shape.ishape, r, g, b, styled.transparency)
-        if section is not None:
-            tint = [c + (1.0 - c) * _CUT_TINT for c in styled.color]
-            cut_colors.extend(tint if section.color is None else section.color)
-    if section is not None:
-        tool.SetSection(section.origin.ipoint, section.normal.ivector, cut_colors)
-    return tool
-
-
-def _render(tool: RenderIShapes, view: View | Camera, shading: Shading, labels: bool) -> bytes:
-    """
-    Render one view.
-
-    :param tool: Render tool.
-    :param view: View to render.
-    :param shading: How faces are shaded.
-    :param labels: Whether to draw the view name, the axes and any numbers.
-    :return: Rows of RGB bytes, from the top row down.
-    """
-    camera = view if isinstance(view, Camera) else Camera.by_view(view)
-    target = camera.target.ipoint if camera.target is not None else None
-    return tool.Render(
-        camera.direction.ivector,
-        camera.up.ivector,
-        camera.label,
-        target,
-        camera.span,
-        shading is Shading.DEPTH,
-        labels,
-    )
-
-
 def _write_png(path: str, rgb: bytes, width: int, height: int) -> None:
     """
     Write RGB bytes to a PNG file.
@@ -515,6 +466,221 @@ def _write_png(path: str, rgb: bytes, width: int, height: int) -> None:
         f.write(chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)))
         f.write(chunk(b"IDAT", zlib.compress(rows)))
         f.write(chunk(b"IEND", b""))
+
+
+class RenderShapes:
+    """
+    Tool to render shapes to PNG images, reusing its prepared shapes between renders.
+    """
+
+    def __init__(self, width: int = 1200, height: int = 900):
+        """
+        Initialize with the image size.
+
+        :param width: Image width in pixels.
+        :param height: Image height in pixels.
+        :raises ValueError: If the image size is not positive.
+        """
+        _check_size(width, height)
+        self._width = width
+        self._height = height
+        self._itool = RenderIShapes(width, height)
+        self._colors: list[tuple[float, float, float]] = []
+        self._section: Section | None = None
+        self._has_numbered = False
+
+    def add_shape(self, shape: Shape | Styled) -> None:
+        """
+        Add a shape, drawn over those already added.
+
+        :param shape: Shape to draw.
+        """
+        styled = shape if isinstance(shape, Styled) else Styled(shape)
+        r, g, b = styled.color
+        self._itool.AddShape(styled.shape.ishape, r, g, b, styled.transparency)
+        self._add_color(styled.color)
+
+    def add_numbered_faces(self, shape: Shape) -> None:
+        """
+        Add the one numbered shape, with each face colored and numbered by index in
+        ``shape.faces()``.
+
+        :param shape: Shape to draw.
+        :raises ValueError: If a shape is already numbered.
+        """
+        self._check_not_numbered()
+        self._itool.AddNumberedFaces(shape.ishape, [c for color in _FACE_COLORS for c in color])
+        self._add_color(_DEFAULT_COLOR)
+
+    def add_numbered_edges(self, shape: Shape) -> None:
+        """
+        Add the one numbered shape, with each edge colored and numbered by index in
+        ``shape.edges()``.
+
+        :param shape: Shape to draw.
+        :raises ValueError: If a shape is already numbered.
+        """
+        self._check_not_numbered()
+        r, g, b = _EDGE_BACKDROP_COLOR
+        self._itool.AddNumberedEdges(
+            shape.ishape, r, g, b, [c for color in _FACE_COLORS for c in color]
+        )
+        self._add_color(_EDGE_BACKDROP_COLOR)
+
+    def add_callout(self, callout: Callout) -> None:
+        """
+        Add a text box pointing at a target.
+
+        :param callout: Text box.
+        """
+        target = callout.target
+        shape = Vertex.by_point(target) if isinstance(target, Point) else target
+        self._itool.AddCallout(shape.ishape, callout.text)
+
+    def set_section(self, section: Section) -> None:
+        """
+        Set the plane that cuts the images, replacing any earlier one.
+
+        :param section: Plane to cut the images with.
+        """
+        self._section = section
+        self._apply_section()
+
+    def render(
+        self,
+        path: str,
+        view: View | Camera = View.ISO,
+        shading: Shading = Shading.LIGHT,
+        labels: bool = True,
+    ) -> None:
+        """
+        Write one orthographic view of the shapes to a PNG file.
+
+        :param path: PNG file path.
+        :param view: View to render.
+        :param shading: How faces are shaded.
+        :param labels: Whether to draw the view name, the axes and any numbers.
+        :raises BuildFailed: If there is nothing to render, a shape is unbounded, or a face fails
+            to mesh.
+        :raises OSError: If the file cannot be written.
+        """
+        _write_png(path, self._render(view, shading, labels), self._width, self._height)
+
+    def render_views(
+        self, path: str, shading: Shading = Shading.LIGHT, labels: bool = True
+    ) -> None:
+        """
+        Write a sheet of four views to a PNG file, with each view at the image size.
+
+        :param path: PNG file path.
+        :param shading: How faces are shaded.
+        :param labels: Whether to draw the view name, the axes and any numbers.
+        :raises BuildFailed: If there is nothing to render, a shape is unbounded, or a face fails
+            to mesh.
+        :raises OSError: If the file cannot be written.
+        """
+        stride = self._width * 3
+
+        def rows(left: View, right: View) -> list[bytes]:
+            left_rgb = self._render(left, shading, labels)
+            right_rgb = self._render(right, shading, labels)
+            return [
+                left_rgb[y * stride : (y + 1) * stride - 3]
+                + _SEPARATOR
+                + right_rgb[y * stride : (y + 1) * stride]
+                for y in range(self._height)
+            ]
+
+        upper = rows(View.TOP, View.ISO)
+        lower = rows(View.FRONT, View.RIGHT)
+        upper[-1] = _SEPARATOR * (self._width * 2)
+        _write_png(path, b"".join(upper + lower), self._width * 2, self._height * 2)
+
+    def visible_pixels(self) -> dict[int, int]:
+        """
+        Get what is visible of the numbered shape, in the latest view.
+
+        :return: Number of visible pixels for each visible face, or visible length in pixels for
+            each visible edge, by index.
+        """
+        return {i: count for i, count in enumerate(self._itool.VisiblePixels()) if count > 0}
+
+    def _check_not_numbered(self) -> None:
+        """
+        Check that no shape is numbered yet, since numbers from two shapes could not be told apart.
+
+        :raises ValueError: If a shape is already numbered.
+        """
+        if self._has_numbered:
+            raise ValueError("Expected only one numbered shape.")
+        self._has_numbered = True
+
+    def _add_color(self, color: tuple[float, float, float]) -> None:
+        """
+        Record the color of an added shape, which the default color of a section's cut depends on.
+
+        :param color: Red, green and blue.
+        """
+        self._colors.append(color)
+        self._apply_section()
+
+    def _apply_section(self) -> None:
+        """
+        Pass the section on with a cut color for each added shape.
+        """
+        section = self._section
+        if section is None:
+            return
+        cut_colors: list[float] = []
+        for color in self._colors:
+            tint = [c + (1.0 - c) * _CUT_TINT for c in color]
+            cut_colors.extend(tint if section.color is None else section.color)
+        self._itool.SetSection(section.origin.ipoint, section.normal.ivector, cut_colors)
+
+    def _render(self, view: View | Camera, shading: Shading, labels: bool) -> bytes:
+        """
+        Render one view.
+
+        :param view: View to render.
+        :param shading: How faces are shaded.
+        :param labels: Whether to draw the view name, the axes and any numbers.
+        :return: Rows of RGB bytes, from the top row down.
+        """
+        camera = view if isinstance(view, Camera) else Camera.by_view(view)
+        target = camera.target.ipoint if camera.target is not None else None
+        return self._itool.Render(
+            camera.direction.ivector,
+            camera.up.ivector,
+            camera.label,
+            target,
+            camera.span,
+            shading is Shading.DEPTH,
+            labels,
+        )
+
+
+def _make_tool(
+    shapes: Shape | Styled | Iterable[Shape | Styled],
+    width: int,
+    height: int,
+    section: Section | None,
+) -> RenderShapes:
+    """
+    Make the render tool for the given shapes.
+
+    :param shapes: Shape(s) to draw, in drawing order.
+    :param width: Width in pixels.
+    :param height: Height in pixels.
+    :param section: Plane to cut the image with, if any.
+    :return: Tool with the shapes added.
+    :raises ValueError: If the image size is not positive.
+    """
+    tool = RenderShapes(width, height)
+    for shape in [shapes] if isinstance(shapes, Shape | Styled) else shapes:
+        tool.add_shape(shape)
+    if section is not None:
+        tool.set_section(section)
+    return tool
 
 
 def render_image(
@@ -545,13 +711,10 @@ def render_image(
         to mesh.
     :raises OSError: If the file cannot be written.
     """
-    _check_size(width, height)
     tool = _make_tool(shapes, width, height, section)
     for callout in [callouts] if isinstance(callouts, Callout) else callouts:
-        target = callout.target
-        shape = Vertex.by_point(target) if isinstance(target, Point) else target
-        tool.AddCallout(shape.ishape, callout.text)
-    _write_png(path, _render(tool, view, shading, labels), width, height)
+        tool.add_callout(callout)
+    tool.render(path, view, shading, labels)
 
 
 def render_faces(
@@ -579,11 +742,10 @@ def render_faces(
         mesh.
     :raises OSError: If the file cannot be written.
     """
-    _check_size(width, height)
-    tool = RenderIShapes(width, height)
-    tool.AddNumberedFaces(shape.ishape, [c for color in _FACE_COLORS for c in color])
-    _write_png(path, _render(tool, view, shading, labels), width, height)
-    return {i: count for i, count in enumerate(tool.VisiblePixels()) if count > 0}
+    tool = RenderShapes(width, height)
+    tool.add_numbered_faces(shape)
+    tool.render(path, view, shading, labels)
+    return tool.visible_pixels()
 
 
 def render_edges(
@@ -611,12 +773,10 @@ def render_edges(
         mesh.
     :raises OSError: If the file cannot be written.
     """
-    _check_size(width, height)
-    tool = RenderIShapes(width, height)
-    r, g, b = _EDGE_BACKDROP_COLOR
-    tool.AddNumberedEdges(shape.ishape, r, g, b, [c for color in _FACE_COLORS for c in color])
-    _write_png(path, _render(tool, view, shading, labels), width, height)
-    return {i: length for i, length in enumerate(tool.VisiblePixels()) if length > 0}
+    tool = RenderShapes(width, height)
+    tool.add_numbered_edges(shape)
+    tool.render(path, view, shading, labels)
+    return tool.visible_pixels()
 
 
 def render_views(
@@ -643,25 +803,5 @@ def render_views(
         to mesh.
     :raises OSError: If the file cannot be written.
     """
-    tile_width = width // 2
-    tile_height = height // 2
-    _check_size(tile_width, tile_height)
-
-    tool = _make_tool(shapes, tile_width, tile_height, section)
-    stride = tile_width * 3
-
-    def rows(left: View, right: View) -> list[bytes]:
-        left_rgb = _render(tool, left, shading, labels)
-        right_rgb = _render(tool, right, shading, labels)
-        return [
-            left_rgb[y * stride : (y + 1) * stride - 3]
-            + _SEPARATOR
-            + right_rgb[y * stride : (y + 1) * stride]
-            for y in range(tile_height)
-        ]
-
-    upper = rows(View.TOP, View.ISO)
-    lower = rows(View.FRONT, View.RIGHT)
-    upper[-1] = _SEPARATOR * (tile_width * 2)
-    sheet = b"".join(upper + lower)
-    _write_png(path, sheet, tile_width * 2, tile_height * 2)
+    tool = _make_tool(shapes, width // 2, height // 2, section)
+    tool.render_views(path, shading, labels)

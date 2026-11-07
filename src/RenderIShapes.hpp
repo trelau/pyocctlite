@@ -25,12 +25,13 @@ public:
   void AddShape(const IShape& shape, double r, double g, double b, double transparency);
 
   // Add a shape with a color for each face, cycling through the colors given as r, g, b values.
-  // Faces are numbered on the image in the order of a map of faces, starting from 0.
+  // Faces are numbered on the image in the order of a map of faces, starting from 0. Only one shape
+  // may be numbered, since the pixels of each face are identified by its number alone.
   void AddNumberedFaces(const IShape& shape, const std::vector<double>& colors);
 
   // Add a shape with the color components for its faces and a color for each edge, cycling through
   // the colors given as r, g, b values. Edges are numbered on the image in the order of a map of
-  // edges, starting from 0.
+  // edges, starting from 0. Only one shape may be numbered.
   void AddNumberedEdges(const IShape& shape, double r, double g, double b,
                         const std::vector<double>& colors);
 

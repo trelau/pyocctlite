@@ -12,6 +12,7 @@ from pyocctlite.primitives import Box, Cylinder
 from pyocctlite.rendering import (
     Callout,
     Camera,
+    RenderShapes,
     Section,
     Shading,
     Styled,
@@ -896,6 +897,91 @@ class TestSection(RenderingTest):
             Section.by_plane(self.ORIGIN, Vector.by_xyz(0.0, 0.0, 0.0))
         with self.assertRaises(ValueError):
             Section.by_plane(self.ORIGIN, self.TO_FRONT, (2.0, 0.0, 0.0))
+
+
+class TestRenderShapes(RenderingTest):
+    BOX = Box.by_size(1.0, 2.0, 3.0)
+    SECTION = Section.by_plane(Point.by_xyz(0.5, 1.0, 1.5), Vector.by_xyz(0.0, -1.0, 0.0))
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.actual = str(self.directory / "actual.png")
+        self.expected = str(self.directory / "expected.png")
+
+    def assert_same_image(self) -> None:
+        self.assertEqual(Path(self.actual).read_bytes(), Path(self.expected).read_bytes())
+
+    def test_each_view_matches_render_image(self):
+        tool = RenderShapes(400, 300)
+        tool.add_shape(Styled(self.BOX, RED))
+        for view in (View.ISO, View.TOP, View.ISO):
+            tool.render(self.actual, view)
+            render_image(Styled(self.BOX, RED), self.expected, view, 400, 300)
+            self.assert_same_image()
+
+    def test_render_views_is_twice_the_image_size(self):
+        tool = RenderShapes(300, 200)
+        tool.add_shape(self.BOX)
+        tool.render_views(self.actual)
+        render_views(self.BOX, self.expected, 600, 400)
+        self.assert_same_image()
+
+    def test_adding_after_a_render_matches_a_new_tool(self):
+        other = _box_at(5.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+        callout = Callout(other, "other")
+        tool = RenderShapes(400, 300)
+        tool.add_shape(self.BOX)
+        tool.render(self.actual)
+        tool.add_shape(other)
+        tool.add_callout(callout)
+        tool.set_section(self.SECTION)
+        tool.render(self.actual)
+        render_image(
+            [self.BOX, other],
+            self.expected,
+            width=400,
+            height=300,
+            callouts=callout,
+            section=self.SECTION,
+        )
+        self.assert_same_image()
+
+    def test_section_before_shapes_matches_section_after(self):
+        tool = RenderShapes(400, 300)
+        tool.set_section(self.SECTION)
+        tool.add_shape(Styled(self.BOX, RED))
+        tool.render(self.actual)
+        styled = Styled(self.BOX, RED)
+        render_image(styled, self.expected, width=400, height=300, section=self.SECTION)
+        self.assert_same_image()
+
+    def test_visible_pixels_follow_the_latest_view(self):
+        tool = RenderShapes(400, 400)
+        tool.add_numbered_faces(self.BOX)
+        self.assertEqual(tool.visible_pixels(), {})
+        for view in (View.TOP, View.ISO):
+            tool.render(self.actual, view)
+            expected = render_faces(self.BOX, self.expected, view, 400, 400)
+            self.assertEqual(tool.visible_pixels(), expected)
+
+    def test_only_one_shape_can_be_numbered(self):
+        for first in ("add_numbered_faces", "add_numbered_edges"):
+            for second in ("add_numbered_faces", "add_numbered_edges"):
+                tool = RenderShapes(400, 400)
+                getattr(tool, first)(self.BOX)
+                with self.assertRaises(ValueError):
+                    getattr(tool, second)(self.BOX)
+
+    def test_plain_shapes_can_join_a_numbered_shape(self):
+        tool = RenderShapes(400, 400)
+        tool.add_shape(_box_at(5.0, 0.0, 0.0, 1.0, 1.0, 1.0))
+        tool.add_numbered_edges(self.BOX)
+        tool.render(self.actual)
+        self.assertTrue(tool.visible_pixels())
+
+    def test_invalid_size_raises(self):
+        with self.assertRaises(ValueError):
+            RenderShapes(0, 300)
 
 
 class TestFailures(RenderingTest):
