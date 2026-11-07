@@ -199,16 +199,16 @@ class Section
 class RenderShapes
     RenderShapes(width: int = 1200, height: int = 900)
     .add_shape(shape: Shape | Styled) -> None
-    .add_numbered_faces(shape: Shape) -> None
-    .add_numbered_edges(shape: Shape) -> None
+    .add_numbered_faces(shape: Shape, faces: Face | Iterable[Face] | None = None) -> None
+    .add_numbered_edges(shape: Shape, edges: Edge | Iterable[Edge] | None = None) -> None
     .add_callout(callout: Callout) -> None
     .set_section(section: Section) -> None
     .render(path: str, view: View | Camera = View.ISO, shading: Shading = Shading.LIGHT, labels: bool = True) -> None
     .render_views(path: str, shading: Shading = Shading.LIGHT, labels: bool = True) -> None
     .visible_pixels() -> dict[int, int]
 render_image(shapes: Shape | Styled | Iterable[Shape | Styled], path: str, view: View | Camera = View.ISO, width: int = 1200, height: int = 900, callouts: Callout | Iterable[Callout] = (), shading: Shading = Shading.LIGHT, labels: bool = True, section: Section | None = None) -> None
-render_faces(shape: Shape, path: str, view: View | Camera = View.ISO, width: int = 1200, height: int = 900, shading: Shading = Shading.LIGHT, labels: bool = True) -> dict[int, int]
-render_edges(shape: Shape, path: str, view: View | Camera = View.ISO, width: int = 1200, height: int = 900, shading: Shading = Shading.LIGHT, labels: bool = True) -> dict[int, int]
+render_faces(shape: Shape, path: str, view: View | Camera = View.ISO, width: int = 1200, height: int = 900, shading: Shading = Shading.LIGHT, labels: bool = True, faces: Face | Iterable[Face] | None = None) -> dict[int, int]
+render_edges(shape: Shape, path: str, view: View | Camera = View.ISO, width: int = 1200, height: int = 900, shading: Shading = Shading.LIGHT, labels: bool = True, edges: Edge | Iterable[Edge] | None = None) -> dict[int, int]
 render_views(shapes: Shape | Styled | Iterable[Shape | Styled], path: str, width: int = 1500, height: int = 1124, shading: Shading = Shading.LIGHT, labels: bool = True, section: Section | None = None) -> None
 ```
 

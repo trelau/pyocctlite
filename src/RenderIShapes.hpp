@@ -4,6 +4,7 @@
 
 #include <array>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -24,16 +25,18 @@ public:
   // Add a shape with its color components from 0 to 1 and its transparency from 0 to 1
   void AddShape(const IShape& shape, double r, double g, double b, double transparency);
 
-  // Add a shape with a color for each face, cycling through the colors given as r, g, b values.
-  // Faces are numbered on the image in the order of a map of faces, starting from 0. Only one shape
-  // may be numbered, since the pixels of each face are identified by its number alone.
-  void AddNumberedFaces(const IShape& shape, const std::vector<double>& colors);
+  // Add a shape with the color components for its faces, where the faces at the indices in a map of
+  // faces instead cycle through the colors given as r, g, b values and show their index on the
+  // image. Only one shape may be numbered, since the pixels of each face are identified by its
+  // index alone.
+  void AddNumberedFaces(const IShape& shape, double r, double g, double b,
+                        const std::vector<double>& colors, const std::vector<int>& indices);
 
-  // Add a shape with the color components for its faces and a color for each edge, cycling through
-  // the colors given as r, g, b values. Edges are numbered on the image in the order of a map of
-  // edges, starting from 0. Only one shape may be numbered.
+  // Add a shape with the color components for its faces, where the edges at the indices in a map of
+  // edges cycle through the colors given as r, g, b values and show their index on the image. Only
+  // one shape may be numbered.
   void AddNumberedEdges(const IShape& shape, double r, double g, double b,
-                        const std::vector<double>& colors);
+                        const std::vector<double>& colors, const std::vector<int>& indices);
 
   // Add a text box with a line pointing to the visible part of the shape
   void AddCallout(const IShape& shape, const std::string& text);
@@ -78,6 +81,7 @@ private:
     double transparency = 0.0;
     bool hasNumberedFaces = false;
     bool hasNumberedEdges = false;
+    std::set<int> numbered;
     std::vector<RasterColor> faceColors;
     std::vector<RasterColor> edgeColors;
     std::vector<MeshTriangle> triangles;
@@ -88,9 +92,19 @@ private:
     int faceCount = 0;
     int edgeCount = 0;
 
+    // Check if a face is numbered
+    bool IsFaceNumbered(const int face) const {
+      return hasNumberedFaces && numbered.count(face) > 0;
+    }
+
+    // Check if an edge is numbered
+    bool IsEdgeNumbered(const int edge) const {
+      return hasNumberedEdges && numbered.count(edge) > 0;
+    }
+
     // Get the color of a face
     const RasterColor& FaceColor(const int face) const {
-      return faceColors.empty() ? color : faceColors[face % faceColors.size()];
+      return IsFaceNumbered(face) ? faceColors[face % faceColors.size()] : color;
     }
   };
 

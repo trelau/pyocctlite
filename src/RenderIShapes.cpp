@@ -382,7 +382,9 @@ void RenderIShapes::AddShape(const IShape& shape, const double r, const double g
   meshDeflection_ = 0.0;
 }
 
-void RenderIShapes::AddNumberedFaces(const IShape& shape, const std::vector<double>& colors) {
+void RenderIShapes::AddNumberedFaces(const IShape& shape, const double r, const double g,
+                                     const double b, const std::vector<double>& colors,
+                                     const std::vector<int>& indices) {
 
   std::vector<RasterColor> faceColors;
   for (std::size_t i = 0; i + 2 < colors.size(); i += 3) {
@@ -390,7 +392,9 @@ void RenderIShapes::AddNumberedFaces(const IShape& shape, const std::vector<doub
   }
   Item item;
   item.shape = shape.AsShape();
+  item.color = {r, g, b};
   item.hasNumberedFaces = true;
+  item.numbered = {indices.begin(), indices.end()};
   item.faceColors = std::move(faceColors);
   items_.push_back(std::move(item));
   hasBounds_ = false;
@@ -398,12 +402,14 @@ void RenderIShapes::AddNumberedFaces(const IShape& shape, const std::vector<doub
 }
 
 void RenderIShapes::AddNumberedEdges(const IShape& shape, const double r, const double g,
-                                     const double b, const std::vector<double>& colors) {
+                                     const double b, const std::vector<double>& colors,
+                                     const std::vector<int>& indices) {
 
   Item item;
   item.shape = shape.AsShape();
   item.color = {r, g, b};
   item.hasNumberedEdges = true;
+  item.numbered = {indices.begin(), indices.end()};
   for (std::size_t i = 0; i + 2 < colors.size(); i += 3) {
     item.edgeColors.push_back({colors[i], colors[i + 1], colors[i + 2]});
   }
@@ -711,17 +717,21 @@ nb::bytes RenderIShapes::Render(const IVector& direction, const IVector& up,
   // Draw the edges and vertices of one item
   const auto drawLines = [&](const Item& item, const double shapeBias) {
     const bool isFree = item.faceCount == 0;
-    const RasterColor plainColor = isFree ? item.color : faceEdgeColor(item);
+
+    // The color of a numbered shape is for its faces, which free edges of it do not have
+    const RasterColor plainColor =
+        isFree && !item.hasNumberedEdges ? item.color : faceEdgeColor(item);
     const double plainWidth = isFree ? kFreeEdgeWidth : kFaceEdgeWidth;
-    const double lineWidth = item.hasNumberedEdges ? kNumberedEdgeWidth : plainWidth;
     const double bias = shapeBias + kEdgeDepthBias;
 
     for (std::size_t e = 0; e < item.edges.size(); ++e) {
       const std::vector<gp_Pnt>& line = item.edges[e];
+      const int index = item.edgeIndices[e];
+      const bool isNumbered = item.IsEdgeNumbered(index);
       const RasterColor color =
-          item.edgeColors.empty() ? plainColor
-                                  : item.edgeColors[static_cast<std::size_t>(item.edgeIndices[e]) %
-                                                    item.edgeColors.size()];
+          isNumbered ? item.edgeColors[static_cast<std::size_t>(index) % item.edgeColors.size()]
+                     : plainColor;
+      const double lineWidth = isNumbered ? kNumberedEdgeWidth : plainWidth;
       for (std::size_t i = 0; i + 1 < line.size(); ++i) {
         image.DrawLine(camera.Project(line[i], bias, 1.0), camera.Project(line[i + 1], bias, 1.0),
                        color, lineWidth);
@@ -754,7 +764,7 @@ nb::bytes RenderIShapes::Render(const IVector& direction, const IVector& up,
         // Seeing the far side of a solid's surface first means looking through the cut into
         // material
         const bool isCut = isCutVisible && triangle.outward.Dot(toViewer) < 0.0;
-        const int faceId = item.hasNumberedFaces ? triangle.face : kRasterNone;
+        const int faceId = item.IsFaceNumbered(triangle.face) ? triangle.face : kRasterNone;
         image.FillTriangle(vertices[0], vertices[1], vertices[2], color, 1.0,
                            isCut ? kRasterCut - static_cast<int>(i) : faceId);
       } else {
@@ -846,6 +856,11 @@ nb::bytes RenderIShapes::Render(const IVector& direction, const IVector& up,
     visiblePixels_.assign(item.edgeCount, 0);
     std::vector<int> grid(static_cast<std::size_t>(width_) * height_);
     for (std::size_t e = 0; e < item.edges.size(); ++e) {
+      const int index = item.edgeIndices[e];
+      if (!item.IsEdgeNumbered(index)) {
+        continue;
+      }
+
       const std::vector<gp_Pnt>& line = item.edges[e];
       std::fill(grid.begin(), grid.end(), kRasterNone);
       for (std::size_t i = 0; i + 1 < line.size(); ++i) {
@@ -857,7 +872,6 @@ nb::bytes RenderIShapes::Render(const IVector& direction, const IVector& up,
       const LineRun run = FindLineRun({line}, camera, grid, width_, height_, true);
       if (run.longest.size() >= kMinNumberedRun) {
         const std::pair<double, double>& middle = run.longest[run.longest.size() / 2];
-        const int index = item.edgeIndices[e];
         visiblePixels_[index] = run.visibleLength;
         if (hasLabels) {
           notes.push_back(
@@ -944,15 +958,15 @@ void bind_RenderIShapes(nb::module_& m) {
            nb::arg("b"), nb::arg("transparency"),
            "Add a shape with its color components and transparency, each from 0 to 1.")
 
-      .def("AddNumberedFaces", &RenderIShapes::AddNumberedFaces, nb::arg("shape"),
-           nb::arg("colors"),
-           "Add a shape with a number on each visible face and a color for each face from r, g, b "
-           "values.")
+      .def("AddNumberedFaces", &RenderIShapes::AddNumberedFaces, nb::arg("shape"), nb::arg("r"),
+           nb::arg("g"), nb::arg("b"), nb::arg("colors"), nb::arg("indices"),
+           "Add a shape with a color for its faces, and a number on each visible face at the "
+           "indices and a color for each of those from r, g, b values.")
 
       .def("AddNumberedEdges", &RenderIShapes::AddNumberedEdges, nb::arg("shape"), nb::arg("r"),
-           nb::arg("g"), nb::arg("b"), nb::arg("colors"),
-           "Add a shape with a color for its faces, and a number on each visible edge and a color "
-           "for each edge from r, g, b values.")
+           nb::arg("g"), nb::arg("b"), nb::arg("colors"), nb::arg("indices"),
+           "Add a shape with a color for its faces, and a number on each visible edge at the "
+           "indices and a color for each of those from r, g, b values.")
 
       .def("AddCallout", &RenderIShapes::AddCallout, nb::arg("shape"), nb::arg("text"),
            "Add a text box with a line pointing to the visible part of the shape.")

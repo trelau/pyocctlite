@@ -9,10 +9,11 @@ import struct
 import zlib
 from collections.abc import Iterable
 from enum import Enum
+from typing import TypeVar
 
 from pyocctlite._occtlite import RenderIShapes
 from pyocctlite.geometry import Point, Vector
-from pyocctlite.topology import Shape, Vertex
+from pyocctlite.topology import Edge, Face, MapShape, Shape, Vertex
 
 __all__ = [
     "Callout",
@@ -30,11 +31,13 @@ __all__ = [
 
 _DEFAULT_COLOR = (0.72, 0.75, 0.8)
 
+T = TypeVar("T", bound=Shape)
+
 # How far the default color of a section's cut is from a shape's color toward white
 _CUT_TINT = 0.7
 
-# Faces stay pale behind numbered edges, so that the edge colors stand out
-_EDGE_BACKDROP_COLOR = (0.9, 0.9, 0.92)
+# Faces that are not numbered stay pale, so that the numbered colors stand out
+_BACKDROP_COLOR = (0.9, 0.9, 0.92)
 _SEPARATOR = bytes((190, 190, 190))
 
 # Well-separated colors for telling faces apart, which repeat on parts with more faces
@@ -468,6 +471,27 @@ def _write_png(path: str, rgb: bytes, width: int, height: int) -> None:
         f.write(chunk(b"IEND", b""))
 
 
+def _numbered_indices(subshapes: MapShape[T], chosen: T | Iterable[T] | None) -> list[int]:
+    """
+    Get the indices of the sub-shapes to number.
+
+    :param subshapes: Sub-shapes of the numbered shape.
+    :param chosen: Sub-shape(s) to number, or None for all of them.
+    :return: Indices in the sub-shapes.
+    :raises ValueError: If a chosen shape is not one of the sub-shapes.
+    """
+    if chosen is None:
+        return list(range(len(subshapes)))
+
+    indices = []
+    for s in [chosen] if isinstance(chosen, Shape) else chosen:
+        index = subshapes.find_index(s)
+        if index is None:
+            raise ValueError(f"Expected a sub-shape of the numbered shape, got {s.kind}.")
+        indices.append(index)
+    return indices
+
+
 class RenderShapes:
     """
     Tool to render shapes to PNG images, reusing its prepared shapes between renders.
@@ -500,32 +524,41 @@ class RenderShapes:
         self._itool.AddShape(styled.shape.ishape, r, g, b, styled.transparency)
         self._add_color(styled.color)
 
-    def add_numbered_faces(self, shape: Shape) -> None:
+    def add_numbered_faces(self, shape: Shape, faces: Face | Iterable[Face] | None = None) -> None:
         """
-        Add the one numbered shape, with each face colored and numbered by index in
-        ``shape.faces()``.
+        Add the one numbered shape, with faces colored and numbered by index in ``shape.faces()``
+        and any others pale.
 
         :param shape: Shape to draw.
-        :raises ValueError: If a shape is already numbered.
+        :param faces: Face(s) to number. Defaults to every face.
+        :raises ValueError: If a shape is already numbered or a face is not part of the shape.
         """
         self._check_not_numbered()
-        self._itool.AddNumberedFaces(shape.ishape, [c for color in _FACE_COLORS for c in color])
-        self._add_color(_DEFAULT_COLOR)
-
-    def add_numbered_edges(self, shape: Shape) -> None:
-        """
-        Add the one numbered shape, with each edge colored and numbered by index in
-        ``shape.edges()``.
-
-        :param shape: Shape to draw.
-        :raises ValueError: If a shape is already numbered.
-        """
-        self._check_not_numbered()
-        r, g, b = _EDGE_BACKDROP_COLOR
-        self._itool.AddNumberedEdges(
-            shape.ishape, r, g, b, [c for color in _FACE_COLORS for c in color]
+        indices = _numbered_indices(shape.faces(), faces)
+        r, g, b = _BACKDROP_COLOR
+        self._itool.AddNumberedFaces(
+            shape.ishape, r, g, b, [c for color in _FACE_COLORS for c in color], indices
         )
-        self._add_color(_EDGE_BACKDROP_COLOR)
+        self._has_numbered = True
+        self._add_color(_BACKDROP_COLOR)
+
+    def add_numbered_edges(self, shape: Shape, edges: Edge | Iterable[Edge] | None = None) -> None:
+        """
+        Add the one numbered shape, with edges colored and numbered by index in ``shape.edges()``
+        and any others plain.
+
+        :param shape: Shape to draw.
+        :param edges: Edge(s) to number. Defaults to every edge.
+        :raises ValueError: If a shape is already numbered or an edge is not part of the shape.
+        """
+        self._check_not_numbered()
+        indices = _numbered_indices(shape.edges(), edges)
+        r, g, b = _BACKDROP_COLOR
+        self._itool.AddNumberedEdges(
+            shape.ishape, r, g, b, [c for color in _FACE_COLORS for c in color], indices
+        )
+        self._has_numbered = True
+        self._add_color(_BACKDROP_COLOR)
 
     def add_callout(self, callout: Callout) -> None:
         """
@@ -613,7 +646,6 @@ class RenderShapes:
         """
         if self._has_numbered:
             raise ValueError("Expected only one numbered shape.")
-        self._has_numbered = True
 
     def _add_color(self, color: tuple[float, float, float]) -> None:
         """
@@ -725,9 +757,10 @@ def render_faces(
     height: int = 900,
     shading: Shading = Shading.LIGHT,
     labels: bool = True,
+    faces: Face | Iterable[Face] | None = None,
 ) -> dict[int, int]:
     """
-    Write a view with each face colored and numbered to a PNG file, and return what is visible.
+    Write a view with faces colored and numbered to a PNG file, and return what is visible.
 
     :param shape: Shape to draw.
     :param path: PNG file path.
@@ -736,14 +769,15 @@ def render_faces(
     :param height: Image height in pixels.
     :param shading: How faces are shaded.
     :param labels: Whether to draw the view name, the axes and any numbers.
-    :return: Number of visible pixels for each visible face, by index in ``shape.faces()``.
-    :raises ValueError: If the image size is not positive.
+    :param faces: Face(s) to number, with any others pale. Defaults to every face.
+    :return: Number of visible pixels for each visible numbered face, by index in ``shape.faces()``.
+    :raises ValueError: If the image size is not positive or a face is not part of the shape.
     :raises BuildFailed: If there is nothing to render, the shape is unbounded, or a face fails to
         mesh.
     :raises OSError: If the file cannot be written.
     """
     tool = RenderShapes(width, height)
-    tool.add_numbered_faces(shape)
+    tool.add_numbered_faces(shape, faces)
     tool.render(path, view, shading, labels)
     return tool.visible_pixels()
 
@@ -756,9 +790,10 @@ def render_edges(
     height: int = 900,
     shading: Shading = Shading.LIGHT,
     labels: bool = True,
+    edges: Edge | Iterable[Edge] | None = None,
 ) -> dict[int, int]:
     """
-    Write a view with each edge colored and numbered to a PNG file, and return what is visible.
+    Write a view with edges colored and numbered to a PNG file, and return what is visible.
 
     :param shape: Shape to draw.
     :param path: PNG file path.
@@ -767,14 +802,15 @@ def render_edges(
     :param height: Image height in pixels.
     :param shading: How faces are shaded.
     :param labels: Whether to draw the view name, the axes and any numbers.
-    :return: Visible length in pixels for each visible edge, by index in ``shape.edges()``.
-    :raises ValueError: If the image size is not positive.
+    :param edges: Edge(s) to number, with any others plain. Defaults to every edge.
+    :return: Visible length in pixels for each visible numbered edge, by index in ``shape.edges()``.
+    :raises ValueError: If the image size is not positive or an edge is not part of the shape.
     :raises BuildFailed: If there is nothing to render, the shape is unbounded, or a face fails to
         mesh.
     :raises OSError: If the file cannot be written.
     """
     tool = RenderShapes(width, height)
-    tool.add_numbered_edges(shape)
+    tool.add_numbered_edges(shape, edges)
     tool.render(path, view, shading, labels)
     return tool.visible_pixels()
 

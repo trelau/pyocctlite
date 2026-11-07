@@ -22,7 +22,7 @@ from pyocctlite.rendering import (
     render_image,
     render_views,
 )
-from pyocctlite.topology import Compound, CutShapes, Edge, Shape, UniteShapes, Vertex
+from pyocctlite.topology import Compound, CutShapes, Edge, Shape, UniteShapes, Vertex, Wire
 
 Pixel = tuple[int, int, int]
 
@@ -982,6 +982,95 @@ class TestRenderShapes(RenderingTest):
     def test_invalid_size_raises(self):
         with self.assertRaises(ValueError):
             RenderShapes(0, 300)
+
+
+class TestNumberedSubShapes(RenderingTest):
+    BOX = Box.by_size(1.0, 1.0, 1.0)
+
+    def faces(self, faces=None, labels: bool = True) -> tuple[Image, dict[int, int]]:
+        path = self.directory / "faces.png"
+        visible = render_faces(
+            self.BOX, str(path), width=400, height=400, labels=labels, faces=faces
+        )
+        return Image(path), visible
+
+    def test_chosen_face_keeps_its_index(self):
+        index = self.BOX.faces().find_index(self.BOX.top_face)
+        _, visible = self.faces(self.BOX.top_face)
+        self.assertEqual(list(visible), [index])
+
+    def test_chosen_face_has_its_full_count(self):
+        index = self.BOX.faces().find_index(self.BOX.top_face)
+        _, every = self.faces()
+        _, chosen = self.faces([self.BOX.top_face])
+        self.assertEqual(chosen[index], every[index])
+
+    def test_hidden_chosen_face_is_not_visible(self):
+        _, visible = self.faces(self.BOX.bottom_face)
+        self.assertEqual(visible, {})
+
+    def test_other_faces_stay_in_context(self):
+        everything, _ = self.faces(labels=False)
+        chosen, _ = self.faces(self.BOX.top_face, labels=False)
+        self.assertEqual(chosen.part_bounds(), everything.part_bounds())
+
+        def neutral_pixels(image: Image) -> int:
+            return sum(max(pixel) - min(pixel) < 16 for _, _, pixel in image.part_pixels())
+
+        self.assertGreater(neutral_pixels(chosen), neutral_pixels(everything))
+
+    def test_all_faces_match_the_default(self):
+        everything, visible = self.faces()
+        chosen, chosen_visible = self.faces(self.BOX.faces())
+        self.assertEqual(chosen.rows, everything.rows)
+        self.assertEqual(chosen_visible, visible)
+
+    def test_no_faces_draws_the_shape_without_numbers(self):
+        image, visible = self.faces([])
+        self.assertEqual(visible, {})
+        self.assertTrue(image.part_pixels())
+
+    def test_chosen_edges_keep_their_index_and_length(self):
+        path = str(self.directory / "edges.png")
+        every = render_edges(self.BOX, path, width=400, height=400)
+        index = next(iter(every))
+        edge = self.BOX.edges()[index]
+        chosen = render_edges(self.BOX, path, width=400, height=400, edges=edge)
+        self.assertEqual(list(chosen), [index])
+        # wider numbered neighbors can cover a pixel or so of an edge
+        self.assertAlmostEqual(chosen[index], every[index], delta=5)
+
+    def test_other_free_edges_stay_visible(self):
+        p = [Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0), Point.by_xyz(1, 1, 0)]
+        wire = Wire.by_edges([Edge.by_points(p[0], p[1]), Edge.by_points(p[1], p[2])])
+        path = self.directory / "wire.png"
+        render_edges(wire, str(path), View.TOP, 400, 400, labels=False)
+        everything = Image(path)
+        chosen = render_edges(
+            wire, str(path), View.TOP, 400, 400, labels=False, edges=wire.edges()[0]
+        )
+        self.assertEqual(len(chosen), 1)
+        image = Image(path)
+        self.assertEqual(image.part_bounds(), everything.part_bounds())
+        self.assertTrue(any(max(pixel) < 200 for _, _, pixel in image.part_pixels()))
+
+    def test_chosen_faces_with_a_section(self):
+        section = Section.by_plane(Point.by_xyz(0.5, 0.5, 0.5), Vector.by_xyz(1.0, 0.0, 0.0))
+        tool = RenderShapes(400, 400)
+        tool.add_numbered_faces(self.BOX, self.BOX.top_face)
+        tool.set_section(section)
+        tool.render(str(self.directory / "section.png"))
+        self.assertEqual(
+            list(tool.visible_pixels()), [self.BOX.faces().find_index(self.BOX.top_face)]
+        )
+
+    def test_sub_shape_of_another_shape_raises_and_leaves_the_tool_usable(self):
+        tool = RenderShapes(400, 400)
+        with self.assertRaises(ValueError):
+            tool.add_numbered_faces(self.BOX, Box.by_size(2.0, 2.0, 2.0).top_face)
+        with self.assertRaises(ValueError):
+            tool.add_numbered_edges(self.BOX, Box.by_size(2.0, 2.0, 2.0).edges()[0])
+        tool.add_numbered_faces(self.BOX, self.BOX.top_face)
 
 
 class TestFailures(RenderingTest):
