@@ -25,7 +25,7 @@ Running the format, lint, and type checks:
 pre-commit run --all-files
 ```
 
-- After a C++ change, build andyes install before running Python checks; mypy reads the regenerated
+- After a C++ change, build and install before running Python checks; mypy reads the regenerated
 `pyocctlite/_occtlite.pyi`.
 - Temporary work goes in `scratch/`, generated output in `outputs/`.
 - Clear with `git clean -fdX <dir>/`.
