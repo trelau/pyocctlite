@@ -11,8 +11,7 @@
 class CopyIShape : public MakeIShape {
 public:
   // Make a copy of the shape
-  CopyIShape(const IShape& shape, const bool copyGeom = true, const bool copyMesh = false)
-      : tool_(shape, copyGeom, copyMesh) {}
+  CopyIShape(const IShape& shape, const bool copyGeom = true) : tool_(shape, copyGeom) {}
 
   // Get the modified shape from the input shape
   IShape ModifiedShape(const IShape& shape) const;

@@ -12,9 +12,8 @@
 class TransformIShape : public MakeIShape {
 public:
   // Constructor
-  TransformIShape(const IShape& shape, const ITransform& trsf, const bool copyGeom = false,
-                  const bool copyMesh = false)
-      : tool_(shape, trsf, copyGeom, copyMesh) {}
+  TransformIShape(const IShape& shape, const ITransform& trsf, const bool copyGeom = false)
+      : tool_(shape, trsf, copyGeom) {}
 
   // Get the modified shape from the input shape
   IShape ModifiedShape(const IShape& shape) const;

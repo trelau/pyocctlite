@@ -71,9 +71,6 @@ public:
   // Get the kind of the shape
   IShapeKind Kind() const { return kind_; }
 
-  // Check if the shape is null
-  bool IsNull() const { return shape_.IsNull(); }
-
   // Check if this shape is equal to another shape
   bool IsEqual(const IShape& other) const { return shape_.IsEqual(other); }
 

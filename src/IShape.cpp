@@ -318,7 +318,6 @@ void bind_IShape(nb::module_& m) {
                   "Make a compound from a list of shapes.")
 
       .def("Kind", &IShape::Kind, "The kind of this shape.")
-      .def("IsNull", &IShape::IsNull, "Whether or not this shape is null.")
       .def("IsEqual", &IShape::IsEqual, nb::arg("other"),
            "Check if this shape is equal to the other.")
       .def("IsSame", &IShape::IsSame, nb::arg("other"),
