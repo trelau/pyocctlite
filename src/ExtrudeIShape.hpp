@@ -8,12 +8,10 @@
 #include "MakeIShape.hpp"
 
 // Tool to extrude shapes
-class ExtrudeIShape {
+class ExtrudeIShape : public MakeIShape {
 public:
   // Extrude the shape along the given vector
   ExtrudeIShape(const IShape& shape, const IVector& vector) : tool_(shape, vector) {}
-
-  MAKE_SHAPE_METHODS(tool_);
 
   // Get the first shape of the extrusion
   IShape FirstShape() {
@@ -40,6 +38,7 @@ public:
   }
 
 private:
+  BRepBuilderAPI_MakeShape& Tool() override { return tool_; }
   BRepPrimAPI_MakePrism tool_;
 };
 

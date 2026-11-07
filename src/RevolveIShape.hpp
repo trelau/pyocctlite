@@ -9,14 +9,13 @@
 #include "MakeIShape.hpp"
 
 // Tool to revolve shapes
-class RevolveIShape {
+class RevolveIShape : public MakeIShape {
 public:
   // Revolve the shape a full turn about the given axis
   RevolveIShape(const IShape& shape, const IAxis& axis) : tool_(shape, axis) {}
 
-  MAKE_SHAPE_METHODS(tool_);
-
 private:
+  BRepBuilderAPI_MakeShape& Tool() override { return tool_; }
   BRepPrimAPI_MakeRevol tool_;
 };
 

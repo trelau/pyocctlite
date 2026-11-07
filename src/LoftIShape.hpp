@@ -8,17 +8,16 @@
 #include "MakeIShape.hpp"
 
 // Tool to loft shapes
-class LoftIShape {
+class LoftIShape : public MakeIShape {
 public:
   // Make a lofted shape
   LoftIShape(const bool isSolid = false, const bool isRuled = false, const double tol = 1.0e-6)
       : tool_(isSolid, isRuled, tol) {}
 
-  MAKE_SHAPE_METHODS(tool_);
-
   void AddWire(const IShape& wire) { tool_.AddWire(wire.AsWire()); }
 
 private:
+  BRepBuilderAPI_MakeShape& Tool() override { return tool_; }
   BRepOffsetAPI_ThruSections tool_;
 };
 

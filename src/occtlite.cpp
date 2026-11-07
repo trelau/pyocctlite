@@ -26,6 +26,7 @@
 #include "IErrors.hpp"
 #include "IShape.hpp"
 #include "LoftIShape.hpp"
+#include "MakeIShape.hpp"
 #include "MapIShape.hpp"
 #include "OffsetIWire.hpp"
 #include "RenderIShapes.hpp"
@@ -53,6 +54,7 @@ NB_MODULE(_occtlite, m) {
   bind_ProjectIPointToICurve(m);
 
   bind_IShape(m);
+  bind_MakeIShape(m);
   bind_CopyIShape(m);
   bind_ExploreIShape(m);
   bind_MapIShape(m);

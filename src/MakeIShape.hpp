@@ -2,59 +2,41 @@
 
 #include "occtlite.hpp"
 
-#include <NCollection_List.hxx>
-#include <TopoDS_Shape.hxx>
+#include <BRepBuilderAPI_MakeShape.hxx>
 
-#include "IErrors.hpp"
 #include "IShape.hpp"
 
-// Common methods for derived tools of OCCT BRepBuilderAPI_MakeShape
-#define MAKE_SHAPE_METHODS(tool_)                                                                  \
-  void Build() { (tool_).Build(); }                                                                \
-                                                                                                   \
-  bool IsDone() const { return (tool_).IsDone(); }                                                 \
-                                                                                                   \
-  void CheckBuilt() {                                                                              \
-    if (!(tool_).IsDone()) {                                                                       \
-      (tool_).Build();                                                                             \
-    }                                                                                              \
-    if (!(tool_).IsDone()) {                                                                       \
-      throw IBuildFailed("Operation failed to build.");                                            \
-    }                                                                                              \
-  }                                                                                                \
-                                                                                                   \
-  IShape Shape() {                                                                                 \
-    CheckBuilt();                                                                                  \
-    TopoDS_Shape result = (tool_).Shape();                                                         \
-    return IShape(result);                                                                         \
-  }                                                                                                \
-                                                                                                   \
-  bool IsDeleted(const IShape& shape) {                                                            \
-    CheckBuilt();                                                                                  \
-    return (tool_).IsDeleted(shape);                                                               \
-  }                                                                                                \
-                                                                                                   \
-  std::vector<IShape> GeneratedShapes(const IShape& shape) {                                       \
-    CheckBuilt();                                                                                  \
-    NCollection_List<TopoDS_Shape> generated = (tool_).Generated(shape);                           \
-    return IShape::MakeByList(generated);                                                          \
-  }                                                                                                \
-                                                                                                   \
-  std::vector<IShape> ModifiedShapes(const IShape& shape) {                                        \
-    CheckBuilt();                                                                                  \
-    NCollection_List<TopoDS_Shape> modified = (tool_).Modified(shape);                             \
-    return IShape::MakeByList(modified);                                                           \
-  }
+// Base class for tools that wrap a derived tool of OCCT BRepBuilderAPI_MakeShape
+class MakeIShape {
+public:
+  virtual ~MakeIShape() = default;
 
-// Common bindings for derived tools of OCCT BRepBuilderAPI_MakeShape
-template <typename T> void bind_MakeShape(nb::class_<T>& cls) {
-  cls.def("Build", &T::Build, "Execute the operation.");
-  cls.def("IsDone", &T::IsDone, "Check if the operation completed successfully.");
-  cls.def("Shape", &T::Shape, "Get the resulting shape, building if needed.");
-  cls.def("IsDeleted", &T::IsDeleted, nb::arg("shape"),
-          "Check if the given input shape was deleted by this operation.");
-  cls.def("GeneratedShapes", &T::GeneratedShapes, nb::arg("shape"),
-          "Get shapes generated from the given input shape.");
-  cls.def("ModifiedShapes", &T::ModifiedShapes, nb::arg("shape"),
-          "Get shapes modified from the given input shape.");
-}
+  // Execute the operation
+  void Build() { Tool().Build(); }
+
+  // Check if the operation completed successfully
+  bool IsDone() { return Tool().IsDone(); }
+
+  // Get the resulting shape, building if needed
+  IShape Shape();
+
+  // Check if the given input shape was deleted by this operation
+  bool IsDeleted(const IShape& shape);
+
+  // Get shapes generated from the given input shape
+  std::vector<IShape> GeneratedShapes(const IShape& shape);
+
+  // Get shapes modified from the given input shape
+  std::vector<IShape> ModifiedShapes(const IShape& shape);
+
+protected:
+  // Get the wrapped tool
+  virtual BRepBuilderAPI_MakeShape& Tool() = 0;
+
+private:
+  // Build the wrapped tool if needed, and throw if it fails
+  void CheckBuilt();
+};
+
+// Python bindings
+void bind_MakeIShape(nb::module_& m);

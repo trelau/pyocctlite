@@ -8,17 +8,16 @@
 #include "MakeIShape.hpp"
 
 // Tool to chamfer shapes
-class ChamferIShape {
+class ChamferIShape : public MakeIShape {
 public:
   // Construct chamfer tool with the shape
   ChamferIShape(const IShape& shape) : tool_(shape) {}
-
-  MAKE_SHAPE_METHODS(tool_);
 
   // Add an edge to be chamfered with the given distance on both adjacent faces
   void AddEdge(const IShape& edge, double distance) { tool_.Add(distance, edge.AsEdge()); }
 
 private:
+  BRepBuilderAPI_MakeShape& Tool() override { return tool_; }
   BRepFilletAPI_MakeChamfer tool_;
 };
 

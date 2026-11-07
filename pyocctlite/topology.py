@@ -20,6 +20,7 @@ from pyocctlite._occtlite import (
     IShape,
     IShapeKind,
     LoftIShape,
+    MakeIShape,
     MapIShape,
     OffsetIWire,
     RevolveIShape,
@@ -72,22 +73,7 @@ __all__ = [
 T = TypeVar("T", bound="Shape")
 S = TypeVar("S", bound="Shape")
 
-# C++ tools wrapping OCCT BRepBuilderAPI_MakeShape (see MakeIShape.hpp)
-MakeShapeITool = (
-    ChamferIShape
-    | CopyIShape
-    | CutIShapes
-    | ExtrudeIShape
-    | FilletIShape
-    | IntersectIShapes
-    | LoftIShape
-    | OffsetIWire
-    | RevolveIShape
-    | ThickenIShape
-    | TransformIShape
-    | UniteIShapes
-)
-ToolT = TypeVar("ToolT", bound=MakeShapeITool)
+ToolT = TypeVar("ToolT", bound=MakeIShape)
 BooleanToolT = TypeVar("BooleanToolT", bound=CutIShapes | IntersectIShapes | UniteIShapes)
 
 

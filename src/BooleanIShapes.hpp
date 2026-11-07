@@ -12,7 +12,7 @@
 #include "MakeIShape.hpp"
 
 // Tool for a boolean operation, instantiated once per OCCT operation
-template <typename Tool> class BooleanIShapes {
+template <typename Operation> class BooleanIShapes : public MakeIShape {
 public:
   // Apply the operation between the targets and the tools
   BooleanIShapes(const std::vector<IShape>& targets, const std::vector<IShape>& tools,
@@ -22,8 +22,6 @@ public:
     tool_.SetFuzzyValue(tol);
     tool_.Build();
   }
-
-  MAKE_SHAPE_METHODS(tool_);
 
   // Get the edges where the surfaces of the targets and tools intersect
   std::vector<IShape> IntersectionEdges() { return IShape::MakeByList(tool_.SectionEdges()); }
@@ -37,7 +35,8 @@ private:
     return list;
   }
 
-  Tool tool_;
+  BRepBuilderAPI_MakeShape& Tool() override { return tool_; }
+  Operation tool_;
 };
 
 using UniteIShapes = BooleanIShapes<BRepAlgoAPI_Fuse>;

@@ -2,16 +2,13 @@
 
 template <typename T> static void bind_Boolean(nb::module_& m, const char* name, const char* doc) {
 
-  auto cls = nb::class_<T>(m, name, doc)
-                 .def(nb::init<const std::vector<IShape>&, const std::vector<IShape>&, double>(),
-                      nb::arg("targets"), nb::arg("tools"), nb::arg("tol") = 0.0,
-                      "Apply the operation between the targets and the tools.")
+  nb::class_<T, MakeIShape>(m, name, doc)
+      .def(nb::init<const std::vector<IShape>&, const std::vector<IShape>&, double>(),
+           nb::arg("targets"), nb::arg("tools"), nb::arg("tol") = 0.0,
+           "Apply the operation between the targets and the tools.")
 
-                 .def("IntersectionEdges", &T::IntersectionEdges,
-                      "Get the edges where the surfaces of the targets and tools intersect.");
-
-  // MakeShape methods
-  bind_MakeShape<T>(cls);
+      .def("IntersectionEdges", &T::IntersectionEdges,
+           "Get the edges where the surfaces of the targets and tools intersect.");
 }
 
 // Python bindings

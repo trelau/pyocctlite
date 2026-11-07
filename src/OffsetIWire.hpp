@@ -8,7 +8,7 @@
 #include "MakeIShape.hpp"
 
 // Tool to offset a planar wire within its plane
-class OffsetIWire {
+class OffsetIWire : public MakeIShape {
 public:
   // Offset a wire, finding its plane from its own geometry
   OffsetIWire(const IShape& wire, double distance);
@@ -16,9 +16,8 @@ public:
   // Offset a wire on a spine face
   OffsetIWire(const IShape& wire, const IShape& spine, double distance);
 
-  MAKE_SHAPE_METHODS(tool_);
-
 private:
+  BRepBuilderAPI_MakeShape& Tool() override { return tool_; }
   BRepOffsetAPI_MakeOffset tool_;
 };
 

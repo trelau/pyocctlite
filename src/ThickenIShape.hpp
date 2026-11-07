@@ -8,7 +8,7 @@
 #include "MakeIShape.hpp"
 
 // Tool to make a hollow solid with a uniform thickness
-class ThickenIShape {
+class ThickenIShape : public MakeIShape {
 public:
   // Construct a hollow solid from an open shell using a uniform thickness
   ThickenIShape(const IShape& shape, double thickness);
@@ -17,9 +17,8 @@ public:
   ThickenIShape(const IShape& shape, const std::vector<IShape>& faces, double thickness,
                 double tol = 1.0e-3);
 
-  MAKE_SHAPE_METHODS(tool_);
-
 private:
+  BRepBuilderAPI_MakeShape& Tool() override { return tool_; }
   BRepOffsetAPI_MakeThickSolid tool_;
 };
 

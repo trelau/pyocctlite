@@ -8,17 +8,16 @@
 #include "MakeIShape.hpp"
 
 // Tool to fillet shapes
-class FilletIShape {
+class FilletIShape : public MakeIShape {
 public:
   // Construct fillet tool with the shape
   FilletIShape(const IShape& shape) : tool_(shape) {}
-
-  MAKE_SHAPE_METHODS(tool_);
 
   // Add an edge to be filleted with the given radius
   void AddEdge(const IShape& edge, double radius) { tool_.Add(radius, edge.AsEdge()); }
 
 private:
+  BRepBuilderAPI_MakeShape& Tool() override { return tool_; }
   BRepFilletAPI_MakeFillet tool_;
 };
 
