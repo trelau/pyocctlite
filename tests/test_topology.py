@@ -859,6 +859,12 @@ class TestMapShape(unittest.TestCase):
         with self.assertRaises(IndexError):
             edges[-len(edges) - 1]
 
+    def test_find_shape_matches_indexing(self):
+        edges = _box().edges()
+        self.assertEqual(edges.find_shape(-1), edges[-1])
+        with self.assertRaises(IndexError):
+            edges.find_shape(len(edges))
+
     def test_slice(self):
         edges = _box().edges()
         self.assertEqual(edges[1:3], [edges[1], edges[2]])

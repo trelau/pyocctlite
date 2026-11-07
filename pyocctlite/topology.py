@@ -1403,12 +1403,11 @@ class MapShape(Sequence[T]):
         """
         Find shape by 0-based index.
 
-        :param index: 0-based index.
+        :param index: 0-based index, or negative to count from the end.
         :return: Sub-shape.
-        :raises RuntimeError: If the index is out of range.
+        :raises IndexError: If the index is out of range.
         """
-        # OCCT is 1-based, Python is 0-based
-        return self._kind(self._itool.FindShape(index + 1))
+        return self[index]
 
     def find_index(self, shape: T) -> int | None:
         """
