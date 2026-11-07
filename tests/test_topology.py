@@ -832,8 +832,9 @@ class TestCentroid(unittest.TestCase):
         c = Compound.by_shapes([Box.by_size(1, 1, 1), face]).centroid
         self.assertTrue(c.is_equal(Point.by_xyz(0.5, 0.5, 0.5)))
 
-    def test_empty_is_nan(self):
-        self.assertTrue(math.isnan(Compound.by_shapes([]).centroid.x))
+    def test_empty_raises(self):
+        with self.assertRaises(RuntimeError):
+            _ = Compound.by_shapes([]).centroid
 
     def test_selects_edges_by_position(self):
         box = Box.by_size(1, 1, 1)

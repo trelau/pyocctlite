@@ -214,6 +214,7 @@ class Shape:
         Geometric center of the highest dimension present in this shape.
 
         :return: Centroid.
+        :raises RuntimeError: If this shape is empty.
         """
         return Point(self.ishape.Centroid())
 
