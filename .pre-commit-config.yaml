@@ -15,7 +15,7 @@ repos:
         name: mypy
         entry: python -m mypy
         language: system
-        types: [python]
+        always_run: true
         pass_filenames: false
       - id: clang-format
         name: clang-format

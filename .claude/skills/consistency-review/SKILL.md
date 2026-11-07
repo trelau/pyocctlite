@@ -13,16 +13,17 @@ Read what the project says it wants before reading the code: project instruction
 
 ## Look for
 
+- **Exemplars out of step:** start with any code the project names as a model. Agents copy it, so check it against the stated rules first and report conflicts to reconcile.
 - **Drift from stated rules:** code that breaks a principle or pattern, or two parts solving the same problem differently. Also rules that the code has outgrown, and decisions that were made but never written down.
 - **Inconsistent surface:** similar things named, ordered, or behaving differently. Judge it the way a new user would: could they predict this from one example?
 - **Domain conventions:** terms, orientations, and argument meanings that would surprise someone who knows the field.
-- **Duplication that compounds:** repetition that the next feature will add to. Repetition that's merely untidy matters much less.
-- **Layers out of sync:** capability in one layer that another can't reach, and docs, stubs, or examples that no longer match. Compare these mechanically with a script or search, since skimming misses most of it.
+- **Duplication that compounds:** repetition that the next feature will add to. Repetition a stated pattern calls for isn't a finding unless the pattern itself has become costly. Repetition that's merely untidy matters much less.
+- **Layers out of sync:** capability in one layer that another can't reach, and docs, stubs, or examples that no longer match. Compare these with a search, since skimming misses most of it.
 - **Loose ends:** stale notes, finished to-dos, documented limitations, and gaps that earlier work had to work around.
 
 ## Verify before reporting
 
-Run the tests and examples. Reproduce behavior claims by running them, isolating anything that could crash the process. For claims about outside conventions, check primary sources and say how strong the evidence is. Label anything you couldn't confirm.
+Run the project's tests, checks, and any examples; don't write one-off scripts for what they could enforce. When a rule has drifted and a built-in lint or type check could catch it, suggest enabling that. Reproduce behavior claims by running them, isolating anything that could crash the process. For claims about outside conventions, check primary sources and say how strong the evidence is. Label anything you couldn't confirm.
 
 ## Report
 
@@ -41,4 +42,4 @@ Keep it to what's worth acting on, without listing every nit. If a finding might
 
 ## After the user chooses
 
-Make only the chosen changes, on a new branch. Probe uncertain behavior before documenting it, and meet the project's definition of done. Call out anything that breaks callers, especially changes that fail silently. When a decision sets a new rule, propose adding it to the project's instructions so the next review can check for it. Stop for review before committing.
+Make only the chosen changes, on a new branch. Probe uncertain behavior before documenting it, and meet the project's definition of done. Call out anything that breaks callers, especially changes that fail silently. When a decision sets a new rule, propose the smallest change to the project's instructions, tightening an existing line where possible, so the next review can check for it. Stop for review before committing.

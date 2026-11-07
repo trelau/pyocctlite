@@ -45,5 +45,6 @@ nanobind_add_stub(
     INSTALL_TIME
     MODULE pyocctlite._occtlite
     PYTHON_PATH ${CMAKE_CURRENT_SOURCE_DIR}
+    PATTERN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/occtlite.stubpatterns
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/pyocctlite/_occtlite.pyi
 )

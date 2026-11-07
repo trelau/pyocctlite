@@ -4,19 +4,24 @@
 [tool.mypy]
 files = ["pyocctlite"]
 python_version = "3.12"
-disallow_untyped_defs = true
-check_untyped_defs = true
-warn_return_any = true
-warn_unused_ignores = true
+strict = true
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP"]
+select = ["E", "F", "I", "B", "UP", "C4", "SIM", "N", "ARG", "PIE", "RET", "PERF", "RUF", "D1"]
 # Keep TypeVar-style generics for now
 ignore = ["UP046", "UP047"]
+
+# Docstrings are only required on the package
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D1"]
+"examples/**" = ["D1"]
+"docs/**" = ["D1"]
+".claude/**" = ["D1"]
+"pyocctlite/__init__.py" = ["D104"]
 
 [tool.ruff.lint.isort]
 required-imports = ["from __future__ import annotations"]

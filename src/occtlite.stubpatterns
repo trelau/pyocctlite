@@ -1,0 +1,9 @@
+# pyocctlite.errors renames the module of these exceptions, so without these the stub imports them
+# from pyocctlite.errors, which imports them from the stub
+pyocctlite._occtlite.BuildFailed:
+    class BuildFailed(RuntimeError):
+        """Exception for a tool that failed to build."""
+
+pyocctlite._occtlite.KindMismatch:
+    class KindMismatch(TypeError):
+        """Exception for an object of the wrong kind."""
