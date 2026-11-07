@@ -22,6 +22,7 @@ This project intentionally:
 - Simple construction and transformation operations
 - Basic analysis (length, area, volume, bounding box, centroid) and STEP export
 - Rendering shapes to PNG images, with no GPU or display needed
+- Engineering drawings with hidden-line views and dimensions, written to PNG, SVG or PDF
 - Python bindings via `nanobind`
 
 More advanced features (meshing, STEP import, interactive viewers) may be added later.

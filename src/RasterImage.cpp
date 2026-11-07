@@ -128,6 +128,80 @@ constexpr const char* kLetters[] = {
     "03123443",                            // ~
 };
 
+// Strokes for the symbols used on drawings, on the same grid as the letters. Some reach past the
+// letter height, like the marks on a position symbol.
+constexpr const char* kDiameterStrokes = "123243443515040312 4106";
+constexpr const char* kDegreeStrokes = "10203122120110";
+constexpr const char* kPlusMinusStrokes = "2125 0343 0646";
+constexpr const char* kPerpendicularStrokes = "2026 0646";
+constexpr const char* kParallelStrokes = "1016 3036";
+constexpr const char* kFlatnessStrokes = "1242340412";
+constexpr const char* kPositionStrokes = "113142443515040211 2026 0343";
+constexpr const char* kRunoutStrokes = "0642 22424244";
+constexpr const char* kConcentricityStrokes = "113142443515040211 2233241322";
+constexpr const char* kMaxMaterialStrokes = "113142443515040211 1412233234";
+constexpr const char* kCounterboreStrokes = "02054542";
+constexpr const char* kCountersinkStrokes = "012541";
+constexpr const char* kDepthStrokes = "2025 142534 0646";
+
+// Get the strokes of the character at a position in UTF-8 text and move past it. A character
+// without strokes uses those of "?".
+const char* NextLetter(const std::string& text, std::size_t& position) {
+
+  const auto byte = [&](const std::size_t index) {
+    return index < text.size() ? static_cast<unsigned int>(static_cast<unsigned char>(text[index]))
+                               : 0U;
+  };
+
+  const unsigned int first = byte(position);
+  std::size_t length = 1;
+  unsigned int code = first;
+  if ((first & 0xE0U) == 0xC0U) {
+    length = 2;
+    code = ((first & 0x1FU) << 6U) | (byte(position + 1) & 0x3FU);
+  } else if ((first & 0xF0U) == 0xE0U) {
+    length = 3;
+    code = ((first & 0x0FU) << 12U) | ((byte(position + 1) & 0x3FU) << 6U) |
+           (byte(position + 2) & 0x3FU);
+  } else if ((first & 0xF8U) == 0xF0U) {
+    length = 4;
+    code = 0xFFFFU;
+  }
+  position += length;
+
+  switch (code) {
+  case 0x00B0U:
+    return kDegreeStrokes;
+  case 0x00B1U:
+    return kPlusMinusStrokes;
+  case 0x00D8U:
+  case 0x2300U:
+    return kDiameterStrokes;
+  case 0x27C2U:
+    return kPerpendicularStrokes;
+  case 0x2225U:
+    return kParallelStrokes;
+  case 0x23E5U:
+    return kFlatnessStrokes;
+  case 0x2316U:
+    return kPositionStrokes;
+  case 0x2197U:
+    return kRunoutStrokes;
+  case 0x25CEU:
+    return kConcentricityStrokes;
+  case 0x24C2U:
+    return kMaxMaterialStrokes;
+  case 0x2334U:
+    return kCounterboreStrokes;
+  case 0x2335U:
+    return kCountersinkStrokes;
+  case 0x21A7U:
+    return kDepthStrokes;
+  default:
+    return kLetters[(code >= ' ' && code <= '~' ? code : '?') - ' '];
+  }
+}
+
 std::uint8_t ToByte(const double value) {
   return static_cast<std::uint8_t>(std::lround(std::clamp(value, 0.0, 1.0) * 255.0));
 }
@@ -277,15 +351,17 @@ std::map<int, RasterPole> FindRasterPoles(const std::vector<int>& grid, const in
   return poles;
 }
 
-RasterImage::RasterImage(const int width, const int height)
+RasterImage::RasterImage(const int width, const int height, const bool isFlat)
     : width_(width), height_(height), sampledWidth_(width * kSamples),
-      sampledHeight_(height * kSamples) {
+      sampledHeight_(height * kSamples), isFlat_(isFlat) {
 
   const std::size_t count =
       static_cast<std::size_t>(sampledWidth_) * static_cast<std::size_t>(sampledHeight_);
   pixels_.assign(count * 3, 255);
-  depths_.assign(count, -std::numeric_limits<float>::infinity());
-  ids_.assign(count, kRasterNone);
+  if (!isFlat_) {
+    depths_.assign(count, -std::numeric_limits<float>::infinity());
+    ids_.assign(count, kRasterNone);
+  }
 }
 
 void RasterImage::FillTriangle(const RasterVertex& a, const RasterVertex& b, const RasterVertex& c,
@@ -301,15 +377,17 @@ void RasterImage::FillTriangle(const RasterVertex& a, const RasterVertex& b, con
                         const double wc) {
     const std::size_t index = static_cast<std::size_t>(y) * sampledWidth_ + x;
     const float depth = static_cast<float>(wa * sa.depth + wb * sb.depth + wc * sc.depth);
-    if (depth < depths_[index]) {
+    if (!isFlat_ && depth < depths_[index]) {
       return;
     }
 
     const double shade = wa * sa.shade + wb * sb.shade + wc * sc.shade;
     std::uint8_t* pixel = &pixels_[index * 3];
     if (isOpaque) {
-      depths_[index] = depth;
-      ids_[index] = id;
+      if (!isFlat_) {
+        depths_[index] = depth;
+        ids_[index] = id;
+      }
       pixel[0] = ToByte(color.r * shade);
       pixel[1] = ToByte(color.g * shade);
       pixel[2] = ToByte(color.b * shade);
@@ -358,11 +436,13 @@ void RasterImage::DrawLine(const RasterVertex& a, const RasterVertex& b, const R
   const auto draw = [&](const int x, const int y, const double t) {
     const std::size_t index = static_cast<std::size_t>(y) * sampledWidth_ + x;
     const float depth = static_cast<float>(a.depth + (b.depth - a.depth) * t);
-    if (depth < depths_[index]) {
-      return;
+    if (!isFlat_) {
+      if (depth < depths_[index]) {
+        return;
+      }
+      depths_[index] = depth;
     }
 
-    depths_[index] = depth;
     std::uint8_t* pixel = &pixels_[index * 3];
     pixel[0] = ToByte(color.r);
     pixel[1] = ToByte(color.g);
@@ -458,42 +538,51 @@ void RasterImage::FillOverlayRect(const double x, const double y, const double w
   }
 }
 
-void RasterImage::DrawOverlayText(const std::string& text, const double x, const double y,
-                                  const double letterHeight, const RasterColor& color,
-                                  const double lineWidth) {
+std::vector<std::vector<double>> RasterImage::TextStrokes(const std::string& text,
+                                                          const double letterHeight) {
 
   const double unit = letterHeight / kLetterGridHeight;
-  double left = x;
-  double top = y;
-  for (const char letter : text) {
-    if (letter == '\n') {
-      left = x;
+  std::vector<std::vector<double>> strokes;
+  double left = 0.0;
+  double top = 0.0;
+  for (std::size_t position = 0; position < text.size();) {
+    if (text[position] == '\n') {
+      ++position;
+      left = 0.0;
       top += letterHeight * kLineAdvance;
       continue;
     }
 
-    const bool isPrintable = letter >= ' ' && letter <= '~';
-    const char* stroke = kLetters[(isPrintable ? letter : '?') - ' '];
-    double lastX = 0.0;
-    double lastY = 0.0;
-    bool hasLast = false;
+    const char* stroke = NextLetter(text, position);
+    bool isNewLine = true;
     for (; *stroke != '\0'; ++stroke) {
       if (*stroke == ' ') {
-        hasLast = false;
+        isNewLine = true;
         continue;
       }
 
-      const double px = left + (stroke[0] - '0') * unit;
-      const double py = top + (stroke[1] - '0') * unit;
-      ++stroke;
-      if (hasLast) {
-        DrawOverlayLine(lastX, lastY, px, py, color, lineWidth);
+      if (isNewLine) {
+        strokes.emplace_back();
+        isNewLine = false;
       }
-      lastX = px;
-      lastY = py;
-      hasLast = true;
+      strokes.back().push_back(left + (stroke[0] - '0') * unit);
+      strokes.back().push_back(top + (stroke[1] - '0') * unit);
+      ++stroke;
     }
     left += kLetterGridAdvance * unit;
+  }
+  return strokes;
+}
+
+void RasterImage::DrawOverlayText(const std::string& text, const double x, const double y,
+                                  const double letterHeight, const RasterColor& color,
+                                  const double lineWidth) {
+
+  for (const std::vector<double>& stroke : TextStrokes(text, letterHeight)) {
+    for (std::size_t i = 0; i + 3 < stroke.size(); i += 2) {
+      DrawOverlayLine(x + stroke[i], y + stroke[i + 1], x + stroke[i + 2], y + stroke[i + 3], color,
+                      lineWidth);
+    }
   }
 }
 
@@ -502,14 +591,26 @@ double RasterImage::TextWidth(const std::string& text, const double letterHeight
   const double unit = letterHeight / kLetterGridHeight;
   std::size_t longest = 0;
   std::size_t current = 0;
-  for (const char letter : text) {
-    current = letter == '\n' ? 0 : current + 1;
+  for (std::size_t position = 0; position < text.size();) {
+    if (text[position] == '\n') {
+      ++position;
+      current = 0;
+    } else {
+      NextLetter(text, position);
+      ++current;
+    }
     longest = std::max(longest, current);
   }
   if (longest == 0) {
     return 0.0;
   }
   return (static_cast<double>(longest - 1) * kLetterGridAdvance + kLetterGridWidth) * unit;
+}
+
+double RasterImage::TextHeight(const std::string& text, const double letterHeight) {
+
+  const auto extraLines = static_cast<double>(std::count(text.begin(), text.end(), '\n'));
+  return letterHeight * (1.0 + extraLines * kLineAdvance);
 }
 
 std::string RasterImage::ToRGB() const {

@@ -12,8 +12,8 @@ from enum import Enum
 from typing import TypeVar
 
 from pyocctlite._occtlite import RenderIShapes
-from pyocctlite.geometry import Point, Vector
-from pyocctlite.topology import Edge, Face, MapShape, Shape, Vertex
+from pyocctlite.geometry import Point, Point2D, Vector
+from pyocctlite.topology import Compound, Edge, Face, MapShape, Shape, Vertex
 
 __all__ = [
     "Callout",
@@ -39,6 +39,11 @@ _CUT_TINT = 0.7
 # Faces that are not numbered stay pale, so that the numbered colors stand out
 _BACKDROP_COLOR = (0.9, 0.9, 0.92)
 _SEPARATOR = bytes((190, 190, 190))
+
+# Defaults for added lines and text, with sizes in pixels
+_LINE_COLOR = (0.0, 0.0, 0.0)
+_LINE_WIDTH = 2.0
+_TEXT_HEIGHT = 14.0
 
 # Well-separated colors for telling faces apart, which repeat on parts with more faces
 _FACE_COLORS = (
@@ -77,12 +82,14 @@ class View(Enum):
 
 class Shading(Enum):
     """
-    How faces are shaded: LIGHT by the way a face faces the light, and DEPTH also darkening faces
-    that are farther from the viewer.
+    How shapes are drawn: LIGHT shades a face by the way it faces the light, DEPTH also darkens
+    faces that are farther from the viewer, and HIDDEN_LINE draws exact visible edges and
+    silhouettes with dashed hidden edges, without a section or numbered shape.
     """
 
     LIGHT = "light"
     DEPTH = "depth"
+    HIDDEN_LINE = "hidden_line"
 
 
 def _check_color(color: tuple[float, float, float]) -> None:
@@ -316,13 +323,37 @@ class Camera:
         """
         return self._label
 
+    @property
+    def right(self) -> Vector:
+        """
+        Direction that appears to the right in the image.
+
+        :return: Unit vector.
+        """
+        return self._up.cross(self._direction).normalize()
+
+    def project(self, point: Point) -> Point2D:
+        """
+        Project a point into the plane of the view, in the coordinates of
+        :class:`~pyocctlite.topology.HiddenLineShape`.
+
+        :param point: Point to project.
+        :return: Point with x to the right and y up, with the global origin at the origin.
+        """
+        offset = Vector.by_xyz(point.x, point.y, point.z)
+        right = self.right
+        return Point2D.by_xy(
+            offset.dot(right), offset.dot(self._direction.normalize().cross(right))
+        )
+
 
 class Callout:
     """
     A text box beside the part with a line pointing at a target.
 
     :ivar target: What to point at.
-    :ivar text: Text in printable ASCII, where a newline starts a new line.
+    :ivar text: Text in printable ASCII with the drawing symbols, where a newline starts a new
+        line.
     """
 
     def __init__(self, target: Shape | Point, text: str):
@@ -330,7 +361,8 @@ class Callout:
         Initialize from a target and text.
 
         :param target: What to point at.
-        :param text: Text in printable ASCII, where a newline starts a new line.
+        :param text: Text in printable ASCII with the drawing symbols, where a newline starts a
+            new line.
         """
         self._target = target
         self._text = text
@@ -570,6 +602,81 @@ class RenderShapes:
         shape = Vertex.by_point(target) if isinstance(target, Point) else target
         self._itool.AddCallout(shape.ishape, callout.text)
 
+    def add_line(
+        self,
+        p1: Point,
+        p2: Point,
+        color: tuple[float, float, float] = _LINE_COLOR,
+        width: float = _LINE_WIDTH,
+        dashed: bool = False,
+    ) -> None:
+        """
+        Add a straight line drawn on top of the shapes, which a fitted view includes and a section
+        does not remove.
+
+        :param p1: Start point.
+        :param p2: End point.
+        :param color: Red, green and blue from 0 to 1.
+        :param width: Width in pixels.
+        :param dashed: Whether the line is dashed.
+        :raises ValueError: If a color component is not from 0 to 1 or the width is not positive.
+        :raises BuildFailed: If the points coincide.
+        """
+        self.add_edges(Edge.by_points(p1, p2), color, width, dashed)
+
+    def add_edges(
+        self,
+        edges: Edge | Iterable[Edge],
+        color: tuple[float, float, float] = _LINE_COLOR,
+        width: float = _LINE_WIDTH,
+        dashed: bool = False,
+    ) -> None:
+        """
+        Add edges drawn on top of the shapes, which a fitted view includes and a section does not
+        remove.
+
+        :param edges: Edge(s) to draw, of any curve.
+        :param color: Red, green and blue from 0 to 1.
+        :param width: Width in pixels.
+        :param dashed: Whether the edges are dashed.
+        :raises ValueError: If a color component is not from 0 to 1 or the width is not positive.
+        """
+        _check_color(color)
+        if width <= 0.0:
+            raise ValueError(f"Expected a positive width, got {width}.")
+        shape = edges if isinstance(edges, Edge) else Compound.by_shapes(edges)
+        r, g, b = color
+        self._itool.AddLines(shape.ishape, r, g, b, width, dashed)
+
+    def add_text(
+        self,
+        point: Point,
+        text: str,
+        height: float = _TEXT_HEIGHT,
+        color: tuple[float, float, float] = _LINE_COLOR,
+        background: tuple[float, float, float] | None = None,
+    ) -> None:
+        """
+        Add text drawn on top of the shapes and centered on a point, which a fitted view includes
+        and a section does not remove.
+
+        :param point: Point at the center of the text.
+        :param text: Text in printable ASCII with the drawing symbols, where a newline starts a
+            new line.
+        :param height: Letter height in pixels.
+        :param color: Red, green and blue from 0 to 1.
+        :param background: Red, green and blue from 0 to 1 of a box behind the text, which keeps it
+            readable over a part. Defaults to no box.
+        :raises ValueError: If a color component is not from 0 to 1 or the height is not positive.
+        """
+        _check_color(color)
+        if background is not None:
+            _check_color(background)
+        if height <= 0.0:
+            raise ValueError(f"Expected a positive height, got {height}.")
+        r, g, b = color
+        self._itool.AddText(point.ipoint, text, height, r, g, b, list(background or ()))
+
     def set_section(self, section: Section) -> None:
         """
         Set the plane that cuts the images, replacing any earlier one.
@@ -677,7 +784,10 @@ class RenderShapes:
         :param shading: How faces are shaded.
         :param labels: Whether to draw the view name, the axes and any numbers.
         :return: Rows of RGB bytes, from the top row down.
+        :raises ValueError: If hidden lines are combined with a section or a numbered shape.
         """
+        if shading is Shading.HIDDEN_LINE and (self._section is not None or self._has_numbered):
+            raise ValueError("Expected no section or numbered shape with hidden lines.")
         camera = view if isinstance(view, Camera) else Camera.by_view(view)
         target = camera.target.ipoint if camera.target is not None else None
         return self._itool.Render(
@@ -687,6 +797,7 @@ class RenderShapes:
             target,
             camera.span,
             shading is Shading.DEPTH,
+            shading is Shading.HIDDEN_LINE,
             labels,
         )
 

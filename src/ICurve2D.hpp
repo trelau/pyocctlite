@@ -33,8 +33,14 @@ enum class ICurve2DKind {
 // Interface class for a curve
 class ICurve2D {
 public:
+  // Get points along this curve within a deflection and an angle in radians between neighboring
+  // segments
+  std::vector<IPoint2D> SamplePoints(double deflection, double angularDeflection = 0.2) const;
+
   // Factory methods to create different types of curves
   static ICurve2D MakeLine(const IPoint2D& p1, const IPoint2D& p2);
+
+  static ICurve2D MakeCircle(const IFrame2D& frame, const double radius);
 
   static ICurve2D MakeEllipse(const IFrame2D& frame, const double majorRadius,
                               const double minorRadius);
@@ -107,6 +113,9 @@ public:
 
   // Get line data
   ILine2DData LineData() const;
+
+  // Get circle data
+  ICircle2DData CircleData() const;
 
   // Get ellipse data
   IEllipse2DData EllipseData() const;

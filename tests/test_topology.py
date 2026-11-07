@@ -12,6 +12,8 @@ from pyocctlite.geometry import (
     BSplineCurve,
     Circle,
     CylindricalSurface,
+    Ellipse,
+    Frame,
     Line,
     Point,
     Point2D,
@@ -29,6 +31,7 @@ from pyocctlite.topology import (
     ExtrudeShape,
     Face,
     FilletShape,
+    HiddenLineShape,
     IntersectShapes,
     LoftShape,
     OffsetWire,
@@ -925,6 +928,121 @@ class TestExploreShape(unittest.TestCase):
             _box().explore(Shape)
         with self.assertRaises(TypeError):
             _box().explore(Edge, ignore=Shape)
+
+
+class TestEdgePoints(unittest.TestCase):
+    def test_line_has_its_ends(self):
+        a = Point.by_xyz(0, 0, 0)
+        b = Point.by_xyz(1, 2, 3)
+        points = Edge.by_points(a, b).points(0.01)
+        self.assertTrue(points[0].is_equal(a))
+        self.assertTrue(points[-1].is_equal(b))
+
+    def test_arc_keeps_the_range_of_the_edge(self):
+        arc = Edge.by_circular_arc(
+            Point.by_xyz(1, 0, 0), Point.by_xyz(0, 1, 0), Point.by_xyz(-1, 0, 0)
+        )
+        points = arc.points(0.001)
+        self.assertGreater(len(points), 8)
+        for p in points:
+            self.assertGreaterEqual(p.y, -1.0e-9)
+            self.assertAlmostEqual(math.hypot(p.x, p.y), 1.0)
+
+    def test_smaller_angle_gives_more_points(self):
+        arc = Edge.by_circular_arc(
+            Point.by_xyz(1, 0, 0), Point.by_xyz(0, 1, 0), Point.by_xyz(-1, 0, 0)
+        )
+        self.assertGreater(
+            len(arc.points(0.1, angular_deflection=0.01)),
+            len(arc.points(0.1, angular_deflection=0.5)),
+        )
+
+    def test_moved_edge_uses_its_location(self):
+        edge = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
+        moved = edge.translate(Vector.by_xyz(0, 0, 5))
+        self.assertAlmostEqual(moved.points(0.01)[0].z, 5.0)
+
+    def test_deflection_must_be_positive(self):
+        edge = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
+        with self.assertRaises(ValueError):
+            edge.points(0.0)
+
+
+class TestHiddenLineShape(unittest.TestCase):
+    FRONT = Vector.by_xyz(0, -1, 0)
+    TOP = Vector.by_xyz(0, 0, 1)
+    UP = Vector.by_xyz(0, 0, 1)
+
+    def test_box_along_an_axis(self):
+        tool = HiddenLineShape(Box.by_size(10, 20, 30), self.FRONT, self.UP)
+        self.assertAlmostEqual(tool.visible().length, 80.0)
+        box = tool.visible().bounding_box
+        self.assertAlmostEqual(box.dx, 10.0, delta=1.0e-3)
+        self.assertAlmostEqual(box.dy, 30.0, delta=1.0e-3)
+        self.assertAlmostEqual(box.dz, 0.0, delta=1.0e-3)
+
+    def test_results_are_flat_in_the_view(self):
+        tool = HiddenLineShape(Box.by_size(10, 20, 30), Vector.by_xyz(1, -1, 1), self.UP)
+        for edge in tool.visible().edges():
+            for p in edge.points(0.01):
+                self.assertAlmostEqual(p.z, 0.0)
+
+    def test_cylinder_from_the_side_has_silhouettes(self):
+        tool = HiddenLineShape(Cylinder.by_size(5, 20), self.FRONT, self.UP)
+        self.assertAlmostEqual(tool.visible().length, 60.0, delta=1.0e-6)
+        vertical = [e for e in tool.visible().edges() if abs(e.length - 20.0) < 1.0e-6]
+        xs = sorted(e.points(0.01)[0].x for e in vertical)
+        self.assertEqual(len(xs), 2)
+        self.assertAlmostEqual(xs[0], -5.0)
+        self.assertAlmostEqual(xs[1], 5.0)
+
+    def test_circle_at_an_angle_is_an_ellipse(self):
+        tool = HiddenLineShape(Cylinder.by_size(5, 20), Vector.by_xyz(1, -1, 1), self.UP)
+        curves = [e.curve for e in tool.visible().edges()]
+        self.assertTrue(any(isinstance(c, Ellipse) for c in curves))
+
+    def test_hole_is_hidden_from_the_side(self):
+        block = Box.by_size(20, 20, 10, Frame.by_origin(Point.by_xyz(-10, -10, 0)))
+        drilled = block.cut(Cylinder.by_size(3, 10))
+        tool = HiddenLineShape(drilled, self.FRONT, self.UP)
+        at_hole = [
+            e
+            for e in tool.hidden().edges()
+            if abs(abs(e.points(0.01)[0].x) - 3.0) < 1.0e-6 and abs(e.length - 10.0) < 1.0e-6
+        ]
+        self.assertEqual(len(at_hole), 2)
+
+    def test_hole_is_visible_from_above(self):
+        block = Box.by_size(20, 20, 10, Frame.by_origin(Point.by_xyz(-10, -10, 0)))
+        drilled = block.cut(Cylinder.by_size(3, 10))
+        tool = HiddenLineShape(drilled, self.TOP, Vector.by_xyz(0, 1, 0))
+        self.assertAlmostEqual(tool.visible().length, 80.0 + 2.0 * math.pi * 3.0, delta=1.0e-6)
+
+    def test_fillet_gives_smooth_edges(self):
+        box = Box.by_size(10, 10, 10)
+        rounded = box.fillet(box.edges()[0], 1.0)
+        tool = HiddenLineShape(rounded, Vector.by_xyz(1, -1, 1), self.UP)
+        self.assertGreater(tool.visible_smooth().length + tool.hidden_smooth().length, 0.0)
+
+    def test_box_has_no_smooth_edges(self):
+        tool = HiddenLineShape(Box.by_size(10, 10, 10), self.FRONT, self.UP)
+        self.assertEqual(len(tool.visible_smooth().edges()), 0)
+        self.assertEqual(len(tool.hidden_smooth().edges()), 0)
+
+    def test_source_is_unchanged(self):
+        box = Box.by_size(10, 20, 30)
+        HiddenLineShape(box, self.FRONT, self.UP).visible()
+        self.assertTrue(box.is_valid)
+        self.assertAlmostEqual(box.volume, 6000.0)
+
+    def test_bad_directions_raise(self):
+        box = Box.by_size(1, 1, 1)
+        with self.assertRaises(ValueError):
+            HiddenLineShape(box, self.UP, self.UP)
+        with self.assertRaises(ValueError):
+            HiddenLineShape(box, Vector.by_xyz(0, 0, 0), self.UP)
+        with self.assertRaises(ValueError):
+            HiddenLineShape(box, self.FRONT, Vector.by_xyz(0, 0, 0))
 
 
 if __name__ == "__main__":

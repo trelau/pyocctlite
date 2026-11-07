@@ -16,4 +16,5 @@ A lightweight, Python-first wrapper around OpenCascade (OCCT).
    topology
    primitives
    rendering
+   drawing
    errors

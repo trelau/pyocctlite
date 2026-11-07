@@ -1,3 +1,83 @@
+# pyocctlite.drawing
+
+```
+class Symbol(StrEnum)
+class LinePattern(Enum)
+    LinePattern.SOLID
+    LinePattern.HIDDEN
+    LinePattern.CENTER
+    LinePattern.PHANTOM
+class TextAlign(Enum)
+    TextAlign.LEFT
+    TextAlign.CENTER
+    TextAlign.RIGHT
+class Paper(Enum)
+    Paper.A
+    Paper.B
+    Paper.C
+    Paper.D
+    Paper.E
+class Stroke
+    Stroke(color: Color = _BLACK, width: float | None = None, pattern: LinePattern = LinePattern.SOLID)
+    .color: Color
+    .width: float | None
+    .pattern: LinePattern
+class Canvas
+    Canvas(width: float, height: float, units_per_inch: float = 1.0)
+    .width: float
+    .height: float
+    .units_per_inch: float
+    .thin_width: float
+    .thick_width: float
+    .text_height: float
+    .text_width(text: str, height: float | None = None) -> float
+    .add_line(p1: Point2D, p2: Point2D, stroke: Stroke | None = None) -> None
+    .add_polyline(points: Iterable[Point2D], stroke: Stroke | None = None) -> None
+    .add_curve(curve: Curve2D, stroke: Stroke | None = None) -> None
+    .add_edges(edges: Edge | Iterable[Edge], stroke: Stroke | None = None) -> None
+    .add_polygon(points: Iterable[Point2D], color: Color = _BLACK) -> None
+    .add_text(at: Point2D, text: str, height: float | None = None, color: Color = _BLACK, angle: float = 0.0, align: TextAlign = TextAlign.LEFT) -> None
+    .add_arrow(tip: Point2D, direction: Vector2D, color: Color = _BLACK) -> None
+    .add_leader(tip: Point2D, at: Point2D, text: str) -> None
+    .add_linear_dimension(p1: Point2D, p2: Point2D, offset: float, text: str, along: Vector2D | None = None) -> None
+    .add_radial_dimension(center: Point2D, radius: float, text: str, angle: float = math.pi / 4.0) -> None
+    .add_angular_dimension(vertex: Point2D, p1: Point2D, p2: Point2D, radius: float, text: str) -> None
+    .add_center_mark(center: Point2D, radius: float) -> None
+    .add_table(top_left: Point2D, rows: Iterable[Iterable[str]], column_widths: Iterable[float], row_height: float | None = None, height: float | None = None) -> None
+    .add_feature_control_frame(at: Point2D, cells: Iterable[str]) -> None
+    .add_datum_feature(tip: Point2D, at: Point2D, letter: str) -> None
+    .add_surface_finish(tip: Point2D, value: str) -> None
+    .write(path: str, dpi: int = _DEFAULT_DPI) -> None
+class SheetView
+    SheetView(sheet: Sheet, shape: Shape, camera: Camera, scale: float, origin: Point2D, min_point: Point2D, max_point: Point2D, lines: list[_ViewLine] | None = None)
+    .sheet: Sheet
+    .shape: Shape
+    .camera: Camera
+    .scale: float
+    .origin: Point2D
+    .min_point: Point2D
+    .max_point: Point2D
+    .lines: list[_ViewLine]
+    .to_sheet(point: Point) -> Point2D
+    .add_dimension(p1: Point, p2: Point, offset: float, along: Vector2D | None = None, text: str | None = None, prefix: str = '', suffix: str = '', decimals: int = 2) -> None
+    .add_radius(edge: Edge, angle: float = math.pi / 4.0, text: str | None = None, suffix: str = '', decimals: int = 2) -> None
+    .add_diameter(edge: Edge, angle: float = math.pi / 4.0, text: str | None = None, prefix: str = '', suffix: str = '', decimals: int = 2) -> None
+    .add_center_line(p1: Point, p2: Point) -> None
+    .add_cutting_plane(origin: Point, normal: Vector, label: str) -> None
+    .add_label(text: str, gap: float | None = None) -> None
+    .add_angle(vertex: Point, p1: Point, p2: Point, radius: float, text: str | None = None) -> None
+    .add_center_mark(edge: Edge) -> None
+class Sheet(Canvas)
+    Sheet(paper: Paper = Paper.B, units_per_inch: float = 1.0)
+    .paper: Paper
+    .add_view(shape: Shape, view: View | Camera, at: Point2D, scale: float = 1.0, hidden: bool = True) -> SheetView
+    .add_projected_view(parent: SheetView, view: View, gap: float, hidden: bool = True) -> SheetView
+    .add_section_view(parent: SheetView, origin: Point, normal: Vector, gap: float, label: str = 'A') -> SheetView
+    .add_detail_view(parent: SheetView, center: Point, radius: float, at: Point2D, scale: float, label: str = 'B') -> SheetView
+    .add_zones(columns: int, rows: int) -> None
+    .add_title_block(title: str, number: str = '', revision: str = '', date: str = '', drawn_by: str = '', scale: float | None = None) -> None
+```
+
 # pyocctlite.errors
 
 ```
@@ -42,10 +122,15 @@ class Curve2D
     .is_periodic: bool
     .first_parameter: float
     .last_parameter: float
+    .points(deflection: float, angular_deflection: float = 0.2) -> list[Point2D]
 class Line2D(Curve2D)
     Line2D.by_points(p1: Point2D, p2: Point2D) -> Line2D
     .origin: Point2D
     .direction: Vector2D
+class Circle2D(Curve2D)
+    Circle2D.by_radius(radius: float, frame: Frame2D | None = None) -> Circle2D
+    .frame: Frame2D
+    .radius: float
 class Ellipse2D(Curve2D)
     Ellipse2D.by_radii(rmajor: float, rminor: float, frame: Frame2D | None = None) -> Ellipse2D
     .frame: Frame2D
@@ -116,6 +201,11 @@ class Circle(Curve)
     Circle.by_points(p1: Point, p2: Point, p3: Point) -> Circle
     .frame: Frame
     .radius: float
+class Ellipse(Curve)
+    Ellipse.by_radii(rmajor: float, rminor: float, frame: Frame | None = None) -> Ellipse
+    .frame: Frame
+    .rmajor: float
+    .rminor: float
 class TrimmedCurve(Curve)
     TrimmedCurve.by_circular_arc(p1: Point, p2: Point, p3: Point) -> TrimmedCurve
 class BSplineCurve(Curve)
@@ -173,6 +263,7 @@ class View(Enum)
 class Shading(Enum)
     Shading.LIGHT
     Shading.DEPTH
+    Shading.HIDDEN_LINE
 class Styled
     Styled(shape: Shape, color: tuple[float, float, float] | None = None, transparency: float = 0.0)
     .shape: Shape
@@ -187,6 +278,8 @@ class Camera
     .target: Point | None
     .span: float | None
     .label: str
+    .right: Vector
+    .project(point: Point) -> Point2D
 class Callout
     Callout(target: Shape | Point, text: str)
     .target: Shape | Point
@@ -202,6 +295,9 @@ class RenderShapes
     .add_numbered_faces(shape: Shape, faces: Face | Iterable[Face] | None = None) -> None
     .add_numbered_edges(shape: Shape, edges: Edge | Iterable[Edge] | None = None) -> None
     .add_callout(callout: Callout) -> None
+    .add_line(p1: Point, p2: Point, color: tuple[float, float, float] = _LINE_COLOR, width: float = _LINE_WIDTH, dashed: bool = False) -> None
+    .add_edges(edges: Edge | Iterable[Edge], color: tuple[float, float, float] = _LINE_COLOR, width: float = _LINE_WIDTH, dashed: bool = False) -> None
+    .add_text(point: Point, text: str, height: float = _TEXT_HEIGHT, color: tuple[float, float, float] = _LINE_COLOR, background: tuple[float, float, float] | None = None) -> None
     .set_section(section: Section) -> None
     .render(path: str, view: View | Camera = View.ISO, shading: Shading = Shading.LIGHT, labels: bool = True) -> None
     .render_views(path: str, shading: Shading = Shading.LIGHT, labels: bool = True) -> None
@@ -270,6 +366,7 @@ class Edge(Shape)
     Edge.by_circular_arc(p1: Point, p2: Point, p3: Point) -> Edge
     Edge.by_interpolation(points: Iterable[Point], tol: float = 1e-07) -> Edge
     .curve: Curve | None
+    .points(deflection: float, angular_deflection: float = 0.2) -> list[Point]
     .extrude(vector: Vector) -> Face
     .revolve(axis: Axis) -> Face
 class Wire(Shape)
@@ -347,6 +444,12 @@ class OffsetWire(ShapeTool)
 class LoftShape(ShapeTool)
     LoftShape(is_solid: bool = False, is_ruled: bool = False, tol: float = 1e-06)
     .add_wire(w: Wire) -> None
+class HiddenLineShape
+    HiddenLineShape(s: Shape, direction: Vector, up: Vector)
+    .visible() -> Compound
+    .hidden() -> Compound
+    .visible_smooth() -> Compound
+    .hidden_smooth() -> Compound
 class MapShape(Sequence[T])
     MapShape(shape: Shape, kind: type[T])
     .__len__() -> int

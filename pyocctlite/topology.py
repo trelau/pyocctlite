@@ -16,6 +16,7 @@ from pyocctlite._occtlite import (
     ExploreIShape,
     ExtrudeIShape,
     FilletIShape,
+    HiddenLineIShape,
     IntersectIShapes,
     IShape,
     IShapeKind,
@@ -53,6 +54,7 @@ __all__ = [
     "ExtrudeShape",
     "Face",
     "FilletShape",
+    "HiddenLineShape",
     "IntersectShapes",
     "LoftShape",
     "MapShape",
@@ -69,6 +71,9 @@ __all__ = [
     "Vertex",
     "Wire",
 ]
+
+# Below this cross product of unit vectors, an up direction is treated as parallel to the view
+_PARALLEL_TOLERANCE = 1.0e-7
 
 T = TypeVar("T", bound="Shape")
 S = TypeVar("S", bound="Shape")
@@ -626,6 +631,19 @@ class Edge(Shape):
         """
         icurve = self.ishape.Curve()
         return None if icurve is None else Curve.by_icurve(icurve)
+
+    def points(self, deflection: float, angular_deflection: float = 0.2) -> list[Point]:
+        """
+        Get points along the edge, so that lines between them stay close to it.
+
+        :param deflection: Largest distance between the lines and the edge.
+        :param angular_deflection: Largest angle between neighboring lines, in radians.
+        :return: Points in order along the edge.
+        :raises ValueError: If the deflection is not positive.
+        """
+        if deflection <= 0.0:
+            raise ValueError(f"Expected a positive deflection, got {deflection}.")
+        return [Point(p) for p in self.ishape.SamplePoints(deflection, angular_deflection)]
 
     def extrude(self, vector: Vector) -> Face:
         """
@@ -1320,6 +1338,61 @@ class LoftShape(ShapeTool[LoftIShape]):
         :param w: Section wire.
         """
         self._itool.AddWire(w.ishape)
+
+
+class HiddenLineShape:
+    """
+    Tool to find the visible and hidden lines of a shape in an orthographic view, as flat edges. In
+    the results, x is to the right of the view, y is up and z is 0, with the global origin at the
+    origin.
+    """
+
+    def __init__(self, s: Shape, direction: Vector, up: Vector):
+        """
+        Initialize with a shape and a view, finding what is hidden.
+
+        :param s: Source shape.
+        :param direction: Direction toward the viewer.
+        :param up: Direction that appears up, which is made perpendicular to the view.
+        :raises ValueError: If a direction has no length or the directions are parallel.
+        """
+        if direction.magnitude == 0.0 or up.magnitude == 0.0:
+            raise ValueError("Expected directions with a length.")
+        if direction.normalize().cross(up.normalize()).magnitude < _PARALLEL_TOLERANCE:
+            raise ValueError("Expected an up direction that is not parallel to the view.")
+        self._itool = HiddenLineIShape(s.ishape, direction.ivector, up.ivector)
+
+    def visible(self) -> Compound:
+        """
+        Get the visible sharp edges and silhouettes.
+
+        :return: Compound of flat edges, which may be empty.
+        """
+        return Compound(self._itool.Visible())
+
+    def hidden(self) -> Compound:
+        """
+        Get the hidden sharp edges and silhouettes.
+
+        :return: Compound of flat edges, which may be empty.
+        """
+        return Compound(self._itool.Hidden())
+
+    def visible_smooth(self) -> Compound:
+        """
+        Get the visible edges between faces that meet smoothly.
+
+        :return: Compound of flat edges, which may be empty.
+        """
+        return Compound(self._itool.VisibleSmooth())
+
+    def hidden_smooth(self) -> Compound:
+        """
+        Get the hidden edges between faces that meet smoothly.
+
+        :return: Compound of flat edges, which may be empty.
+        """
+        return Compound(self._itool.HiddenSmooth())
 
 
 class MapShape(Sequence[T]):

@@ -32,9 +32,11 @@ __all__ = [
     "BSplineCurve",
     "BoundingBox",
     "Circle",
+    "Circle2D",
     "Curve",
     "Curve2D",
     "CylindricalSurface",
+    "Ellipse",
     "Ellipse2D",
     "Frame",
     "Frame2D",
@@ -50,6 +52,10 @@ __all__ = [
     "Vector",
     "Vector2D",
 ]
+
+
+# A curve parameter at least this large means that the curve has no end
+_UNBOUNDED_PARAMETER = 1.0e100
 
 
 class Point2D:
@@ -463,6 +469,21 @@ class Curve2D:
         """
         return self.icurve.LastParameter()
 
+    def points(self, deflection: float, angular_deflection: float = 0.2) -> list[Point2D]:
+        """
+        Get points along the curve, so that lines between them stay close to it.
+
+        :param deflection: Largest distance between the lines and the curve.
+        :param angular_deflection: Largest angle between neighboring lines, in radians.
+        :return: Points in order along the curve.
+        :raises ValueError: If the deflection is not positive or the curve is unbounded.
+        """
+        if deflection <= 0.0:
+            raise ValueError(f"Expected a positive deflection, got {deflection}.")
+        if max(abs(self.first_parameter), abs(self.last_parameter)) >= _UNBOUNDED_PARAMETER:
+            raise ValueError("Expected a bounded curve.")
+        return [Point2D(p) for p in self.icurve.SamplePoints(deflection, angular_deflection)]
+
 
 class Line2D(Curve2D):
     """
@@ -502,6 +523,48 @@ class Line2D(Curve2D):
         :return: Unit direction vector.
         """
         return Vector2D(self.icurve.LineData().Direction)
+
+
+class Circle2D(Curve2D):
+    """
+    Represents a 2D circle, parameterized by the angle in radians from the x-direction of the frame.
+    """
+
+    _ikind = ICurve2DKind.Circle
+
+    @classmethod
+    def by_radius(cls, radius: float, frame: Frame2D | None = None) -> Circle2D:
+        """
+        Create a circle centered at the frame origin.
+
+        :param radius: Circle radius. Must not be negative.
+        :param frame: Coordinate system. Defaults to the global origin.
+        :return: New 2D circle.
+        :raises RuntimeError: If the radius is negative.
+        """
+        if frame is None:
+            frame = Frame2D.by_origin(Point2D.by_xy(0.0, 0.0))
+
+        icurve = ICurve2D.MakeCircle(frame.iframe, radius)
+        return cls(icurve)
+
+    @cached_property
+    def frame(self) -> Frame2D:
+        """
+        Coordinate system of the circle, with its center at the origin.
+
+        :return: Frame.
+        """
+        return Frame2D(self.icurve.CircleData().Frame)
+
+    @cached_property
+    def radius(self) -> float:
+        """
+        Radius of the circle.
+
+        :return: Radius.
+        """
+        return self.icurve.CircleData().Radius
 
 
 class Ellipse2D(Curve2D):
@@ -593,7 +656,7 @@ class TrimmedCurve2D(Curve2D):
 
 
 _CURVE2D_CLASSES: dict[ICurve2DKind, type[Curve2D]] = {
-    c._ikind: c for c in (Line2D, Ellipse2D, TrimmedCurve2D)
+    c._ikind: c for c in (Line2D, Circle2D, Ellipse2D, TrimmedCurve2D)
 }
 
 
@@ -1348,6 +1411,59 @@ class Circle(Curve):
         return self.icurve.CircleData().Radius
 
 
+class Ellipse(Curve):
+    """
+    Represents a 3D ellipse with its major axis along the x-direction of the frame, parameterized by
+    the angle in radians from that axis.
+    """
+
+    _ikind = ICurveKind.Ellipse
+
+    @classmethod
+    def by_radii(cls, rmajor: float, rminor: float, frame: Frame | None = None) -> Ellipse:
+        """
+        Create an ellipse centered at the frame origin, in its xy-plane.
+
+        :param rmajor: Major radius.
+        :param rminor: Minor radius. Must not exceed the major radius.
+        :param frame: Coordinate system. Defaults to the global origin.
+        :return: New 3D ellipse.
+        :raises RuntimeError: If the minor radius exceeds the major radius.
+        """
+        if frame is None:
+            frame = Frame.by_origin(Point.by_xyz(0.0, 0.0, 0.0))
+
+        icurve = ICurve.MakeEllipse(frame.iframe, rmajor, rminor)
+        return cls(icurve)
+
+    @cached_property
+    def frame(self) -> Frame:
+        """
+        Coordinate system of the ellipse, with its center at the origin.
+
+        :return: Frame.
+        """
+        return Frame(self.icurve.EllipseData().Frame)
+
+    @cached_property
+    def rmajor(self) -> float:
+        """
+        Major radius of the ellipse.
+
+        :return: Major radius.
+        """
+        return self.icurve.EllipseData().MajorRadius
+
+    @cached_property
+    def rminor(self) -> float:
+        """
+        Minor radius of the ellipse.
+
+        :return: Minor radius.
+        """
+        return self.icurve.EllipseData().MinorRadius
+
+
 class TrimmedCurve(Curve):
     """
     Represents a trimmed 3D curve, using the parameter of the underlying curve.
@@ -1393,7 +1509,7 @@ class BSplineCurve(Curve):
 
 
 _CURVE_CLASSES: dict[ICurveKind, type[Curve]] = {
-    c._ikind: c for c in (Line, Circle, TrimmedCurve, BSplineCurve)
+    c._ikind: c for c in (Line, Circle, Ellipse, TrimmedCurve, BSplineCurve)
 }
 
 

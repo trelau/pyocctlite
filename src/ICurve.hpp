@@ -40,6 +40,9 @@ public:
 
   static ICurve MakeCircle(const IPoint& p1, const IPoint& p2, const IPoint& p3);
 
+  static ICurve MakeEllipse(const IFrame& frame, const double majorRadius,
+                            const double minorRadius);
+
   static ICurve MakeCircularArc(const IPoint& p1, const IPoint& p2, const IPoint& p3);
 
   static ICurve MakeBSplineByInterpolation(const std::vector<IPoint>& points, double tol = 1.0e-7);
@@ -112,6 +115,9 @@ public:
 
   // Get circle data
   ICircleData CircleData() const;
+
+  // Get ellipse data
+  IEllipseData EllipseData() const;
 
   // Validate that the curve is of the expected kind
   void ValidateKind(const ICurveKind expected) const;

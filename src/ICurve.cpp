@@ -4,6 +4,7 @@
 
 #include <GC_MakeArcOfCircle.hxx>
 #include <GC_MakeCircle.hxx>
+#include <GC_MakeEllipse.hxx>
 #include <GC_MakeLine.hxx>
 #include <GeomAPI_Interpolate.hxx>
 #include <NCollection_HArray1.hxx>
@@ -54,6 +55,14 @@ ICurve ICurve::MakeCircle(const IFrame& frame, const double radius) {
 ICurve ICurve::MakeCircle(const IPoint& p1, const IPoint& p2, const IPoint& p3) {
 
   Handle(Geom_Circle) c = GC_MakeCircle(p1, p2, p3);
+
+  return ICurve(c);
+}
+
+ICurve ICurve::MakeEllipse(const IFrame& frame, const double majorRadius,
+                           const double minorRadius) {
+
+  Handle(Geom_Ellipse) c = GC_MakeEllipse(frame, majorRadius, minorRadius);
 
   return ICurve(c);
 }
@@ -130,6 +139,13 @@ ICircleData ICurve::CircleData() const {
   return {IFrame(circle->Position()), circle->Radius()};
 }
 
+IEllipseData ICurve::EllipseData() const {
+
+  Handle(Geom_Ellipse) ellipse = AsEllipse();
+
+  return {IFrame(ellipse->Position()), ellipse->MajorRadius(), ellipse->MinorRadius()};
+}
+
 void ICurve::ValidateKind(const ICurveKind expected) const {
   if (kind_ != expected) {
     throw IKindMismatch("Expected " + kindToString(expected) + " but got " + kindToString(kind_) +
@@ -160,6 +176,8 @@ void bind_ICurve(nb::module_& m) {
           "MakeCircle",
           nb::overload_cast<const IPoint&, const IPoint&, const IPoint&>(&ICurve::MakeCircle),
           nb::arg("p1"), nb::arg("p2"), nb::arg("p3"), "Make a circle by three points.")
+      .def_static("MakeEllipse", &ICurve::MakeEllipse, nb::arg("frame"), nb::arg("rmajor"),
+                  nb::arg("rminor"), "Make an ellipse.")
       .def_static("MakeCircularArc", &ICurve::MakeCircularArc, nb::arg("p1"), nb::arg("p2"),
                   nb::arg("p3"), "Make a circular arc by three points.")
       .def_static("MakeBSplineByInterpolation", &ICurve::MakeBSplineByInterpolation,
@@ -176,5 +194,6 @@ void bind_ICurve(nb::module_& m) {
            "Evaluate a derivative on this curve.")
 
       .def("LineData", &ICurve::LineData, "Get line data.")
-      .def("CircleData", &ICurve::CircleData, "Get circle data.");
+      .def("CircleData", &ICurve::CircleData, "Get circle data.")
+      .def("EllipseData", &ICurve::EllipseData, "Get ellipse data.");
 }

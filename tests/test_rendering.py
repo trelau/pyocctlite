@@ -741,7 +741,7 @@ class TestSection(RenderingTest):
         return max((image.pixel(x + i, y) for i in range(self.HATCH_SPACING)), key=sum)
 
     def test_cut_area_has_the_color(self):
-        for shading in Shading:
+        for shading in (Shading.LIGHT, Shading.DEPTH):
             image = self.render_section(self.box, self.front_half, shading=shading)
             self.assertEqual(self.fill(image, 400, 400), self.PURE_RED)
             self.assertEqual(self.fill(image, 300, 300), self.PURE_RED)
@@ -1094,6 +1094,196 @@ class TestFailures(RenderingTest):
     def test_missing_folder_raises(self):
         with self.assertRaises(OSError):
             render_image(Box.by_size(1, 1, 1), str(self.directory / "missing" / "image.png"))
+
+
+class TestAddedLinesAndText(unittest.TestCase):
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.path = Path(folder.name) / "image.png"
+        self.camera = Camera.by_view(View.FRONT, Point.by_xyz(0.0, 0.0, 0.0), 10.0)
+
+    def render(self, tool: RenderShapes, shading: Shading = Shading.LIGHT) -> Image:
+        tool.render(str(self.path), self.camera, shading, labels=False)
+        return Image(self.path)
+
+    def test_line_has_its_color_and_width(self):
+        tool = RenderShapes(400, 400)
+        tool.add_line(Point.by_xyz(-3, 0, 0), Point.by_xyz(3, 0, 0), RED, width=5.0)
+        image = self.render(tool)
+        self.assertEqual(image.pixel(200, 200), (255, 0, 0))
+        self.assertEqual(image.pixel(200, 201), (255, 0, 0))
+        self.assertEqual(image.pixel(200, 210), WHITE)
+
+    def test_line_is_drawn_over_a_shape(self):
+        tool = RenderShapes(400, 400)
+        tool.add_shape(Box.by_size(4, 4, 4, Frame.by_origin(Point.by_xyz(-2, -2, -2))))
+        tool.add_line(Point.by_xyz(-3, 5, 0), Point.by_xyz(3, 5, 0), RED, width=5.0)
+        self.assertEqual(self.render(tool).pixel(200, 200), (255, 0, 0))
+
+    def test_dashed_line_has_gaps(self):
+        tool = RenderShapes(400, 400)
+        tool.add_line(Point.by_xyz(-3, 0, 0), Point.by_xyz(3, 0, 0), RED, width=3.0, dashed=True)
+        image = self.render(tool)
+        row = [image.pixel(x, 200) for x in range(120, 280)]
+        self.assertIn((255, 0, 0), row)
+        self.assertIn(WHITE, row)
+
+    def test_edges_can_be_curved(self):
+        tool = RenderShapes(400, 400)
+        arc = Edge.by_circular_arc(
+            Point.by_xyz(-3, 0, 0), Point.by_xyz(0, 0, 3), Point.by_xyz(3, 0, 0)
+        )
+        tool.add_edges(arc, RED, width=5.0)
+        image = self.render(tool)
+        self.assertEqual(image.pixel(200, 200 - round(3.0 * 400.0 * 0.92 / 10.0)), (255, 0, 0))
+
+    def test_several_edges(self):
+        tool = RenderShapes(400, 400)
+        tool.add_edges(
+            [
+                Edge.by_points(Point.by_xyz(-3, 0, 1), Point.by_xyz(3, 0, 1)),
+                Edge.by_points(Point.by_xyz(-3, 0, -1), Point.by_xyz(3, 0, -1)),
+            ],
+            RED,
+            width=5.0,
+        )
+        image = self.render(tool)
+        step = round(400.0 * 0.92 / 10.0)
+        self.assertEqual(image.pixel(200, 200 - step), (255, 0, 0))
+        self.assertEqual(image.pixel(200, 200 + step), (255, 0, 0))
+
+    def test_text_is_centered_with_its_color(self):
+        tool = RenderShapes(400, 400)
+        tool.add_text(Point.by_xyz(0, 0, 0), "TEXT", height=30.0, color=RED)
+        image = self.render(tool)
+        x0, y0, x1, y1 = image.part_bounds()
+        self.assertLess(abs((x0 + x1) * 0.5 - 200.0), 4.0)
+        self.assertLess(abs((y0 + y1) * 0.5 - 200.0), 4.0)
+        self.assertTrue(image.has_reddish_pixel())
+
+    def test_text_background_hides_what_is_behind_it(self):
+        def behind(background: tuple[float, float, float] | None) -> Pixel:
+            tool = RenderShapes(400, 400)
+            tool.add_line(Point.by_xyz(-3, 0, 0), Point.by_xyz(3, 0, 0), RED, width=5.0)
+            tool.add_text(Point.by_xyz(0, 0, 0), "-", height=30.0, background=background)
+            # Beside the letter, and within its box
+            return self.render(tool).pixel(200 + 14, 200)
+
+        self.assertEqual(behind(None), (255, 0, 0))
+        self.assertEqual(behind((0.0, 1.0, 0.0)), (0, 255, 0))
+
+    def test_lines_and_text_alone_can_fit_a_view(self):
+        tool = RenderShapes(400, 400)
+        tool.add_line(Point.by_xyz(-3, 0, 0), Point.by_xyz(3, 0, 0), RED, width=4.0)
+        tool.add_text(Point.by_xyz(0, 0, 2), "A")
+        tool.render(str(self.path), View.FRONT, labels=False)
+        x0, _, x1, _ = Image(self.path).part_bounds()
+        self.assertGreater(x1 - x0, 250)
+
+    def test_fitted_view_includes_a_line_outside_the_shape(self):
+        def width(extra: bool) -> int:
+            tool = RenderShapes(400, 400)
+            tool.add_shape(Box.by_size(2, 2, 2))
+            if extra:
+                tool.add_line(Point.by_xyz(0, 0, 0), Point.by_xyz(40, 0, 0))
+            tool.render(str(self.path), View.FRONT, labels=False)
+            x0, _, x1, _ = Image(self.path).part_bounds()
+            return x1 - x0
+
+        self.assertGreater(width(False), 200)
+        self.assertGreater(width(True), 200)
+
+    def test_section_does_not_remove_a_line(self):
+        tool = RenderShapes(400, 400)
+        tool.add_shape(Box.by_size(1, 1, 1))
+        tool.add_line(Point.by_xyz(-3, 0, 0), Point.by_xyz(3, 0, 0), RED, width=5.0)
+        tool.set_section(Section.by_plane(Point.by_xyz(0, 0, 0), Vector.by_xyz(1, 0, 0)))
+        self.assertEqual(self.render(tool).pixel(280, 200), (255, 0, 0))
+
+    def test_bad_inputs_raise(self):
+        tool = RenderShapes(100, 100)
+        a = Point.by_xyz(0, 0, 0)
+        b = Point.by_xyz(1, 0, 0)
+        with self.assertRaises(ValueError):
+            tool.add_line(a, b, (2.0, 0.0, 0.0))
+        with self.assertRaises(ValueError):
+            tool.add_line(a, b, width=0.0)
+        with self.assertRaises(ValueError):
+            tool.add_text(a, "A", height=0.0)
+        with self.assertRaises(ValueError):
+            tool.add_text(a, "A", background=(2.0, 0.0, 0.0))
+
+
+class TestHiddenLineShading(unittest.TestCase):
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.path = Path(folder.name) / "image.png"
+        block = Box.by_size(6, 6, 4, Frame.by_origin(Point.by_xyz(-3, -3, -2)))
+        self.drilled = block.cut(Cylinder.by_size(1, 4, Frame.by_origin(Point.by_xyz(0, 0, -2))))
+        self.camera = Camera.by_view(View.FRONT, Point.by_xyz(0.0, 0.0, 0.0), 10.0)
+
+    def render(self, tool: RenderShapes) -> Image:
+        tool.render(str(self.path), self.camera, Shading.HIDDEN_LINE, labels=False)
+        return Image(self.path)
+
+    def tool(self) -> RenderShapes:
+        tool = RenderShapes(400, 400)
+        tool.add_shape(self.drilled)
+        return tool
+
+    def test_faces_are_white_with_visible_edges(self):
+        image = self.render(self.tool())
+        self.assertEqual(image.pixel(120, 200), WHITE)
+        left = 200 - round(3.0 * 400.0 * 0.92 / 10.0)
+        self.assertLess(min(sum(image.pixel(left + i, 200)) for i in range(-2, 3)), 300)
+
+    def test_hidden_edges_are_dashed(self):
+        image = self.render(self.tool())
+        hole = 200 + round(1.0 * 400.0 * 0.92 / 10.0)
+        column = [sum(image.pixel(hole, y)) for y in range(140, 260)]
+        self.assertLess(min(column), 500)
+        self.assertEqual(max(column), 765)
+
+    def test_callouts_still_find_their_target(self):
+        tool = self.tool()
+        tool.add_callout(Callout(self.drilled.faces()[0], "Face"))
+        self.assertTrue(self.render(tool).part_pixels())
+
+    def test_views_are_kept_apart_and_reused(self):
+        tool = self.tool()
+        first = self.render(tool).rows
+        tool.render(str(self.path), View.TOP, Shading.HIDDEN_LINE, labels=False)
+        self.assertNotEqual(Image(self.path).rows, first)
+        self.assertEqual(self.render(tool).rows, first)
+
+    def test_a_later_shape_is_included(self):
+        tool = self.tool()
+        first = self.render(tool).rows
+        tool.add_shape(Box.by_size(1, 1, 1, Frame.by_origin(Point.by_xyz(-4, -8, 3))))
+        self.assertNotEqual(self.render(tool).rows, first)
+
+    def test_free_edge_is_drawn(self):
+        tool = RenderShapes(400, 400)
+        tool.add_shape(Styled(Edge.by_points(Point.by_xyz(-3, 0, 0), Point.by_xyz(3, 0, 0)), RED))
+        self.assertTrue(self.render(tool).has_reddish_pixel())
+
+    def test_section_raises(self):
+        tool = self.tool()
+        tool.set_section(Section.by_plane(Point.by_xyz(0, 0, 0), Vector.by_xyz(1, 0, 0)))
+        with self.assertRaises(ValueError):
+            self.render(tool)
+
+    def test_numbered_shape_raises(self):
+        tool = RenderShapes(100, 100)
+        tool.add_numbered_faces(self.drilled)
+        with self.assertRaises(ValueError):
+            self.render(tool)
+
+    def test_views_sheet(self):
+        render_views(self.drilled, str(self.path), 400, 400, Shading.HIDDEN_LINE)
+        self.assertEqual(Image(self.path).width, 400)
 
 
 if __name__ == "__main__":

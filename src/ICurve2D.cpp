@@ -2,9 +2,12 @@
 
 #include <string>
 
+#include <GCE2d_MakeCircle.hxx>
 #include <GCE2d_MakeEllipse.hxx>
 #include <GCE2d_MakeLine.hxx>
 #include <GCE2d_MakeSegment.hxx>
+#include <GCPnts_TangentialDeflection.hxx>
+#include <Geom2dAdaptor_Curve.hxx>
 #include <gp_Pnt2d.hxx>
 #include <gp_Vec2d.hxx>
 
@@ -38,6 +41,26 @@ static std::string kindToString(ICurve2DKind kind) {
 ICurve2D ICurve2D::MakeLine(const IPoint2D& p1, const IPoint2D& p2) {
 
   Handle(Geom2d_Line) c = GCE2d_MakeLine(p1, p2);
+
+  return ICurve2D(c);
+}
+
+std::vector<IPoint2D> ICurve2D::SamplePoints(const double deflection,
+                                             const double angularDeflection) const {
+
+  const Geom2dAdaptor_Curve curve(curve_);
+  const GCPnts_TangentialDeflection sampled(curve, angularDeflection, deflection);
+  std::vector<IPoint2D> points;
+  for (int i = 1; i <= sampled.NbPoints(); ++i) {
+    const gp_Pnt point = sampled.Value(i);
+    points.emplace_back(gp_Pnt2d(point.X(), point.Y()));
+  }
+  return points;
+}
+
+ICurve2D ICurve2D::MakeCircle(const IFrame2D& frame, const double radius) {
+
+  Handle(Geom2d_Circle) c = GCE2d_MakeCircle(static_cast<gp_Ax22d>(frame), radius);
 
   return ICurve2D(c);
 }
@@ -106,6 +129,13 @@ ILine2DData ICurve2D::LineData() const {
   return {IPoint2D(line->Position().Location()), IVector2D(line->Position().Direction())};
 }
 
+ICircle2DData ICurve2D::CircleData() const {
+
+  Handle(Geom2d_Circle) circle = AsCircle();
+
+  return {IFrame2D(circle->Position()), circle->Radius()};
+}
+
 IEllipse2DData ICurve2D::EllipseData() const {
 
   Handle(Geom2d_Ellipse) ellipse = AsEllipse();
@@ -137,6 +167,11 @@ void bind_ICurve2D(nb::module_& m) {
   nb::class_<ICurve2D>(m, "ICurve2D", "A 2D curve.")
 
       .def_static("MakeLine", &ICurve2D::MakeLine, nb::arg("p1"), nb::arg("p2"), "Make a line.")
+      .def("SamplePoints", &ICurve2D::SamplePoints, nb::arg("deflection"),
+           nb::arg("angularDeflection") = 0.2,
+           "Get points along this curve within a deflection and an angle in radians.")
+      .def_static("MakeCircle", &ICurve2D::MakeCircle, nb::arg("frame"), nb::arg("radius"),
+                  "Make a circle.")
       .def_static("MakeEllipse", &ICurve2D::MakeEllipse, nb::arg("frame"), nb::arg("rmajor"),
                   nb::arg("rminor"), "Make an ellipse.")
       .def_static(
@@ -157,5 +192,6 @@ void bind_ICurve2D(nb::module_& m) {
            "Evaluate a derivative on this curve.")
 
       .def("LineData", &ICurve2D::LineData, "Get line data.")
+      .def("CircleData", &ICurve2D::CircleData, "Get circle data.")
       .def("EllipseData", &ICurve2D::EllipseData, "Get ellipse data.");
 }

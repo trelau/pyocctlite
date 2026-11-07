@@ -9,6 +9,7 @@ from itertools import count
 from pathlib import Path
 
 from pyocctlite.geometry import (
+    Circle,
     CylindricalSurface,
     Ellipse2D,
     Frame,
@@ -308,6 +309,185 @@ print(f"The front wall is face {index}, with an area of {faces[index].area:.1f}"
 # Parts in a compound are numbered together, so that their numbers do not clash
 pair = Compound.by_shapes([threads, neck])
 render_faces(pair, image("numbered_compound"), NECK)
+
+# Hidden lines replace the shading with exact edges and silhouettes, dashing what is behind them,
+# in any view and at any size. A sheet shows the part as line work from every side. The view from
+# above is the slow one, since every thread's edges overlap in it.
+lines = RenderShapes(1000, 800)
+lines.add_shape(bottle)
+lines.render(image("hidden_lines_iso"), WHOLE, Shading.HIDDEN_LINE)
+lines.render(image("hidden_lines_front"), View.FRONT, Shading.HIDDEN_LINE)
+lines.render(image("hidden_lines_neck"), NECK, Shading.HIDDEN_LINE)
+lines.render_views(image("hidden_lines_sheet"), Shading.HIDDEN_LINE)
+
+# Hidden lines still point at what is hidden, here the threads on the far side of the neck
+render_image(
+    bottle,
+    image("hidden_lines_with_callouts"),
+    NECK,
+    callouts=[Callout(threads, "Threads"), Callout(front_face, "Front wall")],
+    shading=Shading.HIDDEN_LINE,
+)
+
+RED = (0.80, 0.10, 0.10)
+BLUE = (0.10, 0.30, 0.80)
+DARK_GREEN = (0.05, 0.50, 0.20)
+WHITE = (1.0, 1.0, 1.0)
+
+
+def add_measure(tool: RenderShapes, a: Point, b: Point, offset: Vector) -> None:
+    """
+    Mark a distance on an image, for checking a size at a glance.
+
+    :param tool: Tool to add to.
+    :param a: Start of what is measured.
+    :param b: End of what is measured.
+    :param offset: Distance from the points to the line that shows the measure.
+    """
+    start = a.translate(offset)
+    end = b.translate(offset)
+    tool.add_line(a, start, DARK_GREEN, width=1.0, dashed=True)
+    tool.add_line(b, end, DARK_GREEN, width=1.0, dashed=True)
+    tool.add_line(start, end, DARK_GREEN)
+    middle = start.translate(Vector.by_points(start, end).scale(0.5))
+    tool.add_text(middle, f"{a.distance(b):.1f}", height=16.0, color=DARK_GREEN, background=WHITE)
+
+
+def box_edges(shape: Shape) -> list[Edge]:
+    """
+    Get the edges of a shape's bounding box.
+
+    :param shape: Shape to bound.
+    :return: The twelve edges.
+    """
+    box = shape.bounding_box
+    corners = {
+        (i, j, k): Point.by_xyz(
+            box.min_point.x + i * box.dx, box.min_point.y + j * box.dy, box.min_point.z + k * box.dz
+        )
+        for i in (0, 1)
+        for j in (0, 1)
+        for k in (0, 1)
+    }
+    return [
+        Edge.by_points(corner, corners[(i + di, j + dj, k + dk)])
+        for (i, j, k), corner in corners.items()
+        for di, dj, dk in ((1, 0, 0), (0, 1, 0), (0, 0, 1))
+        if i + di < 2 and j + dj < 2 and k + dk < 2
+    ]
+
+
+# Sizes can be checked on the image itself, with the measures drawn from the part's own points
+box = bottle.bounding_box
+least = box.min_point
+measured = RenderShapes(1000, 800)
+measured.add_shape(bottle)
+measured.add_edges(box_edges(bottle), BLUE, width=1.0, dashed=True)
+add_measure(
+    measured,
+    Point.by_xyz(least.x, least.y, least.z),
+    Point.by_xyz(least.x + box.dx, least.y, least.z),
+    Vector.by_xyz(0.0, -12.0, 0.0),
+)
+add_measure(
+    measured,
+    Point.by_xyz(least.x + box.dx, least.y, least.z),
+    Point.by_xyz(least.x + box.dx, least.y + box.dy, least.z),
+    Vector.by_xyz(12.0, 0.0, 0.0),
+)
+add_measure(
+    measured,
+    Point.by_xyz(least.x, least.y + box.dy, least.z),
+    Point.by_xyz(least.x, least.y + box.dy, least.z + box.dz),
+    Vector.by_xyz(-12.0, 0.0, 0.0),
+)
+measured.render(image("measured_bounding_box"), View.ISO)
+measured.render(image("measured_bounding_box_lines"), View.ISO, Shading.HIDDEN_LINE)
+
+# Where a part's properties are can be seen against the part, here its center of mass and frame
+frame = RenderShapes(1000, 800)
+frame.add_shape(Styled(bottle, GLASS, 0.75))
+center = bottle.centroid
+for axis, color, name in (
+    (Vector.by_xyz(1.0, 0.0, 0.0), RED, "X"),
+    (Vector.by_xyz(0.0, 1.0, 0.0), DARK_GREEN, "Y"),
+    (Vector.by_xyz(0.0, 0.0, 1.0), BLUE, "Z"),
+):
+    tip = center.translate(axis.scale(45.0))
+    frame.add_line(center, tip, color, width=3.0)
+    frame.add_text(tip.translate(axis.scale(4.0)), name, height=18.0, color=color)
+frame.add_text(
+    center.translate(Vector.by_xyz(0.0, 0.0, -9.0)),
+    f"CENTROID\n{center.x:.2f}, {center.y:.2f}, {center.z:.2f}\nVOLUME {bottle.volume:.0f}",
+    height=14.0,
+    color=(0.0, 0.0, 0.0),
+    background=WHITE,
+)
+frame.render(image("centroid_and_axes"), WHOLE)
+
+# What a step will act on can be checked before it runs: here each neck edge in one color on a
+# line view, and the fillet's edges that a selection by height would pick
+selected = RenderShapes(1000, 800)
+selected.add_shape(bottle)
+selected.add_edges(neck_edges, BLUE, width=3.0)
+selected.add_edges(front_edges, RED, width=3.0)
+selected.add_text(Point.by_xyz(0.0, -15.0, 35.0), f"{len(front_edges)} EDGES", 18.0, RED, WHITE)
+selected.add_text(
+    Point.by_xyz(0.0, 0.0, height + 18.0), f"{len(neck_edges)} EDGES", 18.0, BLUE, WHITE
+)
+selected.render(image("selection_check_on_lines"), WHOLE, Shading.HIDDEN_LINE)
+
+# A construction guide shows how a part relates to what it was built from, with the axis the neck
+# was built on, the height it starts from and a curve of its own
+guide = RenderShapes(1000, 800)
+guide.add_shape(Styled(bottle, GLASS, 0.85))
+neck_axis = (Point.by_xyz(0.0, 0.0, -5.0), Point.by_xyz(0.0, 0.0, height + neck_height + 8.0))
+guide.add_line(*neck_axis, RED, dashed=True)
+neck_frame = Frame.by_origin(Point.by_xyz(0.0, 0.0, height))
+guide.add_edges(Edge.by_curve(Circle.by_radius(neck_radius, neck_frame)), BLUE, width=3.0)
+guide.add_text(
+    Point.by_xyz(0.0, 0.0, height + neck_height + 12.0),
+    f"NECK \u2300{neck_radius * 2.0:.1f}",
+    height=16.0,
+    color=BLUE,
+)
+guide.render(image("construction_guide"), WHOLE)
+
+# Lines and text are not removed by a section, so a section can carry its own measurements, like
+# the wall that the thickening left behind
+wall = RenderShapes(1000, 800)
+wall.add_shape(bottle)
+wall.set_section(through_middle)
+wall_thickness = thickness / 50.0
+wall_height = 35.0
+inner_point = Point.by_xyz(width / 2.0 - wall_thickness, 0.0, wall_height)
+outer_point = Point.by_xyz(width / 2.0, 0.0, wall_height)
+wall.add_line(inner_point, outer_point, RED, width=4.0)
+wall.add_text(
+    Point.by_xyz(width / 2.0 - 2.0, 0.0, wall_height + 1.0),
+    f"WALL {wall_thickness:.2f}",
+    height=22.0,
+    color=RED,
+    background=WHITE,
+)
+wall.render(
+    image("section_with_measurement"),
+    Camera.by_view(View.FRONT, Point.by_xyz(width / 2.0 - 2.0, 0.0, wall_height), 8.0),
+)
+
+# Text carries drawing symbols, and a line can run anywhere, including beyond the part
+symbols = RenderShapes(1000, 800)
+symbols.add_shape(bottle)
+symbols.add_text(
+    Point.by_xyz(0.0, 0.0, height + neck_height + 14.0),
+    f"\u2300{neck_radius * 2.0:.0f} \u00b10.1  \u27c2 0.05  \u2316 \u23002 \u24c2  90\u00b0",
+    height=20.0,
+    color=BLUE,
+)
+symbols.add_line(
+    Point.by_xyz(-60.0, 0.0, height), Point.by_xyz(60.0, 0.0, height), DARK_GREEN, dashed=True
+)
+symbols.render(image("text_symbols_and_reference_line"), View.FRONT, Shading.HIDDEN_LINE)
 
 # A tool can combine all of these, and take more after a render
 tool = RenderShapes(1000, 800)

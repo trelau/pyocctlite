@@ -7,9 +7,11 @@ from pyocctlite.geometry import (
     Axis,
     BSplineCurve,
     Circle,
+    Circle2D,
     Curve,
     Curve2D,
     CylindricalSurface,
+    Ellipse,
     Ellipse2D,
     Frame,
     Frame2D,
@@ -561,6 +563,85 @@ class TestCylindricalSurface(unittest.TestCase):
     def test_by_radius_negative(self):
         with self.assertRaises(RuntimeError):
             CylindricalSurface.by_radius(-1)
+
+
+class TestEllipse(unittest.TestCase):
+    def test_by_radii(self):
+        e = Ellipse.by_radii(3.0, 2.0)
+        self.assertAlmostEqual(e.rmajor, 3.0)
+        self.assertAlmostEqual(e.rminor, 2.0)
+        self.assertTrue(e.evaluate(0.0).is_equal(Point.by_xyz(3, 0, 0)))
+        self.assertTrue(e.evaluate(math.pi / 2.0).is_equal(Point.by_xyz(0, 2, 0)))
+
+    def test_by_radii_frame(self):
+        e = Ellipse.by_radii(3.0, 2.0, Frame.by_origin(Point.by_xyz(0, 0, 5)))
+        self.assertAlmostEqual(e.evaluate(0.0).z, 5.0)
+        self.assertAlmostEqual(e.frame.origin.z, 5.0)
+
+    def test_by_icurve(self):
+        self.assertIsInstance(Curve.by_icurve(Ellipse.by_radii(3.0, 2.0).icurve), Ellipse)
+
+    def test_minor_radius_above_major_raises(self):
+        with self.assertRaises(RuntimeError):
+            Ellipse.by_radii(1.0, 2.0)
+
+    def test_init_wrong_kind(self):
+        with self.assertRaises(TypeError):
+            Ellipse(Circle.by_radius(1.0).icurve)
+
+
+class TestCircle2D(unittest.TestCase):
+    def test_by_radius(self):
+        c = Circle2D.by_radius(2.0)
+        self.assertAlmostEqual(c.radius, 2.0)
+        self.assertTrue(c.evaluate(0.0).is_equal(Point2D.by_xy(2, 0)))
+        self.assertTrue(c.is_closed)
+
+    def test_by_radius_frame(self):
+        c = Circle2D.by_radius(1.0, Frame2D.by_origin(Point2D.by_xy(3, 4)))
+        self.assertAlmostEqual(c.frame.origin.x, 3.0)
+        self.assertTrue(c.evaluate(0.0).is_equal(Point2D.by_xy(4, 4)))
+
+    def test_by_icurve(self):
+        self.assertIsInstance(Curve2D.by_icurve2d(Circle2D.by_radius(1.0).icurve), Circle2D)
+
+    def test_negative_radius_raises(self):
+        with self.assertRaises(RuntimeError):
+            Circle2D.by_radius(-1.0)
+
+    def test_init_wrong_kind(self):
+        with self.assertRaises(TypeError):
+            Circle2D(Ellipse2D.by_radii(2.0, 1.0).icurve)
+
+    def test_points_stay_on_it(self):
+        for p in Circle2D.by_radius(2.0).points(0.001):
+            self.assertAlmostEqual(math.hypot(p.x, p.y), 2.0)
+
+
+class TestCurve2DPoints(unittest.TestCase):
+    def test_smaller_deflection_gives_more_points(self):
+        ellipse = Ellipse2D.by_radii(2.0, 1.0)
+        self.assertGreater(len(ellipse.points(0.0001)), len(ellipse.points(0.1)))
+
+    def test_smaller_angle_gives_more_points(self):
+        ellipse = Ellipse2D.by_radii(2.0, 1.0)
+        self.assertGreater(
+            len(ellipse.points(0.1, angular_deflection=0.01)),
+            len(ellipse.points(0.1, angular_deflection=0.5)),
+        )
+
+    def test_trimmed_line_has_its_ends(self):
+        points = TrimmedCurve2D.by_points(Point2D.by_xy(0, 0), Point2D.by_xy(2, 0)).points(0.01)
+        self.assertTrue(points[0].is_equal(Point2D.by_xy(0, 0)))
+        self.assertTrue(points[-1].is_equal(Point2D.by_xy(2, 0)))
+
+    def test_unbounded_curve_raises(self):
+        with self.assertRaises(ValueError):
+            Line2D.by_points(Point2D.by_xy(0, 0), Point2D.by_xy(1, 0)).points(0.01)
+
+    def test_deflection_must_be_positive(self):
+        with self.assertRaises(ValueError):
+            Ellipse2D.by_radii(2.0, 1.0).points(0.0)
 
 
 if __name__ == "__main__":

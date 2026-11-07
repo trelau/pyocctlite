@@ -1,5 +1,6 @@
 #include "IShape.hpp"
 
+#include <BRepAdaptor_Curve.hxx>
 #include <BRepBndLib.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
@@ -11,6 +12,7 @@
 #include <BRepPrimAPI_MakeSphere.hxx>
 #include <BRep_Builder.hxx>
 #include <BRep_Tool.hxx>
+#include <GCPnts_TangentialDeflection.hxx>
 #include <GC_MakeArcOfCircle.hxx>
 #include <GProp_GProps.hxx>
 #include <Geom_TrimmedCurve.hxx>
@@ -266,6 +268,18 @@ IPoint IShape::Centroid() const {
 
 bool IShape::IsValid() const { return BRepCheck_Analyzer(shape_).IsValid(); }
 
+std::vector<IPoint> IShape::SamplePoints(const double deflection,
+                                         const double angularDeflection) const {
+
+  const BRepAdaptor_Curve curve(AsEdge());
+  const GCPnts_TangentialDeflection sampled(curve, angularDeflection, deflection);
+  std::vector<IPoint> points;
+  for (int i = 1; i <= sampled.NbPoints(); ++i) {
+    points.emplace_back(sampled.Value(i));
+  }
+  return points;
+}
+
 std::optional<ICurve> IShape::Curve() const {
 
   double first, last;
@@ -333,5 +347,8 @@ void bind_IShape(nb::module_& m) {
            "Calculate the centroid of the highest dimension present in this shape.")
       .def("IsValid", &IShape::IsValid, "Check if this shape and its sub-shapes are valid.")
       .def("Curve", &IShape::Curve, "Get the curve of this edge, if it has one.")
+      .def("SamplePoints", &IShape::SamplePoints, nb::arg("deflection"),
+           nb::arg("angularDeflection") = 0.2,
+           "Get points along this edge within a deflection and an angle in radians.")
       .def("Point", &IShape::Point, "Get the point of this vertex.");
 }

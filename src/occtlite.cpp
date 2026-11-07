@@ -23,12 +23,14 @@
 #include "ExploreIShape.hpp"
 #include "ExtrudeIShape.hpp"
 #include "FilletIShape.hpp"
+#include "HiddenLineIShape.hpp"
 #include "IErrors.hpp"
 #include "IShape.hpp"
 #include "LoftIShape.hpp"
 #include "MakeIShape.hpp"
 #include "MapIShape.hpp"
 #include "OffsetIWire.hpp"
+#include "RenderICanvas.hpp"
 #include "RenderIShapes.hpp"
 #include "RevolveIShape.hpp"
 #include "ThickenIShape.hpp"
@@ -67,6 +69,8 @@ NB_MODULE(_occtlite, m) {
   bind_ThickenIShape(m);
   bind_OffsetIWire(m);
   bind_LoftIShape(m);
+  bind_HiddenLineIShape(m);
   bind_RenderIShapes(m);
+  bind_RenderICanvas(m);
   bind_IErrors(m);
 }

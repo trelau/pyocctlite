@@ -63,8 +63,13 @@ constexpr double kFreeEdgeWidth = 3.5;
 constexpr double kVertexWidth = 9.0;
 constexpr double kNumberedEdgeWidth = 2.5;
 constexpr double kCutOutlineWidth = 2.5;
+constexpr double kVisibleLineWidth = 2.0;
+constexpr double kHiddenLineWidth = 1.25;
+constexpr double kSmoothLineWidth = 1.0;
 
 constexpr RasterColor kFaceEdgeColor{0.1, 0.1, 0.12};
+constexpr RasterColor kSmoothLineColor{0.55, 0.55, 0.58};
+constexpr RasterColor kHiddenLineFaceColor{1.0, 1.0, 1.0};
 
 // Axis marker and label layout in pixels
 constexpr double kAxisLength = 32.0;
@@ -86,6 +91,9 @@ constexpr double kLeftColumnTop = 36.0;
 constexpr double kLeftColumnBottomMargin = 110.0;
 constexpr double kDashLength = 7.0;
 constexpr double kDashGap = 5.0;
+
+// Stroke width of added text, relative to its letter height
+constexpr double kTextStrokeFraction = 0.1;
 
 constexpr RasterColor kNoteBackground{1.0, 1.0, 1.0};
 
@@ -112,6 +120,68 @@ constexpr double kMinCutFacing = 1.0e-6;
 RasterColor Mix(const RasterColor& color, const RasterColor& other, const double amount) {
   return {color.r + (other.r - color.r) * amount, color.g + (other.g - color.g) * amount,
           color.b + (other.b - color.b) * amount};
+}
+
+// Get points along an edge within a deflection
+std::vector<gp_Pnt> SampleEdge(const TopoDS_Edge& edge, const double deflection) {
+
+  const BRepAdaptor_Curve curve(edge);
+  const GCPnts_TangentialDeflection points(curve, kAngularDeflection, deflection);
+  std::vector<gp_Pnt> line;
+  for (int p = 1; p <= points.NbPoints(); ++p) {
+    line.push_back(points.Value(p));
+  }
+  return line;
+}
+
+// Get points along every edge of a shape within a deflection
+std::vector<std::vector<gp_Pnt>> SampleEdges(const TopoDS_Shape& shape, const double deflection) {
+
+  ShapeMap edges;
+  TopExp::MapShapes(shape, TopAbs_EDGE, edges);
+  std::vector<std::vector<gp_Pnt>> lines;
+  for (int i = 1; i <= edges.Extent(); ++i) {
+    const TopoDS_Edge& edge = TopoDS::Edge(edges.FindKey(i));
+    if (!BRep_Tool::Degenerated(edge)) {
+      lines.push_back(SampleEdge(edge, deflection));
+    }
+  }
+  return lines;
+}
+
+// Draw a line through pixel positions on top of everything, with dashes that continue around its
+// corners if it is dashed
+void DrawPixelLine(RasterImage& image, const std::vector<std::pair<double, double>>& pixels,
+                   const RasterColor& color, const double lineWidth, const bool isDashed) {
+
+  double travelled = 0.0;
+  const double period = kDashLength + kDashGap;
+  for (std::size_t i = 0; i + 1 < pixels.size(); ++i) {
+    const auto [x1, y1] = pixels[i];
+    const auto [x2, y2] = pixels[i + 1];
+    const double length = std::hypot(x2 - x1, y2 - y1);
+    if (!isDashed) {
+      image.DrawOverlayLine(x1, y1, x2, y2, color, lineWidth);
+      continue;
+    }
+
+    // Walk from one dash boundary to the next, drawing the parts that fall in a dash
+    double position = 0.0;
+    while (position < length) {
+      const double phase = std::fmod(travelled + position, period);
+      const bool isInDash = phase < kDashLength;
+      const double end =
+          std::min(position + (isInDash ? kDashLength - phase : period - phase), length);
+      if (isInDash) {
+        const double a = position / length;
+        const double b = end / length;
+        image.DrawOverlayLine(x1 + (x2 - x1) * a, y1 + (y2 - y1) * a, x1 + (x2 - x1) * b,
+                              y1 + (y2 - y1) * b, color, lineWidth);
+      }
+      position = end;
+    }
+    travelled += length;
+  }
 }
 
 // Projection from model space to image pixels for one view
@@ -380,6 +450,7 @@ void RenderIShapes::AddShape(const IShape& shape, const double r, const double g
   items_.push_back(std::move(item));
   hasBounds_ = false;
   meshDeflection_ = 0.0;
+  hiddenLines_.reset();
 }
 
 void RenderIShapes::AddNumberedFaces(const IShape& shape, const double r, const double g,
@@ -399,6 +470,7 @@ void RenderIShapes::AddNumberedFaces(const IShape& shape, const double r, const 
   items_.push_back(std::move(item));
   hasBounds_ = false;
   meshDeflection_ = 0.0;
+  hiddenLines_.reset();
 }
 
 void RenderIShapes::AddNumberedEdges(const IShape& shape, const double r, const double g,
@@ -416,12 +488,32 @@ void RenderIShapes::AddNumberedEdges(const IShape& shape, const double r, const 
   items_.push_back(std::move(item));
   hasBounds_ = false;
   meshDeflection_ = 0.0;
+  hiddenLines_.reset();
 }
 
 void RenderIShapes::AddCallout(const IShape& shape, const std::string& text) {
   Item target;
   target.shape = shape.AsShape();
   callouts_.push_back({std::move(target), text});
+  meshDeflection_ = 0.0;
+}
+
+void RenderIShapes::AddLines(const IShape& shape, const double r, const double g, const double b,
+                             const double lineWidth, const bool isDashed) {
+  overlayLines_.push_back({shape.AsShape(), {r, g, b}, lineWidth, isDashed, {}});
+  hasBounds_ = false;
+  meshDeflection_ = 0.0;
+}
+
+void RenderIShapes::AddText(const IPoint& point, const std::string& text, const double letterHeight,
+                            const double r, const double g, const double b,
+                            const std::vector<double>& background) {
+  std::optional<RasterColor> behind;
+  if (background.size() == 3) {
+    behind = RasterColor{background[0], background[1], background[2]};
+  }
+  overlayTexts_.push_back({static_cast<gp_Pnt>(point), text, letterHeight, {r, g, b}, behind});
+  hasBounds_ = false;
   meshDeflection_ = 0.0;
 }
 
@@ -443,6 +535,12 @@ void RenderIShapes::FindBounds() {
   Bnd_Box box;
   for (const Item& item : items_) {
     BRepBndLib::AddOptimal(item.shape, box, false, false);
+  }
+  for (const OverlayLines& overlay : overlayLines_) {
+    BRepBndLib::AddOptimal(overlay.shape, box, false, false);
+  }
+  for (const OverlayText& overlay : overlayTexts_) {
+    box.Add(overlay.point);
   }
   if (box.IsVoid()) {
     throw IBuildFailed("There is nothing to render.");
@@ -471,6 +569,9 @@ void RenderIShapes::MeshItems(const double deflection) {
   }
   for (Callout& callout : callouts_) {
     MeshItem(callout.target, deflection);
+  }
+  for (OverlayLines& overlay : overlayLines_) {
+    overlay.lines = SampleEdges(overlay.shape, deflection);
   }
   meshDeflection_ = deflection;
 }
@@ -540,13 +641,7 @@ void RenderIShapes::MeshItem(Item& item, const double deflection) const {
       continue;
     }
 
-    const BRepAdaptor_Curve curve(edge);
-    const GCPnts_TangentialDeflection points(curve, kAngularDeflection, deflection);
-    std::vector<gp_Pnt> line;
-    for (int p = 1; p <= points.NbPoints(); ++p) {
-      line.push_back(points.Value(p));
-    }
-    item.edges.push_back(std::move(line));
+    item.edges.push_back(SampleEdge(edge, deflection));
     item.edgeIndices.push_back(i - 1);
   }
 
@@ -648,10 +743,31 @@ void RenderIShapes::ClipItem(Item& item) const {
                       item.vertices.end());
 }
 
+HiddenLineIShape& RenderIShapes::HiddenLines(const gp_Vec& direction, const gp_Vec& up) {
+
+  if (hiddenLines_ && direction.X() == hiddenLinesDirection_.X() &&
+      direction.Y() == hiddenLinesDirection_.Y() && direction.Z() == hiddenLinesDirection_.Z() &&
+      up.X() == hiddenLinesUp_.X() && up.Y() == hiddenLinesUp_.Y() &&
+      up.Z() == hiddenLinesUp_.Z()) {
+    return *hiddenLines_;
+  }
+
+  std::vector<IShape> shapes;
+  for (const Item& item : items_) {
+    if (item.faceCount > 0) {
+      shapes.emplace_back(item.shape);
+    }
+  }
+  hiddenLines_.emplace(IShape::MakeCompound(shapes), IVector(direction), IVector(up));
+  hiddenLinesDirection_ = direction;
+  hiddenLinesUp_ = up;
+  return *hiddenLines_;
+}
+
 nb::bytes RenderIShapes::Render(const IVector& direction, const IVector& up,
                                 const std::string& label, const std::optional<IPoint>& center,
                                 const std::optional<double>& span, const bool isDepthShaded,
-                                const bool hasLabels) {
+                                const bool isHiddenLine, const bool hasLabels) {
 
   if (!hasBounds_) {
     FindBounds();
@@ -717,6 +833,9 @@ nb::bytes RenderIShapes::Render(const IVector& direction, const IVector& up,
   // Draw the edges and vertices of one item
   const auto drawLines = [&](const Item& item, const double shapeBias) {
     const bool isFree = item.faceCount == 0;
+    if (isHiddenLine && !isFree) {
+      return;
+    }
 
     // The color of a numbered shape is for its faces, which free edges of it do not have
     const RasterColor plainColor =
@@ -751,15 +870,19 @@ nb::bytes RenderIShapes::Render(const IVector& direction, const IVector& up,
   for (std::size_t i = 0; i < items_.size(); ++i) {
     const Item& item = items_[i];
     const double bias = itemBias(i);
-    const bool isOpaque = item.transparency <= 0.0;
+    const bool isOpaque = isHiddenLine || item.transparency <= 0.0;
 
     for (const MeshTriangle& triangle : item.triangles) {
       const std::array<MeshNode, 3>& nodes = triangle.nodes;
+      const auto shade = [&](const MeshNode& node) {
+        return isHiddenLine ? 1.0 : camera.Shade(node.point, node.normal);
+      };
       const std::array<RasterVertex, 3> vertices = {
-          camera.Project(nodes[0].point, bias, camera.Shade(nodes[0].point, nodes[0].normal)),
-          camera.Project(nodes[1].point, bias, camera.Shade(nodes[1].point, nodes[1].normal)),
-          camera.Project(nodes[2].point, bias, camera.Shade(nodes[2].point, nodes[2].normal))};
-      const RasterColor& color = item.FaceColor(triangle.face);
+          camera.Project(nodes[0].point, bias, shade(nodes[0])),
+          camera.Project(nodes[1].point, bias, shade(nodes[1])),
+          camera.Project(nodes[2].point, bias, shade(nodes[2]))};
+      const RasterColor& color =
+          isHiddenLine ? kHiddenLineFaceColor : item.FaceColor(triangle.face);
       if (isOpaque) {
         // Seeing the far side of a solid's surface first means looking through the cut into
         // material
@@ -803,6 +926,31 @@ nb::bytes RenderIShapes::Render(const IVector& direction, const IVector& up,
     if (items_[i].transparency > 0.0) {
       drawLines(items_[i], itemBias(i));
     }
+  }
+
+  // Faces only hold depths in this mode, so the exact edges of the view go over them, with visible
+  // edges over any hidden edges they coincide with. Those edges are in the view's plane.
+  const auto drawHiddenLines = [&](const IShape& shape, const RasterColor& color,
+                                   const double lineWidth, const bool isDashed) {
+    const gp_Vec fromOrigin(viewCenter.XYZ());
+    const double originX = camera.centerX - fromOrigin.Dot(right) * scale;
+    const double originY = camera.centerY + fromOrigin.Dot(viewUp) * scale;
+    for (const std::vector<gp_Pnt>& line : SampleEdges(shape.AsShape(), meshDeflection_)) {
+      std::vector<std::pair<double, double>> pixels;
+      for (const gp_Pnt& point : line) {
+        pixels.push_back({originX + point.X() * scale, originY - point.Y() * scale});
+      }
+      DrawPixelLine(image, pixels, color, lineWidth, isDashed);
+    }
+  };
+  const bool hasFaces =
+      std::any_of(items_.begin(), items_.end(), [](const Item& i) { return i.faceCount > 0; });
+  if (isHiddenLine && hasFaces) {
+    HiddenLineIShape& hiddenLines =
+        HiddenLines(static_cast<gp_Vec>(direction), static_cast<gp_Vec>(up));
+    drawHiddenLines(hiddenLines.Hidden(), kFaceEdgeColor, kHiddenLineWidth, true);
+    drawHiddenLines(hiddenLines.VisibleSmooth(), kSmoothLineColor, kSmoothLineWidth, false);
+    drawHiddenLines(hiddenLines.Visible(), kFaceEdgeColor, kVisibleLineWidth, false);
   }
 
   std::vector<Note> notes;
@@ -932,6 +1080,30 @@ nb::bytes RenderIShapes::Render(const IVector& direction, const IVector& up,
     }
   }
 
+  for (const OverlayLines& overlay : overlayLines_) {
+    for (const std::vector<gp_Pnt>& line : overlay.lines) {
+      std::vector<std::pair<double, double>> pixels;
+      for (const gp_Pnt& point : line) {
+        const RasterVertex v = camera.Project(point, 0.0, 1.0);
+        pixels.push_back({v.x, v.y});
+      }
+      DrawPixelLine(image, pixels, overlay.color, overlay.lineWidth, overlay.isDashed);
+    }
+  }
+  for (const OverlayText& overlay : overlayTexts_) {
+    const RasterVertex v = camera.Project(overlay.point, 0.0, 1.0);
+    const double textWidth = RasterImage::TextWidth(overlay.text, overlay.letterHeight);
+    const double textHeight = RasterImage::TextHeight(overlay.text, overlay.letterHeight);
+    if (overlay.background) {
+      image.FillOverlayRect(v.x - textWidth * 0.5 - kNotePadding,
+                            v.y - textHeight * 0.5 - kNotePadding, textWidth + kNotePadding * 2.0,
+                            textHeight + kNotePadding * 2.0, *overlay.background);
+    }
+    image.DrawOverlayText(overlay.text, v.x - textWidth * 0.5, v.y - textHeight * 0.5,
+                          overlay.letterHeight, overlay.color,
+                          std::max(1.0, overlay.letterHeight * kTextStrokeFraction));
+  }
+
   if (hasLabels) {
     DrawAxes(image, camera, height_);
   }
@@ -971,6 +1143,15 @@ void bind_RenderIShapes(nb::module_& m) {
       .def("AddCallout", &RenderIShapes::AddCallout, nb::arg("shape"), nb::arg("text"),
            "Add a text box with a line pointing to the visible part of the shape.")
 
+      .def("AddLines", &RenderIShapes::AddLines, nb::arg("shape"), nb::arg("r"), nb::arg("g"),
+           nb::arg("b"), nb::arg("lineWidth"), nb::arg("isDashed"),
+           "Add edges drawn on top of the shapes, with a color and a width in pixels.")
+
+      .def("AddText", &RenderIShapes::AddText, nb::arg("point"), nb::arg("text"),
+           nb::arg("letterHeight"), nb::arg("r"), nb::arg("g"), nb::arg("b"), nb::arg("background"),
+           "Add text drawn on top of the shapes, centered on a point, with a letter height in "
+           "pixels, a color and any background as r, g, b values.")
+
       .def("SetSection", &RenderIShapes::SetSection, nb::arg("origin"), nb::arg("normal"),
            nb::arg("colors"),
            "Remove everything on the side of a plane that its normal points to, showing hatching "
@@ -979,7 +1160,7 @@ void bind_RenderIShapes(nb::module_& m) {
 
       .def("Render", &RenderIShapes::Render, nb::arg("direction"), nb::arg("up"), nb::arg("label"),
            nb::arg("center").none(), nb::arg("span").none(), nb::arg("isDepthShaded"),
-           nb::arg("hasLabels"),
+           nb::arg("isHiddenLine"), nb::arg("hasLabels"),
            "Render an orthographic view looking back along the direction as RGB bytes.")
 
       .def("VisiblePixels", &RenderIShapes::VisiblePixels,

@@ -21,10 +21,23 @@ struct ICircleData {
   double Radius = 0.0;
 };
 
+// Data structure for ellipse data
+struct IEllipseData {
+  IFrame Frame;
+  double MajorRadius = 0.0;
+  double MinorRadius = 0.0;
+};
+
 // Data structure for 2D line data
 struct ILine2DData {
   IPoint2D Origin;
   IVector2D Direction;
+};
+
+// Data structure for 2D circle data
+struct ICircle2DData {
+  IFrame2D Frame;
+  double Radius = 0.0;
 };
 
 // Data structure for 2D ellipse data

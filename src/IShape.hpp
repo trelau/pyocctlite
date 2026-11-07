@@ -129,6 +129,10 @@ public:
   // Validate that the shape is of the expected kind
   void ValidateKind(const IShapeKind expected) const;
 
+  // Get points along this edge within a deflection and an angle in radians between neighboring
+  // segments
+  std::vector<IPoint> SamplePoints(double deflection, double angularDeflection = 0.2) const;
+
   // Calculate the length of the shape
   double Length() const;
 

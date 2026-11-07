@@ -11,6 +11,7 @@
 #include <gp_Pnt.hxx>
 #include <gp_Vec.hxx>
 
+#include "HiddenLineIShape.hpp"
 #include "IPoint.hpp"
 #include "IShape.hpp"
 #include "IVector.hpp"
@@ -41,6 +42,16 @@ public:
   // Add a text box with a line pointing to the visible part of the shape
   void AddCallout(const IShape& shape, const std::string& text);
 
+  // Add edges drawn on top of the shapes, with a width in pixels. They are included when fitting
+  // the view and are not removed by a section.
+  void AddLines(const IShape& shape, double r, double g, double b, double lineWidth, bool isDashed);
+
+  // Add text drawn on top of the shapes, centered on a point, with a letter height in pixels. The
+  // point is included when fitting the view and text is not removed by a section. A background is
+  // given as r, g, b values, or empty for none.
+  void AddText(const IPoint& point, const std::string& text, double letterHeight, double r,
+               double g, double b, const std::vector<double>& background);
+
   // Remove everything on the side of a plane that its normal points to, including callout targets.
   // From that side, where a solid's material is cut, the image shows hatching over a color. The
   // colors are for each added shape in order, cycling, as r, g, b values from 0 to 1. The normal
@@ -49,11 +60,13 @@ public:
 
   // Render an orthographic view looking back along the direction, labeled with the text. The view
   // is centered on the point and spans the length across the image's smaller side, each defaulting
-  // to fit all shapes. Depth shading also darkens faces that are farther from the viewer. Without
-  // labels, the view name, axes and numbers are left out, but callouts are still drawn.
+  // to fit all shapes. Depth shading also darkens faces that are farther from the viewer, and
+  // hidden lines replace shaded faces and their edges with exact visible and dashed hidden edges,
+  // which does not support a section or numbered shape. Without labels, the view name, axes and
+  // numbers are left out, but callouts are still drawn.
   nb::bytes Render(const IVector& direction, const IVector& up, const std::string& label,
                    const std::optional<IPoint>& center, const std::optional<double>& span,
-                   bool isDepthShaded, bool hasLabels);
+                   bool isDepthShaded, bool isHiddenLine, bool hasLabels);
 
   // Get the visible pixels of each numbered face, or the visible length in pixels of each numbered
   // edge, in the latest view
@@ -114,6 +127,24 @@ private:
     std::string text;
   };
 
+  // Edges drawn on top of the shapes
+  struct OverlayLines {
+    TopoDS_Shape shape;
+    RasterColor color;
+    double lineWidth;
+    bool isDashed;
+    std::vector<std::vector<gp_Pnt>> lines;
+  };
+
+  // Text drawn on top of the shapes
+  struct OverlayText {
+    gp_Pnt point;
+    std::string text;
+    double letterHeight;
+    RasterColor color;
+    std::optional<RasterColor> background;
+  };
+
   // A plane with a unit normal pointing to the removed side, and the color of each shape's cut area
   struct Section {
     gp_Pnt origin;
@@ -133,12 +164,20 @@ private:
   // Remove what the section removes from a meshed shape, keeping the outline of the cut
   void ClipItem(Item& item) const;
 
+  // Get the hidden lines of every shape with faces in a view, reusing the latest if it is the same
+  HiddenLineIShape& HiddenLines(const gp_Vec& direction, const gp_Vec& up);
+
   int width_;
   int height_;
   bool hasBounds_ = false;
   double meshDeflection_ = 0.0;
   std::vector<Item> items_;
   std::vector<Callout> callouts_;
+  std::vector<OverlayLines> overlayLines_;
+  std::vector<OverlayText> overlayTexts_;
+  std::optional<HiddenLineIShape> hiddenLines_;
+  gp_Vec hiddenLinesDirection_;
+  gp_Vec hiddenLinesUp_;
   std::optional<Section> section_;
   std::vector<int> visiblePixels_;
   gp_Pnt center_;

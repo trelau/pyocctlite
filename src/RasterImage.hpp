@@ -47,8 +47,10 @@ std::map<int, RasterPole> FindRasterPoles(const std::vector<int>& grid, int widt
 // loops are too slow in pure Python, and it needs no GPU, window or display on any platform.
 class RasterImage {
 public:
-  // Construct a white image of the given final size in pixels
-  RasterImage(int width, int height);
+  // Construct a white image of the given final size in pixels. A flat image has no depths or ids,
+  // to save memory, so its later drawing always goes over its earlier drawing, and it only supports
+  // filling triangles and drawing lines.
+  RasterImage(int width, int height, bool isFlat = false);
 
   // Fill a triangle, multiplying its color by the shade interpolated between vertices.
   // Only an opaque triangle writes depth and the id. A translucent one must be drawn back to front.
@@ -85,13 +87,20 @@ public:
   // Fill a rectangle on top of everything, for overlays
   void FillOverlayRect(double x, double y, double width, double height, const RasterColor& color);
 
-  // Draw text on top of everything, with its top-left corner at the given position. Printable
-  // ASCII is available, a newline starts a new line, and other characters are drawn as "?".
+  // Draw UTF-8 text on top of everything, with its top-left corner at the given position. Printable
+  // ASCII and the drawing symbols are available, a newline starts a new line, and other characters
+  // are drawn as "?".
   void DrawOverlayText(const std::string& text, double x, double y, double letterHeight,
                        const RasterColor& color, double lineWidth);
 
+  // Get the polylines of text as x, y values, with y pointing down from the top of its letters
+  static std::vector<std::vector<double>> TextStrokes(const std::string& text, double letterHeight);
+
   // Get the width of the longest line of text, in pixels
   static double TextWidth(const std::string& text, double letterHeight);
+
+  // Get the height of all lines of text, in pixels
+  static double TextHeight(const std::string& text, double letterHeight);
 
   // Get the final image as rows of RGB bytes, from the top row down
   std::string ToRGB() const;
@@ -101,6 +110,7 @@ private:
   int height_;
   int sampledWidth_;
   int sampledHeight_;
+  bool isFlat_;
   std::vector<std::uint8_t> pixels_;
   std::vector<float> depths_;
   std::vector<int> ids_;
