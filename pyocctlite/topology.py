@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator, Sequence
 from enum import Enum
 from functools import cached_property
-from typing import Generic, Self, TypeVar, cast, overload
+from typing import ClassVar, Generic, Self, TypeVar, cast, overload
 
 from pyocctlite._occtlite import (
     ChamferIShape,
@@ -115,6 +115,8 @@ class Shape:
     :ivar kind: Kind of this shape.
     """
 
+    _ikind: ClassVar[IShapeKind] = IShapeKind.Shape
+
     @staticmethod
     def by_ishape(ishape: IShape) -> Shape:
         """
@@ -123,25 +125,7 @@ class Shape:
         :param ishape: Underlying topological shape.
         :return: New shape.
         """
-        match ishape.Kind():
-            case IShapeKind.Vertex:
-                return Vertex(ishape)
-            case IShapeKind.Edge:
-                return Edge(ishape)
-            case IShapeKind.Wire:
-                return Wire(ishape)
-            case IShapeKind.Face:
-                return Face(ishape)
-            case IShapeKind.Shell:
-                return Shell(ishape)
-            case IShapeKind.Solid:
-                return Solid(ishape)
-            case IShapeKind.CompSolid:
-                return CompSolid(ishape)
-            case IShapeKind.Compound:
-                return Compound(ishape)
-            case _:
-                raise NotImplementedError(f"Unsupported shape kind: {ishape.Kind()}.")
+        return _CORE_CLASSES[ishape.Kind()](ishape)
 
     @staticmethod
     def by_ishapes(ishapes: Iterable[IShape]) -> list[Shape]:
@@ -161,6 +145,8 @@ class Shape:
         """
         if not isinstance(s, IShape):
             raise TypeError(f"Expected IShape, got {type(s).__name__}.")
+        if self._ikind not in (IShapeKind.Shape, s.Kind()):
+            raise TypeError(f"Expected {self._ikind}, got {s.Kind()}.")
         self._ishape = s
 
     def __eq__(self, other: object) -> bool:
@@ -514,6 +500,8 @@ class Vertex(Shape):
     Represents a vertex.
     """
 
+    _ikind = IShapeKind.Vertex
+
     @classmethod
     def by_point(cls, p: Point) -> Vertex:
         """
@@ -524,16 +512,6 @@ class Vertex(Shape):
         """
         ivertex = IShape.MakeVertex(p.ipoint)
         return cls(ivertex)
-
-    def __init__(self, v: IShape):
-        """
-        Initialize from an IShape.
-
-        :param v: Underlying topological shape.
-        """
-        super().__init__(v)
-        if v.Kind() != IShapeKind.Vertex:
-            raise TypeError(f"Expected IShapeKind.Vertex, got {v.Kind()}.")
 
     @cached_property
     def point(self) -> Point:
@@ -568,6 +546,8 @@ class Edge(Shape):
     """
     Represents an edge.
     """
+
+    _ikind = IShapeKind.Edge
 
     @classmethod
     def by_curve(cls, c: Curve) -> Edge:
@@ -649,16 +629,6 @@ class Edge(Shape):
         iedge = IShape.MakeEdge(c.icurve)
         return cls(iedge)
 
-    def __init__(self, e: IShape):
-        """
-        Initialize from an IShape.
-
-        :param e: Underlying topological shape.
-        """
-        super().__init__(e)
-        if e.Kind() != IShapeKind.Edge:
-            raise TypeError(f"Expected IShapeKind.Edge, got {e.Kind()}.")
-
     @cached_property
     def curve(self) -> Curve | None:
         """
@@ -696,6 +666,8 @@ class Wire(Shape):
     Represents a wire.
     """
 
+    _ikind = IShapeKind.Wire
+
     @classmethod
     def by_edge(cls, e: Edge) -> Wire:
         """
@@ -721,16 +693,6 @@ class Wire(Shape):
         iedges = [e.ishape for e in edges]
         iwire = IShape.MakeWire(iedges)
         return cls(iwire)
-
-    def __init__(self, w: IShape):
-        """
-        Initialize from an IShape.
-
-        :param w: Underlying topological shape.
-        """
-        super().__init__(w)
-        if w.Kind() != IShapeKind.Wire:
-            raise TypeError(f"Expected IShapeKind.Wire, got {w.Kind()}.")
 
     def combine(self, other: Wire) -> Wire:
         """
@@ -781,6 +743,8 @@ class Face(Shape):
     Represents a face.
     """
 
+    _ikind = IShapeKind.Face
+
     @classmethod
     def by_wire(cls, w: Wire) -> Face:
         """
@@ -792,16 +756,6 @@ class Face(Shape):
         """
         iface = IShape.MakeFace(w.ishape)
         return cls(iface)
-
-    def __init__(self, f: IShape):
-        """
-        Initialize from an IShape.
-
-        :param f: Underlying topological shape.
-        """
-        super().__init__(f)
-        if f.Kind() != IShapeKind.Face:
-            raise TypeError(f"Expected IShapeKind.Face, got {f.Kind()}.")
 
     def extrude(self, vector: Vector) -> Solid:
         """
@@ -829,15 +783,7 @@ class Shell(Shape):
     Represents a shell.
     """
 
-    def __init__(self, s: IShape):
-        """
-        Initialize from an IShape.
-
-        :param s: Underlying topological shape.
-        """
-        super().__init__(s)
-        if s.Kind() != IShapeKind.Shell:
-            raise TypeError(f"Expected IShapeKind.Shell, got {s.Kind()}.")
+    _ikind = IShapeKind.Shell
 
     def extrude(self, vector: Vector) -> CompSolid:
         """
@@ -864,6 +810,8 @@ class Solid(Shape):
     Represents a solid.
     """
 
+    _ikind = IShapeKind.Solid
+
     @classmethod
     def by_loft(
         cls, shapes: Iterable[Vertex | Edge | Wire], is_ruled: bool = False, tol: float = 1.0e-6
@@ -887,37 +835,21 @@ class Solid(Shape):
 
         return cls(tool.shape().ishape)
 
-    def __init__(self, s: IShape):
-        """
-        Initialize from an IShape.
-
-        :param s: Underlying topological shape.
-        """
-        super().__init__(s)
-        if s.Kind() != IShapeKind.Solid:
-            raise TypeError(f"Expected IShapeKind.Solid, got {s.Kind()}.")
-
 
 class CompSolid(Shape):
     """
     Represents a compsolid.
     """
 
-    def __init__(self, cs: IShape):
-        """
-        Initialize from an IShape.
-
-        :param cs: Underlying topological shape.
-        """
-        super().__init__(cs)
-        if cs.Kind() != IShapeKind.CompSolid:
-            raise TypeError(f"Expected IShapeKind.CompSolid, got {cs.Kind()}.")
+    _ikind = IShapeKind.CompSolid
 
 
 class Compound(Shape):
     """
     Represents a compound.
     """
+
+    _ikind = IShapeKind.Compound
 
     @classmethod
     def by_shapes(cls, shapes: Iterable[Shape]) -> Compound:
@@ -931,15 +863,10 @@ class Compound(Shape):
         icompound = IShape.MakeCompound(ishapes)
         return cls(icompound)
 
-    def __init__(self, c: IShape):
-        """
-        Initialize from an IShape.
 
-        :param c: Underlying topological shape.
-        """
-        super().__init__(c)
-        if c.Kind() != IShapeKind.Compound:
-            raise TypeError(f"Expected IShapeKind.Compound, got {c.Kind()}.")
+_CORE_CLASSES: dict[IShapeKind, type[Shape]] = {
+    c._ikind: c for c in (Vertex, Edge, Wire, Face, Shell, Solid, CompSolid, Compound)
+}
 
 
 def _kind_of(cls: type[Shape]) -> ShapeKind:
@@ -950,19 +877,9 @@ def _kind_of(cls: type[Shape]) -> ShapeKind:
     :return: Shape kind.
     :raises TypeError: If the class is not a core shape class (e.g. the base class or a composite).
     """
-    kinds = {
-        Vertex: ShapeKind.VERTEX,
-        Edge: ShapeKind.EDGE,
-        Wire: ShapeKind.WIRE,
-        Face: ShapeKind.FACE,
-        Shell: ShapeKind.SHELL,
-        Solid: ShapeKind.SOLID,
-        CompSolid: ShapeKind.COMPSOLID,
-        Compound: ShapeKind.COMPOUND,
-    }
-    if cls not in kinds:
+    if _CORE_CLASSES.get(cls._ikind) is not cls:
         raise TypeError(f"Expected a core shape class, got {cls.__name__}.")
-    return kinds[cls]
+    return ShapeKind(cls._ikind)
 
 
 class ShapeTool(Generic[ToolT]):

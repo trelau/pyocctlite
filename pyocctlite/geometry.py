@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from functools import cached_property
+from typing import ClassVar
 
 from pyocctlite._occtlite import (
     IAxis,
@@ -369,6 +370,8 @@ class Curve2D:
     :ivar icurve: Underlying 2D curve.
     """
 
+    _ikind: ClassVar[ICurve2DKind] = ICurve2DKind.Unknown
+
     @staticmethod
     def by_icurve2d(icurve: ICurve2D) -> Curve2D:
         """
@@ -377,15 +380,10 @@ class Curve2D:
         :param icurve: Underlying 2D curve.
         :return: New 2D curve.
         """
-        match icurve.Kind():
-            case ICurve2DKind.Line:
-                return Line2D(icurve)
-            case ICurve2DKind.Ellipse:
-                return Ellipse2D(icurve)
-            case ICurve2DKind.Trimmed:
-                return TrimmedCurve2D(icurve)
-            case _:
-                raise NotImplementedError(f"Unsupported 2D curve kind: {icurve.Kind()}.")
+        kind_class = _CURVE2D_CLASSES.get(icurve.Kind())
+        if kind_class is None:
+            raise NotImplementedError(f"Unsupported 2D curve kind: {icurve.Kind()}.")
+        return kind_class(icurve)
 
     def __init__(self, c: ICurve2D):
         """
@@ -395,6 +393,8 @@ class Curve2D:
         """
         if not isinstance(c, ICurve2D):
             raise TypeError(f"Expected ICurve2D, got {type(c).__name__}.")
+        if self._ikind not in (ICurve2DKind.Unknown, c.Kind()):
+            raise TypeError(f"Expected {self._ikind}, got {c.Kind()}.")
         self._icurve = c
 
     @property
@@ -470,6 +470,8 @@ class Line2D(Curve2D):
     direction.
     """
 
+    _ikind = ICurve2DKind.Line
+
     @classmethod
     def by_points(cls, p1: Point2D, p2: Point2D) -> Line2D:
         """
@@ -482,16 +484,6 @@ class Line2D(Curve2D):
         """
         icurve = ICurve2D.MakeLine(p1.ipoint, p2.ipoint)
         return cls(icurve)
-
-    def __init__(self, c: ICurve2D):
-        """
-        Initialize from an ICurve2D.
-
-        :param c: Underlying 2D curve.
-        """
-        super().__init__(c)
-        if c.Kind() != ICurve2DKind.Line:
-            raise TypeError(f"Expected ICurve2DKind.Line, got {c.Kind()}.")
 
     @cached_property
     def origin(self) -> Point2D:
@@ -518,6 +510,8 @@ class Ellipse2D(Curve2D):
     the angle in radians from that axis.
     """
 
+    _ikind = ICurve2DKind.Ellipse
+
     @classmethod
     def by_radii(cls, rmajor: float, rminor: float, frame: Frame2D | None = None) -> Ellipse2D:
         """
@@ -534,16 +528,6 @@ class Ellipse2D(Curve2D):
 
         icurve = ICurve2D.MakeEllipse(frame.iframe, rmajor, rminor)
         return cls(icurve)
-
-    def __init__(self, c: ICurve2D):
-        """
-        Initialize from an ICurve2D.
-
-        :param c: Underlying 2D curve.
-        """
-        super().__init__(c)
-        if c.Kind() != ICurve2DKind.Ellipse:
-            raise TypeError(f"Expected ICurve2DKind.Ellipse, got {c.Kind()}.")
 
     @cached_property
     def frame(self) -> Frame2D:
@@ -578,6 +562,8 @@ class TrimmedCurve2D(Curve2D):
     Represents a trimmed 2D curve, using the parameter of the underlying curve.
     """
 
+    _ikind = ICurve2DKind.Trimmed
+
     @classmethod
     def by_curve(cls, curve: Curve2D, u0: float, u1: float) -> TrimmedCurve2D:
         """
@@ -605,15 +591,10 @@ class TrimmedCurve2D(Curve2D):
         icurve = ICurve2D.MakeTrimmed(p1.ipoint, p2.ipoint)
         return cls(icurve)
 
-    def __init__(self, c: ICurve2D):
-        """
-        Initialize from an ICurve2D.
 
-        :param c: Underlying 2D curve.
-        """
-        super().__init__(c)
-        if c.Kind() != ICurve2DKind.Trimmed:
-            raise TypeError(f"Expected ICurve2DKind.Trimmed, got {c.Kind()}.")
+_CURVE2D_CLASSES: dict[ICurve2DKind, type[Curve2D]] = {
+    c._ikind: c for c in (Line2D, Ellipse2D, TrimmedCurve2D)
+}
 
 
 class Point:
@@ -1177,6 +1158,8 @@ class Curve:
     :ivar icurve: Underlying 3D curve.
     """
 
+    _ikind: ClassVar[ICurveKind] = ICurveKind.Unknown
+
     @staticmethod
     def by_icurve(icurve: ICurve) -> Curve:
         """
@@ -1185,17 +1168,10 @@ class Curve:
         :param icurve: Underlying 3D curve.
         :return: New curve.
         """
-        match icurve.Kind():
-            case ICurveKind.Line:
-                return Line(icurve)
-            case ICurveKind.Circle:
-                return Circle(icurve)
-            case ICurveKind.Trimmed:
-                return TrimmedCurve(icurve)
-            case ICurveKind.BSpline:
-                return BSplineCurve(icurve)
-            case _:
-                raise NotImplementedError(f"Unsupported curve kind: {icurve.Kind()}.")
+        kind_class = _CURVE_CLASSES.get(icurve.Kind())
+        if kind_class is None:
+            raise NotImplementedError(f"Unsupported curve kind: {icurve.Kind()}.")
+        return kind_class(icurve)
 
     def __init__(self, c: ICurve):
         """
@@ -1205,6 +1181,8 @@ class Curve:
         """
         if not isinstance(c, ICurve):
             raise TypeError(f"Expected ICurve, got {type(c).__name__}.")
+        if self._ikind not in (ICurveKind.Unknown, c.Kind()):
+            raise TypeError(f"Expected {self._ikind}, got {c.Kind()}.")
         self._icurve = c
 
     @property
@@ -1280,6 +1258,8 @@ class Line(Curve):
     direction.
     """
 
+    _ikind = ICurveKind.Line
+
     @classmethod
     def by_points(cls, p1: Point, p2: Point) -> Line:
         """
@@ -1292,16 +1272,6 @@ class Line(Curve):
         """
         icurve = ICurve.MakeLine(p1.ipoint, p2.ipoint)
         return cls(icurve)
-
-    def __init__(self, c: ICurve):
-        """
-        Initialize from an ICurve.
-
-        :param c: Underlying 3D curve.
-        """
-        super().__init__(c)
-        if c.Kind() != ICurveKind.Line:
-            raise TypeError(f"Expected ICurveKind.Line, got {c.Kind()}.")
 
     @cached_property
     def origin(self) -> Point:
@@ -1326,6 +1296,8 @@ class Circle(Curve):
     """
     Represents a 3D circle, parameterized by the angle in radians from the x-direction of the frame.
     """
+
+    _ikind = ICurveKind.Circle
 
     @classmethod
     def by_radius(cls, radius: float, frame: Frame | None = None) -> Circle:
@@ -1357,16 +1329,6 @@ class Circle(Curve):
         icurve = ICurve.MakeCircle(p1.ipoint, p2.ipoint, p3.ipoint)
         return cls(icurve)
 
-    def __init__(self, c: ICurve):
-        """
-        Initialize from an ICurve.
-
-        :param c: Underlying 3D curve.
-        """
-        super().__init__(c)
-        if c.Kind() != ICurveKind.Circle:
-            raise TypeError(f"Expected ICurveKind.Circle, got {c.Kind()}.")
-
     @cached_property
     def frame(self) -> Frame:
         """
@@ -1391,6 +1353,8 @@ class TrimmedCurve(Curve):
     Represents a trimmed 3D curve, using the parameter of the underlying curve.
     """
 
+    _ikind = ICurveKind.Trimmed
+
     @classmethod
     def by_circular_arc(cls, p1: Point, p2: Point, p3: Point) -> TrimmedCurve:
         """
@@ -1405,21 +1369,13 @@ class TrimmedCurve(Curve):
         icurve = ICurve.MakeCircularArc(p1.ipoint, p2.ipoint, p3.ipoint)
         return cls(icurve)
 
-    def __init__(self, c: ICurve):
-        """
-        Initialize from an ICurve.
-
-        :param c: Underlying 3D curve.
-        """
-        super().__init__(c)
-        if c.Kind() != ICurveKind.Trimmed:
-            raise TypeError(f"Expected ICurveKind.Trimmed, got {c.Kind()}.")
-
 
 class BSplineCurve(Curve):
     """
     Represents a 3D B-spline curve.
     """
+
+    _ikind = ICurveKind.BSpline
 
     @classmethod
     def by_interpolation(cls, points: Iterable[Point], tol: float = 1.0e-7) -> BSplineCurve:
@@ -1435,15 +1391,10 @@ class BSplineCurve(Curve):
         icurve = ICurve.MakeBSplineByInterpolation([p.ipoint for p in points], tol)
         return cls(icurve)
 
-    def __init__(self, c: ICurve):
-        """
-        Initialize from an ICurve.
 
-        :param c: Underlying 3D curve.
-        """
-        super().__init__(c)
-        if c.Kind() != ICurveKind.BSpline:
-            raise TypeError(f"Expected ICurveKind.BSpline, got {c.Kind()}.")
+_CURVE_CLASSES: dict[ICurveKind, type[Curve]] = {
+    c._ikind: c for c in (Line, Circle, TrimmedCurve, BSplineCurve)
+}
 
 
 class Surface:
@@ -1453,6 +1404,8 @@ class Surface:
     :ivar isurface: Underlying surface.
     """
 
+    _ikind: ClassVar[ISurfaceKind] = ISurfaceKind.Unknown
+
     @staticmethod
     def by_isurface(isurface: ISurface) -> Surface:
         """
@@ -1461,11 +1414,10 @@ class Surface:
         :param isurface: Underlying surface.
         :return: New surface.
         """
-        match isurface.Kind():
-            case ISurfaceKind.Cylindrical:
-                return CylindricalSurface(isurface)
-            case _:
-                raise NotImplementedError(f"Unsupported surface kind: {isurface.Kind()}.")
+        kind_class = _SURFACE_CLASSES.get(isurface.Kind())
+        if kind_class is None:
+            raise NotImplementedError(f"Unsupported surface kind: {isurface.Kind()}.")
+        return kind_class(isurface)
 
     def __init__(self, s: ISurface):
         """
@@ -1475,6 +1427,8 @@ class Surface:
         """
         if not isinstance(s, ISurface):
             raise TypeError(f"Expected ISurface, got {type(s).__name__}.")
+        if self._ikind not in (ISurfaceKind.Unknown, s.Kind()):
+            raise TypeError(f"Expected {self._ikind}, got {s.Kind()}.")
         self._isurface = s
 
     @property
@@ -1493,6 +1447,8 @@ class CylindricalSurface(Surface):
     from the x-direction of the frame, and v, the distance along the z-direction.
     """
 
+    _ikind = ISurfaceKind.Cylindrical
+
     @classmethod
     def by_radius(cls, radius: float, frame: Frame | None = None) -> CylindricalSurface:
         """
@@ -1508,16 +1464,6 @@ class CylindricalSurface(Surface):
 
         isurface = ISurface.MakeCylindrical(frame.iframe, radius)
         return cls(isurface)
-
-    def __init__(self, s: ISurface):
-        """
-        Initialize from an ISurface.
-
-        :param s: Underlying surface.
-        """
-        super().__init__(s)
-        if s.Kind() != ISurfaceKind.Cylindrical:
-            raise TypeError(f"Expected ISurfaceKind.Cylindrical, got {s.Kind()}.")
 
     @cached_property
     def frame(self) -> Frame:
@@ -1536,6 +1482,9 @@ class CylindricalSurface(Surface):
         :return: Radius.
         """
         return self.isurface.CylindricalData().Radius
+
+
+_SURFACE_CLASSES: dict[ISurfaceKind, type[Surface]] = {c._ikind: c for c in (CylindricalSurface,)}
 
 
 class ProjectPointToCurve:
