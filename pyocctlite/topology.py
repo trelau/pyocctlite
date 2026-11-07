@@ -819,7 +819,8 @@ class Solid(Shape):
             else:
                 raise NotImplementedError()
 
-        return cls(tool.shape().ishape)
+        # not cls, because composites also need their named parts
+        return Solid(tool.shape().ishape)
 
 
 class CompSolid(Shape):

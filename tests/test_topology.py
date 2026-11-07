@@ -19,7 +19,7 @@ from pyocctlite.geometry import (
     TrimmedCurve2D,
     Vector,
 )
-from pyocctlite.primitives import Box, Sphere
+from pyocctlite.primitives import Box, Cylinder, Sphere
 from pyocctlite.topology import (
     ChamferShape,
     Compound,
@@ -394,6 +394,12 @@ class TestSolid(unittest.TestCase):
     def test_by_loft(self):
         s = Solid.by_loft([_square(z=0.0), _square(z=1.0)])
         self.assertAlmostEqual(s.volume, 1.0)
+
+    def test_by_loft_on_composite(self):
+        for cls in (Box, Cylinder, Sphere):
+            s = cls.by_loft([_square(z=0.0), _square(z=1.0)])
+            self.assertIs(type(s), Solid)
+            self.assertAlmostEqual(s.volume, 1.0)
 
     def test_by_loft_unsupported(self):
         e = Edge.by_points(Point.by_xyz(0, 0, 0), Point.by_xyz(1, 0, 0))
@@ -878,8 +884,6 @@ class TestMapShape(unittest.TestCase):
         self.assertNotIn(other, edges)
 
     def test_composite_rejected(self):
-        from pyocctlite.primitives import Cylinder
-
         with self.assertRaises(TypeError):
             _box().map(Cylinder)
 
