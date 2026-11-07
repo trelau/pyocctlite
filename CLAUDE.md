@@ -38,6 +38,8 @@ process.
 
 - **C++** (`src/`, `I`-prefixed): private, and exists only to serve the Python API. Receive inputs, 
 run OCCT, return results, handle failures. Keep it as simple and thin as possible.
+Custom C++ beyond OCCT is the exception, not off the table: propose it when it's clearly the best
+way to serve users, human or agent (the renderer).
 - **Python** (`pyocctlite/`): naming, defaults, composition, validation. Wrappers hold their `I`
 object as `i<name>` (`Point.ipoint`).
 
@@ -68,7 +70,7 @@ as an expected failure in a test and report it; don't silently work around it.
 | Shared base API | One OCCT base API used by many tools | `MakeIShape.hpp`, `BooleanIShapes.hpp` |
 | Collection | Sequence-like results | `MapIShape` / `MapShape` |
 | Composite | Python-only object with named parts | `Cylinder`, `Styled` |
-| Render | One-call output; the only module-level functions | `RenderIShapes` / `render_image` |
+| Render | Custom C++ output, called through one-call functions | `RenderIShapes` / `render_image` |
 | Errors | Domain errors, both layers | `IErrors.hpp` / `errors.py` |
 
 ## Conventions
