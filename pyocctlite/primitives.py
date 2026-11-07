@@ -106,9 +106,6 @@ class Box(Solid):
         right_face = tool.generated_shapes(right_edge)[0]
 
         # make sure shapes are the expected types
-        assert isinstance(solid, Solid)
-        assert isinstance(bottom_face, Face)
-        assert isinstance(top_face, Face)
         assert isinstance(back_face, Face)
         assert isinstance(front_face, Face)
         assert isinstance(left_face, Face)
@@ -327,9 +324,6 @@ class Cylinder(Solid):
         lateral_face = tool.generated_shapes(e)[0]
 
         # make sure shapes are the expected types
-        assert isinstance(solid, Solid)
-        assert isinstance(bottom_face, Face)
-        assert isinstance(top_face, Face)
         assert isinstance(lateral_face, Face)
 
         return cls(solid, bottom_face, top_face, lateral_face)
